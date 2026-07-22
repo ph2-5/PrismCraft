@@ -1,6 +1,6 @@
 # PrismCraft — 完整 API 参考手册
 
-> 版本: 1.3.0 | 更新日期: 2026-07-14 | 架构: Electron + Vite + React + DDD
+> 版本: 1.3.0 | 更新日期: 2026-07-23 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -11,7 +11,7 @@
 | 部分 | 文件 | 覆盖范围 | 预估导出数 |
 |------|------|---------|-----------|
 | 第一部分 | [API_REFERENCE_PART1.md](./API_REFERENCE_PART1.md) | 领域层 + 共享逻辑层 | ~250 |
-| 第二部分 | [API_REFERENCE_PART2.md](./API_REFERENCE_PART2.md) | 11 个业务模块 | ~277 |
+| 第二部分 | [API_REFERENCE_PART2.md](./API_REFERENCE_PART2.md) | 42 个业务模块 | ~277 |
 | 第三部分 | [API_REFERENCE_PART3.md](./API_REFERENCE_PART3.md) | 共享层 + 基础设施层 | ~450 |
 | 第四部分 | [API_REFERENCE_PART4.md](./API_REFERENCE_PART4.md) | 应用层 + Electron 主进程 | ~210 |
 | **合计** | | | **~1187** |
@@ -41,7 +41,7 @@ domain → NOTHING (pure types)
 
 | 功能 | 所在部分 | 关键模块/文件 |
 |------|---------|-------------|
-| 故事创作与分镜规划 | 第二部分 | story/planning, story/generation |
+| 故事创作与分镜规划 | 第二部分 | storyboard/planning, storyboard/generation, novel |
 | AI 图片生成 | 第三部分 | infrastructure/ai-providers/image |
 | AI 视频生成 | 第三部分 | infrastructure/ai-providers/video |
 | 视频任务管理 (CQRS) | 第二部分 | video/task-management |
@@ -92,3 +92,16 @@ domain → NOTHING (pure types)
 | infrastructure | ~80 | ~250 | 服务类, 工具函数, 存储模块 |
 | app | ~60 | ~60 | 页面组件, Hooks |
 | electron/src | ~110 | ~150 | API 路由, 插件, 处理器, 类型 |
+
+---
+
+## 相关文档
+
+| 文档 | 内容 |
+|------|------|
+| [MODULES.md](MODULES.md) | 模块全景图（42 模块、56 子域） |
+| [agent-tools-architecture.md](agent-tools-architecture.md) | Agent Tools 架构（154 工具、20 域、14 模块） |
+| [di-tokens.md](di-tokens.md) | DI Token 清单（46 个 Token，6 类 A-F） |
+| [ports.md](ports.md) | Port 接口清单（20 个 Port） |
+| [novel-pipeline-guide.md](novel-pipeline-guide.md) | Novel 故事创作流水线指南 |
+| [timeline-implementation.md](timeline-implementation.md) | 时间线变体系统实施指南 |

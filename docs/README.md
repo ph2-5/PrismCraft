@@ -13,8 +13,9 @@
 | ★★☆ | [HTTP-API.md](HTTP-API.md) | HTTP API 文档（85 条路由、9 个路由组） | 查阅主进程 API 时 |
 | ★★☆ | `src/modules/{target}/MODULE.md` | 目标模块公共 API、不变量、依赖 | 修改特定模块时 |
 | ★★☆ | `src/modules/{target}/{subdomain}/contract.json` | 子域合约、invariants | 修改特定子域时 |
-| ★☆☆ | [ports.md](ports.md) | Port 接口清单（16 个 Port） | 新增/修改 Port 时 |
-| ★☆☆ | [di-tokens.md](di-tokens.md) | DI 容器 Token 参考 | 新增/修改 DI Token 时 |
+| ★★☆ | [MODULES.md](MODULES.md) | 模块全景图（42 模块、56 子域） | 了解模块全貌时 |
+| ★☆☆ | [ports.md](ports.md) | Port 接口清单（20 个 Port） | 新增/修改 Port 时 |
+| ★☆☆ | [di-tokens.md](di-tokens.md) | DI 容器 Token 参考（46 个 Token，6 类 A-F） | 新增/修改 DI Token 时 |
 | ★☆☆ | [CODE_CATALOG.md](CODE_CATALOG.md) | 完整代码目录与文件说明 | 定位文件时 |
 | ★☆☆ | [API_REFERENCE.md](API_REFERENCE.md)（含 [PART1](API_REFERENCE_PART1.md)~[PART4](API_REFERENCE_PART4.md)） | React Hooks/组件/Store/服务 API 参考（分 5 部分） | 查阅模块 API 时 |
 
@@ -33,13 +34,15 @@
 
 | 文档 | 内容 | 何时读 |
 |------|------|--------|
-| [story-pipeline-design.md](story-pipeline-design.md) | 故事创作流水线设计（10 步流程、三栏布局、竞品对比） | 故事创作功能开发 |
+| [novel-pipeline-guide.md](novel-pipeline-guide.md) | Novel 故事创作流水线指南（10 阶段状态机、结构/节奏/连续性） | 故事创作功能开发 |
+| [timeline-implementation.md](timeline-implementation.md) | 时间线变体系统实施指南（8 维变体参数系统） | 时间线编辑功能开发 |
+| [agent-tools-architecture.md](agent-tools-architecture.md) | Agent Tools 架构（154 工具、20 域、14 模块） | Agent 工具开发时 |
 | [plugin-specification.md](plugin-specification.md) | 插件系统规范 | 开发插件时 |
 | [plugin-spec.schema.json](plugin-spec.schema.json) | 插件规范 JSON Schema | 验证插件配置时 |
 | [bug-audit-methodology.md](bug-audit-methodology.md) | Bug 审计方法论（3 阶段工作流） | 执行 Bug 审计时 |
-| [bug-audit-report.md](bug-audit-report.md) | Bug 审计报告（R1-R18 来源） | 了解历史 Bug 模式 |
+| [archive/bug-audit-report.md](archive/bug-audit-report.md) | Bug 审计报告（R1-R18 来源） | 了解历史 Bug 模式 |
 | [development-plan.md](development-plan.md) | 项目开发计划 | 规划阶段 |
-| [ui-migration-plan.md](ui-migration-plan.md) | UI 迁移计划（4 阶段） | UI 重构时 |
+| [archive/ui-migration-plan.md](archive/ui-migration-plan.md) | UI 迁移计划（4 阶段） | UI 重构时 |
 | [AI-MAINTENANCE-GUIDE.md](AI-MAINTENANCE-GUIDE.md) | 修改流程、验证步骤、常见陷阱 | AI 维护参考 |
 
 ## 项目文件

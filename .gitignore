@@ -123,3 +123,8 @@ docs/development-plan/
 docs/ui-migration-plan.md
 docs/story-pipeline-design.md
 docs/timeline-variant-design.md
+
+# Archived internal docs (moved from gitignored locations, still not for public release)
+docs/archive/ui-migration-plan.md
+docs/archive/phase-polish.md
+docs/archive/preliminary-submission.md

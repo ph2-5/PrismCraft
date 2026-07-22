@@ -3605,8 +3605,9 @@ export const router: ReturnType<typeof createBrowserRouter>
 | 路径 | 组件 |
 |------|------|
 | `/` | Home |
-| `/story` | StoryPage |
-| `/story/beat/:beatId` | BeatDetailPage |
+| `/storyboard` | StoryboardPage |
+| `/storyboard/:storyId` | StoryboardPage |
+| `/storyboard/beat/:beatId` | BeatDetailPage |
 | `/characters` | CharactersPage |
 | `/scenes` | ScenesPage |
 | `/asset-library` | AssetLibraryPage |

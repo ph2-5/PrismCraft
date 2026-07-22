@@ -2621,38 +2621,70 @@ export const API_ENDPOINTS: {
 
 ### 2.5 DI 容器 (di/)
 
+> **共 46 个 Token, 分 6 类 (A-F)**, 完整清单与说明详见 [di-tokens.md](di-tokens.md)。
+
 #### container.ts
 
 ```typescript
 /** DI 容器 */
 export const container: {
-  // A. Domain Port 实现
+  // A. Domain Port 实现 (Port 接口的具体实现)
   videoProvider: VideoService;
+  imageProvider: ImageService;
+  textProvider: TextService;
+  embeddingProvider: EmbeddingService;
+  audioProvider: AudioService;
+  fileUploader: FileUploader;
+  videoTaskStorage: typeof import("@/infrastructure/storage/video-tasks").videoTaskStorage;
   characterStorage: typeof import("@/infrastructure/storage/characters").characterStorage;
   sceneStorage: typeof import("@/infrastructure/storage/scenes").sceneStorage;
   storyStorage: typeof import("@/infrastructure/storage/stories").storyStorage;
-  videoTaskStorage: typeof import("@/infrastructure/storage/video-tasks").videoTaskStorage;
-  elementStorage: typeof import("@/infrastructure/storage/elements").elementStorage;
-  storyboardStorage: typeof import("@/infrastructure/storage/storyboard").storyboardStorage;
-  collectionStorage: typeof import("@/infrastructure/storage/collections").collectionStorage;
-  versionStorage: typeof import("@/infrastructure/storage/versions").versionStorage;
-  templateStorage: typeof import("@/infrastructure/storage/templates").templateStorage;
-  autoSaveStorage: typeof import("@/infrastructure/storage/auto-save").autoSaveStorage;
-  sessionStorage: typeof import("@/infrastructure/storage/sessions").sessionStorage;
-  importExportStorage: typeof import("@/infrastructure/storage/import-export").importExportStorage;
-  errorLogStorage: typeof import("@/infrastructure/storage/error-logs").errorLogStorage;
-  videoCacheStorage: typeof import("@/infrastructure/storage/video-cache").videoCacheStorage;
-  imageCacheStorage: typeof import("@/infrastructure/storage/image-cache").imageCacheStorage;
-  mediaAssetRepository: typeof import("@/infrastructure/database/media-asset-repository").mediaAssetRepository;
+  subShotStorage: typeof import("@/infrastructure/storage/sub-shots").subShotStorage;
+  generationAssetStorage: typeof import("@/infrastructure/storage/generation-assets").generationAssetStorage;
+  syncStorage: SyncStorage;
+  fileStorage: FileStorage;
 
-  // B. 有状态服务
+  // B. 有状态服务 (单例, 需测试替换)
   eventBus: EventBus;
   apiClient: ApiClient;
+  imageApi: ImageApi;
+  videoApi: VideoApi;
+  textApi: TextApi;
+  preferencesStorage: PreferencesStorage;
 
-  // E. 懒加载模块
+  // C. Storage 实例 (有状态, 模块无法直接导入)
+  versionStorage: typeof import("@/infrastructure/storage/versions").versionStorage;
+  elementStorage: typeof import("@/infrastructure/storage/elements").elementStorage;
+  videoCacheStorage: typeof import("@/infrastructure/storage/video-cache").videoCacheStorage;
+  imageCacheStorage: typeof import("@/infrastructure/storage/image-cache").imageCacheStorage;
+  collectionStorage: typeof import("@/infrastructure/storage/collections").collectionStorage;
+  storyboardStorage: typeof import("@/infrastructure/storage/storyboard").storyboardStorage;
+  importExportStorage: typeof import("@/infrastructure/storage/import-export").importExportStorage;
+  templateStorage: typeof import("@/infrastructure/storage/templates").templateStorage;
+  autoSaveStorage: typeof import("@/infrastructure/storage/auto-save").autoSaveStorage;
+  errorLogStorage: typeof import("@/infrastructure/storage/error-logs").errorLogStorage;
+  sessionStorage: typeof import("@/infrastructure/storage/sessions").sessionStorage;
+  novelProjectStorage: typeof import("@/infrastructure/storage/novel-projects").novelProjectStorage;
+  propStorage: typeof import("@/infrastructure/storage/props").propStorage;
+  characterVariantStorage: typeof import("@/infrastructure/storage/character-variants").characterVariantStorage;
+  sceneVariantStorage: typeof import("@/infrastructure/storage/scene-variants").sceneVariantStorage;
+  timelineStorage: typeof import("@/infrastructure/storage/timeline").timelineStorage;
+  plotNodeStorage: typeof import("@/infrastructure/storage/plot-nodes").plotNodeStorage;
+  storyTemplateStorage: typeof import("@/infrastructure/storage/story-templates").storyTemplateStorage;
+
+  // D. Repository 实例 (Drizzle ORM)
+  mediaAssetRepository: typeof import("@/infrastructure/database/media-asset-repository").mediaAssetRepository;
+
+  // E. 懒加载模块 (动态 import, 避免循环依赖)
   syncEngine: SyncEngine;
   referenceEngine: ReferenceEngine;
   elementManager: ElementStorage;
+
+  // F. Agent 服务 (动态 import, 避免 infrastructure 静态依赖 modules)
+  agentConversationManager: AgentConversationManager;
+  agentToolRegistry: AgentToolRegistry;
+  agentToolExecutor: AgentToolExecutor;
+  agentMemoryService: AgentMemoryService;
 };
 
 /** 获取 Token 注册表 */

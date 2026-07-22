@@ -87,7 +87,7 @@ prismcraft-source-code/
 ```
 src/
 ├── domain/          → 纯类型、Schema、Result 类型。禁止导入 modules/ 或 infrastructure/
-├── modules/         → 11 个业务子域（story, video, shot, prompt, asset, sync, character, scene, persistence, agent）
+├── modules/         → 42 个业务模块（核心业务 25 / 基础设施 4 / 工具 13；完整清单见 [MODULES.md](MODULES.md)）
 ├── infrastructure/  → DI 容器、存储、网络、API 客户端、AI 提供商
 ├── shared/          → 跨模块 UI（Toast、Sidebar、ErrorBoundary）、工具函数、错误日志
 ├── app/             → 页面组件和布局（通过 Context 消费模块）
@@ -118,7 +118,7 @@ electron/src/
 ├── preload.ts        → IPC 桥接（5 级权限体系 + 限流）
 ├── database/         → SQLite 连接、Schema 构建器、迁移
 ├── handlers/         → IPC 处理器（数据库、配置、同步、安全配置）
-├── plugins/          → 插件注册、用户插件加载、10 个 AI 提供商
+├── plugins/          → 插件注册、用户插件加载、13 个 AI 提供商
 ├── security/         → SSRF 防护（仅云元数据拦截）、密钥存储
 └── logging/          → 日志系统（ConsoleTransport + FileTransport）
 ```
@@ -145,7 +145,7 @@ electron/src/
 
 ### 3.1 创建新功能
 
-1. **确定所属模块**：新功能应归入现有 10 个模块之一。若无法归入，考虑创建新模块。
+1. **确定所属模块**：新功能应归入现有 42 个模块之一（完整清单见 [MODULES.md](MODULES.md)）。若无法归入，考虑创建新模块。
 2. **阅读模块契约**：按顺序阅读 `MODULE.md` → `contract.json` → `.ai/modules/{module}.md` → `index.ts`。
 3. **在对应子域中开发**：
    - 业务逻辑 → `services/`
@@ -535,13 +535,30 @@ if (!isElectron()) {
 
 ### Q10: 如何添加新的 DI Token
 
-1. 确定所属类别（A-E）：
+1. 确定所属类别（A-F，共 46 个 Token，详见 [di-tokens.md](di-tokens.md)）：
    - **A**：Domain Port 实现
    - **B**：有状态服务
    - **C**：Storage 实例
    - **D**：Repository 实例
    - **E**：懒加载模块（需注释说明为何不能直接导入）
+   - **F**：Agent 服务（Agent 模块动态导入，E 类特化）
 
 2. 在 `src/infrastructure/di/container.ts` 中注册
 3. 若为类别 E，添加注释说明循环依赖原因
 4. 运行 `npm run di-docs` 更新 `docs/di-tokens.md`
+
+---
+
+## 9. 相关文档
+
+| 文档 | 用途 |
+|------|------|
+| [MODULES.md](MODULES.md) | 42 个模块全景图（子域、Public API、依赖详情） |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 全局架构、依赖方向、状态机、数据流 |
+| [PROJECT-GUIDE.md](PROJECT-GUIDE.md) | 项目全方位指南 |
+| [AI-MAINTENANCE-GUIDE.md](AI-MAINTENANCE-GUIDE.md) | AI 维护操作手册 |
+| [di-tokens.md](di-tokens.md) | DI 容器 46 个 Token 清单（6 类 A-F） |
+| [ports.md](ports.md) | Port 接口清单（含分类、依赖方向图） |
+| [agent-tools-architecture.md](agent-tools-architecture.md) | 智能体工具架构（154 个工具，20 个域） |
+| [novel-pipeline-guide.md](novel-pipeline-guide.md) | 小说导入流水线指南（10 阶段状态机） |
+| [timeline-implementation.md](timeline-implementation.md) | 时间线实现（8 维变体参数系统） |

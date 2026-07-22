@@ -1,15 +1,53 @@
 # API 参考手册 — 第一部分：领域层与共享逻辑层
 
-> 本文档详细记录 `src/domain` 和 `src/shared-logic` 两个层的所有导出 API。
+> 自动生成于 2026-07-23。基于 `src/domain/` 和 `src/shared-logic/` 实际代码扫描。
 > 所有签名均从源码中精确提取，包含完整的参数类型和返回类型。
+
+---
+
+## 目录
+
+- [1. 领域层 (src/domain)](#1-领域层-srcdomain)
+  - [1.1 端口接口 (domain/ports)](#11-端口接口-domainports)
+  - [1.2 Schema (domain/schemas)](#12-schema-domainschemas)
+  - [1.3 类型 (domain/types)](#13-类型-domaintypes)
+  - [1.4 领域服务 (domain/services)](#14-领域服务-domainservices)
+  - [1.5 领域工具 (domain/utils)](#15-领域工具-domainutils)
+  - [1.6 视频任务状态机 (domain/video)](#16-视频任务状态机-domainvideo)
+- [2. 共享逻辑层 (src/shared-logic)](#2-共享逻辑层-srcshared-logic)
+  - [2.0 零外部依赖原则](#20-零外部依赖原则)
+  - [2.1 shot/ 子模块](#21-shot-子模块)
+  - [2.2 prompt/ 子模块](#22-prompt-子模块)
+  - [2.3 video/ 子模块](#23-video-子模块)
+  - [2.4 story/ 子模块](#24-story-子模块)
+  - [2.5 timeline/ 子模块](#25-timeline-子模块)
+  - [2.6 retry/ 子模块](#26-retry-子模块)
+  - [2.7 agent/ 子模块](#27-agent-子模块)
+  - [2.8 json/ 子模块](#28-json-子模块)
+  - [2.9 migration/ 子模块](#29-migration-子模块)
 
 ---
 
 ## 1. 领域层 (src/domain)
 
+领域层是纯类型与抽象接口层，**不包含任何业务实现**。它定义 Port 接口（供基础设施实现）、Zod Schema（数据验证）、纯类型定义、以及少量无副作用的领域服务与工具函数。
+
+### 依赖方向（CRITICAL）
+
+```
+domain/ → NOTHING（纯类型，零外部依赖）
+```
+
+- `domain/` 不得导入 `@/modules/*`、`@/infrastructure/*`、`@/shared-logic/*`
+- Port 接口仅由基础设施层实现，通过 DI 容器注入到模块层
+
 ### 1.1 端口接口 (domain/ports)
 
-#### storage-port.ts
+所有 Port 接口通过 `src/domain/ports/index.ts` 统一 barrel 导出。模块应从 `@/domain/ports` 导入。与 `docs/ports.md` 保持一致。
+
+#### storage-port.ts — 存储端口集合
+
+包含 6 个存储 Port 接口，统一管理视频任务、角色、场景、故事、子分镜、生成资产的持久化。
 
 ##### `IVideoTaskStorage`
 
@@ -44,7 +82,7 @@
 | `getCharacterById` | `(id: string): Promise<Character \| null>` | 按 ID 获取角色 |
 | `getCharacterVersion` | `(id: string): Promise<number \| null>` | 获取角色版本号 |
 | `createCharacter` | `(character: Partial<Character>): Promise<void>` | 创建角色 |
-| `updateCharacter` | `(id: string, updates: Partial<Character>, version?: number): Promise<void>` | 更新角色 |
+| `updateCharacter` | `(id: string, updates: Partial<Character>, version?: number): Promise<void>` | 更新角色（乐观锁） |
 | `deleteCharacter` | `(id: string): Promise<void>` | 删除角色 |
 | `incrementCharacterUseCount` | `(id: string): Promise<void>` | 增加角色使用计数 |
 | `getOutfitsForCharacter` | `(characterId: string): Promise<CharacterOutfit[]>` | 获取角色服装列表 |
@@ -61,7 +99,7 @@
 | `getSceneById` | `(id: string): Promise<Scene \| null>` | 按 ID 获取场景 |
 | `getSceneVersion` | `(id: string): Promise<number \| null>` | 获取场景版本号 |
 | `createScene` | `(scene: Partial<Scene>): Promise<void>` | 创建场景 |
-| `updateScene` | `(id: string, updates: Partial<Scene>, version?: number): Promise<void>` | 更新场景 |
+| `updateScene` | `(id: string, updates: Partial<Scene>, version?: number): Promise<void>` | 更新场景（乐观锁） |
 | `deleteScene` | `(id: string): Promise<void>` | 删除场景 |
 
 ##### `IStoryStorage`
@@ -75,128 +113,175 @@
 | `getStoryByBeatId` | `(beatId: string): Promise<Story \| null>` | 按分镜 ID 获取故事 |
 | `getStoryVersion` | `(id: string): Promise<number \| null>` | 获取故事版本号 |
 | `createStory` | `(story: Partial<Story>): Promise<void>` | 创建故事 |
-| `updateStory` | `(id: string, updates: Partial<Story>, version?: number): Promise<void>` | 更新故事 |
+| `updateStory` | `(id: string, updates: Partial<Story>, version?: number): Promise<void>` | 更新故事（乐观锁） |
+| `updateStoryStatus` | `(id: string, status: StoryStatus): Promise<void>` | 更新故事状态 |
 | `deleteStory` | `(id: string): Promise<void>` | 删除故事 |
+| `duplicateStory` | `(sourceId: string, newTitle: string): Promise<string>` | 复制故事，返回新故事 ID |
+| `searchStories` | `<T = Story>(options: StorySearchOptions): Promise<T[]>` | 搜索故事（支持模糊/过滤/排序/分页） |
+| `countStories` | `(options: StorySearchOptions): Promise<number>` | 统计符合搜索条件的故事数量 |
 
----
+**`StorySearchOptions`**（故事搜索选项）：
 
-#### ai-provider-port.ts
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `query` | `string?` | 对 title + description 做 LIKE 模糊匹配 |
+| `status` | `StoryStatus[]?` | 按 IN 条件过滤；空数组忽略 |
+| `genre` | `string[]?` | 按类型过滤 |
+| `tone` | `string[]?` | 按基调过滤 |
+| `sortBy` | `"updatedAt" \| "createdAt" \| "title"?` | 排序字段，默认 `updatedAt` |
+| `sortOrder` | `"asc" \| "desc"?` | 排序方向，默认 `desc` |
+| `limit` | `number?` | 分页大小 |
+| `offset` | `number?` | 分页偏移 |
+
+##### `ISubShotStorage`
+
+子分镜存储端口接口。
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `getSubShotsByBeatId` | `(beatId: string): Promise<SubShot[]>` | 按分镜 ID 获取子分镜 |
+| `getSubShotById` | `(id: string): Promise<SubShot \| null>` | 按 ID 获取子分镜 |
+| `createSubShot` | `(subShot: Partial<SubShot> & { id: string; storyBeatId: string }): Promise<void>` | 创建子分镜 |
+| `updateSubShot` | `(id: string, updates: Partial<SubShot>): Promise<void>` | 更新子分镜 |
+| `deleteSubShot` | `(id: string): Promise<void>` | 删除子分镜 |
+| `deleteSubShotsByBeatId` | `(beatId: string): Promise<void>` | 按分镜 ID 删除所有子分镜 |
+| `reorderSubShots` | `(beatId: string, orderedIds: string[]): Promise<void>` | 重排子分镜顺序 |
+
+##### `IGenerationAssetStorage`
+
+生成资产存储端口接口。
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `getAssetsByType` | `(type: string): Promise<GenerationAsset[]>` | 按类型获取资产 |
+| `getAssetsByProject` | `(projectId: string): Promise<GenerationAsset[]>` | 按项目获取资产 |
+| `getAssetsByStoryBeat` | `(beatId: string): Promise<GenerationAsset[]>` | 按分镜获取资产 |
+| `getAssetsBySourceAssetId` | `(sourceAssetId: string): Promise<GenerationAsset[]>` | 查询原视频的所有局部重绘版本（Task 2A.22） |
+| `getAssetById` | `(id: string): Promise<GenerationAsset \| null>` | 按 ID 获取资产 |
+| `createAsset` | `(asset: Partial<GenerationAsset> & { id: string; type: string; sourceType: string; url: string }): Promise<void>` | 创建资产 |
+| `updateAsset` | `(id: string, updates: Partial<GenerationAsset>): Promise<void>` | 更新资产 |
+| `deleteAsset` | `(id: string): Promise<void>` | 删除资产 |
+| `deleteUnreferencedAssets` | `(): Promise<number>` | 删除未被引用的资产，返回删除数量 |
+
+#### ai-provider-port.ts — AI Provider 端口
 
 ##### `IVideoProvider`
 
-视频生成提供者端口接口。
+视频生成 Provider 端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `generateVideo` | `(prompt: string, options?: { firstFrameUrl?: string; lastFrameUrl?: string; characterRefs?: string[]; characterRef?: string; sceneRef?: string; duration?: number; referenceVideo?: string \| null; providerId?: string; modelId?: string; format?: string }): Promise<ApiResponse<VideoGenerationResult>>` | 生成视频 |
-| `queryVideoStatus` | `(taskId: string, options?: { providerId?: string; modelId?: string; format?: string }): Promise<ApiResponse<{ status: "pending" \| "generating" \| "completed" \| "failed"; videoUrl?: string; progress?: number; message?: string }>>` | 查询视频生成状态 |
-| `generateKeyframe` | `(params: { characterRefs?: string[]; characterRef?: string; sceneRef?: string; prevKeyframe?: string; shotRequirement?: { shotType?: string; cameraAngle?: string; cameraMovement?: string; action?: string }; content?: string; providerId?: string; modelId?: string; format?: string }): Promise<ApiResponse<{ imageUrl: string; source?: string; prompt?: string }>>` | 生成预览图 |
-| `generateFramePair` | `(params: { keyframeUrl: string; keyframePrompt?: string; characterRefs?: string[]; characterRef?: string; sceneRef?: string; prevLastFrameUrl?: string; actionDescription?: string; duration?: number; providerId?: string; modelId?: string; format?: string }): Promise<ApiResponse<{ firstFrame: { imageUrl: string; prompt: string; derivedFrom: string }; lastFrame: { imageUrl: string; prompt: string; derivedFrom: string }; generatedAt: number }>>` | 生成首尾帧 |
-| `generateVideoWithFrames` | `(params: { prompt: string; firstFrameUrl?: string; lastFrameUrl?: string; characterRefs?: string[]; characterRef?: string; sceneRef?: string; duration?: number; providerId?: string; modelId?: string; format?: string; referenceVideo?: string \| null }): Promise<ApiResponse<VideoGenerationResult>>` | 基于首尾帧生成视频 |
+| `generateVideo` | `(prompt: string, options?: { firstFrameUrl?; lastFrameUrl?; characterRefs?; characterRef?; sceneRef?; duration?; referenceVideo?; providerId?; modelId?; format? }): Promise<ApiResponse<VideoGenerationResult>>` | 生成视频 |
+| `queryVideoStatus` | `(taskId: string, options?: { providerId?; modelId?; format? }): Promise<ApiResponse<{ status; videoUrl?; progress?; message? }>>` | 查询视频生成状态 |
+| `generateKeyframe` | `(params: { characterRefs?; characterRef?; sceneRef?; prevKeyframe?; shotRequirement?; content?; providerId?; modelId?; format? }): Promise<ApiResponse<{ imageUrl; source?; prompt? }>>` | 生成关键帧 |
+| `generateFramePair` | `(params: { keyframeUrl; keyframePrompt?; characterRefs?; characterRef?; sceneRef?; prevLastFrameUrl?; actionDescription?; duration?; providerId?; modelId?; format? }): Promise<ApiResponse<{ firstFrame; lastFrame; generatedAt }>>` | 生成首末帧对 |
+| `generateVideoWithFrames` | `(params: { prompt; firstFrameUrl?; lastFrameUrl?; characterRefs?; characterRef?; sceneRef?; duration?; providerId?; modelId?; format?; referenceVideo? }): Promise<ApiResponse<VideoGenerationResult>>` | 基于首末帧生成视频 |
+| `generatePartialEdit?` | `(input: { sourceVideoUrl; maskBase64; prompt; videoTimestamp; preserveUnmasked; providerId?; modelId?; format?; duration? }): Promise<ApiResponse<VideoGenerationResult>>` | 局部重绘（可选，仅 supportsPartialEdit 模型支持） |
+| `cancelTask?` | `(taskId: string): Promise<void>` | 取消任务（best-effort，可选） |
 
 ##### `IImageProvider`
 
-图片生成提供者端口接口。
+图像生成 Provider 端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `generateImage` | `(prompt: string, type?: string, options?: { size?: string; providerId?: string; modelId?: string; purpose?: string }): Promise<ApiResponse<ImageGenerationResult>>` | 生成图片 |
-| `analyzeImage` | `(imageUrl: string, type?: "character" \| "scene", prompt?: string, options?: { providerId?: string; modelId?: string }): Promise<ApiResponse<{ analysis: string; analyzed?: Record<string, unknown> }>>` | 分析图片 |
+| `generateImage` | `(prompt: string, type?: string, options?: { size?; providerId?; modelId?; purpose? }): Promise<ApiResponse<ImageGenerationResult>>` | 生成图像 |
+| `analyzeImage` | `(imageUrl: string, type?: "character" \| "scene", prompt?: string, options?: { providerId?; modelId? }): Promise<ApiResponse<{ analysis; analyzed? }>>` | 分析图像 |
 
 ##### `ITextProvider`
 
-文本生成提供者端口接口。
+文本生成 Provider 端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `generateText` | `(prompt: string, options?: { maxTokens?: number; temperature?: number; providerId?: string; modelId?: string }): Promise<ApiResponse<{ text: string }>>` | 生成文本 |
+| `generateText` | `(prompt: string, options?: { maxTokens?; temperature?; providerId?; modelId? }): Promise<ApiResponse<{ text }>>` | 文本生成 |
+| `generateTextStream` | `(prompt: string, options?: { maxTokens?; temperature?; providerId?; modelId?; tools?; onChunk; signal? }): Promise<ApiResponse<{ text }>>` | 流式文本生成（Task 1.0），支持外部 abort |
+| `generateChat` | `(messages: LLMMessage[], options?: { maxTokens?; temperature?; providerId?; modelId?; tools?; onChunk?; signal? }): Promise<ApiResponse<{ text }>>` | 原生对话补全，支持 function calling |
 
 ##### `IFileUploader`
 
-文件上传端口接口。
+文件上传 Provider 端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `uploadFile` | `(file: File): Promise<{ success: true; data: { url: string; [key: string]: unknown }; source?: string; error?: string; message?: string } \| { success: false; error: string; message?: string; data?: { url: string; [key: string]: unknown } }>` | 上传文件 |
+| `uploadFile` | `(file: File): Promise<{ success: true; data: { url; [key]: unknown }; source?; error?; message? } \| { success: false; error; message?; data? }>` | 上传文件 |
 
----
+##### `IEmbeddingProvider`
 
-#### sync-port.ts
+向量嵌入生成 Provider 端口（用于语义检索）。
 
-##### `DbRunResult`
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `generateEmbedding` | `(input: string, options?: { providerId?; modelId? }): Promise<ApiResponse<{ embedding: number[] }>>` | 生成单段文本向量 |
+| `generateEmbeddings?` | `(inputs: string[], options?: { providerId?; modelId? }): Promise<ApiResponse<{ embeddings: number[][] }>>` | 批量生成向量（可选） |
 
-```typescript
-interface DbRunResult {
-  changes?: number;
-  lastInsertRowid?: number;
-}
-```
+##### `IAudioProvider`
+
+音频 Provider 端口。
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `synthesizeSpeech` | `(text: string, options?: { voice?; format?; speed?; providerId?; modelId? }): Promise<ApiResponse<{ audioUrl; duration? }>>` | 文字转语音（TTS） |
+| `transcribeAudio?` | `(audioUrl: string, options?: { language?; providerId?; modelId? }): Promise<ApiResponse<{ text; segments? }>>` | 语音转文字（可选） |
+
+**`AudioCapability`** 类型：`"tts" | "stt" | "music" | "voiceover"`
+
+**辅助类型**（同文件导出）：
+- `ToolDef` — 工具定义（OpenAI function-calling 格式）
+- `ToolCall` — 工具调用请求
+- `StreamChunk` — 流式生成 chunk
+
+#### sync-port.ts — 同步存储端口
 
 ##### `ISyncStorage`
-
-同步存储端口接口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
 | `safeQuery` | `<T>(sql: string, params?: unknown[]): Promise<T[]>` | 安全查询 |
 | `safeRun` | `(sql: string, params?: unknown[]): Promise<DbRunResult>` | 安全执行 |
-| `safeTransaction` | `(statements: { sql: string; params: unknown[] }[]): Promise<unknown[]>` | 安全事务 |
-| `registerChangeTracker` | `(tracker: (entityType: string, entityId: string, operation: string) => Promise<void>): void` | 注册变更追踪器 |
+| `safeTransaction` | `(statements: { sql; params: unknown[] }[]): Promise<unknown[]>` | 安全事务 |
+| `registerChangeTracker` | `(tracker: (entityType: string, entityId: string, operation: string) => Promise<void>): void` | 注册变更跟踪器 |
+| `unregisterChangeTracker` | `(): void` | 注销变更跟踪器 |
 
----
+**`DbRunResult`**：`{ changes?: number; lastInsertRowid?: number }`
 
-#### element-manager-port.ts
+#### element-manager-port.ts — 元素管理器端口
 
 ##### `IElementManager`
 
-元素管理器端口接口，提供元素生命周期管理、资产绑定和更新通知。
+元素生命周期管理、资产绑定、更新通知端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
 | `subscribe` | `(listener: UpdateListener): () => void` | 订阅元素更新通知，返回取消订阅函数 |
 | `getLibrary` | `(): Promise<ElementLibrary>` | 获取完整元素库 |
-| `createElement` | `(type: ElementType, name: string, description?: string): Promise<StoryElement>` | 创建新元素 |
+| `createElement` | `(type: ElementType, name: string, description?: string): Promise<StoryElement>` | 创建故事元素 |
 | `bindAsset` | `(elementId: string, asset: AssetBinding): Promise<StoryElement>` | 绑定资产到元素 |
-| `unbindAsset` | `(elementId: string, assetUrl: string): Promise<StoryElement>` | 解绑元素资产 |
+| `unbindAsset` | `(elementId: string, assetUrl: string): Promise<StoryElement>` | 解绑资产 |
 | `getElement` | `(elementId: string): Promise<StoryElement \| undefined>` | 按 ID 获取元素 |
 | `getAllElements` | `(): Promise<StoryElement[]>` | 获取所有元素 |
 | `getElementsByType` | `(type: ElementType): Promise<StoryElement[]>` | 按类型获取元素 |
 | `deleteElement` | `(elementId: string): Promise<void>` | 删除元素 |
 | `updateElement` | `(elementId: string, updates: Partial<StoryElement>): Promise<StoryElement>` | 更新元素 |
 
-> `UpdateListener` 类型: `() => void`
-
----
-
-#### reference-engine-port.ts
-
-##### `ReferenceValidationResult`
-
-```typescript
-interface ReferenceValidationResult {
-  valid: boolean;
-  error?: string;
-}
-```
+#### reference-engine-port.ts — 引用引擎端口
 
 ##### `IReferenceEngine`
 
-引用引擎端口接口，管理分镜间引用、验证和视频 URL 解析。
+分镜间引用的验证、解析、视频 URL 解析端口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `validateReference` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): ReferenceValidationResult` | 验证分镜引用的正确性和完整性 |
-| `getTargetShot` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): StoryBeat \| undefined` | 解析引用目标分镜 |
-| `getReferenceVideoUrl` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): string \| undefined` | 获取引用的视频 URL |
-| `buildReferenceDescription` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): string` | 构建引用的可读描述 |
+| `validateReference` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): ReferenceValidationResult` | 校验分镜引用 |
+| `getTargetShot` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): StoryBeat \| undefined` | 解析目标分镜 |
+| `getReferenceVideoUrl` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): string \| undefined` | 获取引用视频 URL |
+| `buildReferenceDescription` | `(shot: StoryBeat, allShots: StoryBeat[], reference: ShotReference): string` | 构建引用描述 |
 
----
+**`ReferenceValidationResult`**：`{ valid: boolean; error?; errors?: string[]; warnings?: string[] }`
 
-#### version-storage-port.ts
+#### version-storage-port.ts — 版本存储端口
 
 ##### `IVersionStorage`
-
-版本存储端口接口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
@@ -205,19 +290,15 @@ interface ReferenceValidationResult {
 | `deleteStoryVersion` | `(versionId: string): Promise<void>` | 删除故事版本 |
 | `deleteOldStoryVersions` | `(storyId: string, keepCount: number): Promise<void>` | 删除旧版本，保留指定数量 |
 
----
-
-#### element-storage-port.ts
+#### element-storage-port.ts — 元素存储端口
 
 ##### `IElementStorage`
-
-元素存储端口接口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
 | `subscribe` | `(listener: UpdateListener): () => void` | 订阅更新通知 |
-| `notify` | `(): void` | 通知所有订阅者 |
-| `getLibrary` | `(): Promise<ElementLibrary>` | 获取完整元素库 |
+| `notify` | `(): void` | 触发通知 |
+| `getLibrary` | `(): Promise<ElementLibrary>` | 获取元素库 |
 | `getElement` | `(elementId: string): Promise<StoryElement \| undefined>` | 按 ID 获取元素 |
 | `getAllElements` | `(): Promise<StoryElement[]>` | 获取所有元素 |
 | `getElementsByType` | `(type: ElementType): Promise<StoryElement[]>` | 按类型获取元素 |
@@ -225,2710 +306,1223 @@ interface ReferenceValidationResult {
 | `updateElement` | `(elementId: string, updates: Partial<StoryElement>): Promise<StoryElement>` | 更新元素 |
 | `deleteElement` | `(elementId: string): Promise<void>` | 删除元素 |
 
-> `UpdateListener` 类型: `() => void`
-
----
-
-#### template-storage-port.ts
+#### template-storage-port.ts — 模板存储端口
 
 ##### `ITemplateStorage`
-
-模板存储端口接口。
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
 | `getVideoTemplates` | `<T = Record<string, unknown>>(): Promise<T[]>` | 获取视频模板列表 |
 | `createVideoTemplate` | `(template: Record<string, unknown>): Promise<void>` | 创建视频模板 |
-| `saveASTTemplate` | `(meta: { id: string; name: string; description?: string; category?: string; genre?: string; tone?: string; tags?: string; author?: string; totalDuration: number; beatsCount: number; charactersCount?: number; scenesCount?: number; astFilePath?: string; astFileSize?: number; isPublic?: boolean; parentTemplateId?: string }): Promise<void>` | 保存 AST 模板 |
+| `saveASTTemplate` | `(meta: { id; name; description?; category?; genre?; tone?; tags?; author?; totalDuration; beatsCount; charactersCount?; scenesCount?; astFilePath?; astFileSize?; isPublic?; parentTemplateId? }): Promise<void>` | 保存 AST 模板 |
 | `getASTTemplate` | `(id: string): Promise<Record<string, unknown> \| null>` | 获取 AST 模板 |
-| `getASTTemplates` | `(filters?: { category?: string; search?: string; sortBy?: "created" \| "usage" \| "name"; limit?: number }): Promise<Record<string, unknown>[]>` | 获取 AST 模板列表（支持筛选） |
+| `getASTTemplates` | `(filters?: { category?; search?; sortBy?: "created" \| "usage" \| "name"; limit? }): Promise<Record<string, unknown>[]>` | 查询 AST 模板 |
 | `deleteASTTemplate` | `(id: string): Promise<boolean>` | 删除 AST 模板 |
 | `incrementASTTemplateUsage` | `(id: string): Promise<void>` | 增加模板使用计数 |
 
----
-
-#### media-asset-repository-port.ts
+#### media-asset-repository-port.ts — 媒体资产仓库端口
 
 ##### `IMediaAssetRepository`
 
-媒体资产仓库端口接口。
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `findAll` | `(): Promise<Result<MediaAsset[]>>` | 查询全部媒体资产 |
+| `findById` | `(id: string): Promise<Result<MediaAsset \| null>>` | 按 ID 查询 |
+| `create` | `(input: Partial<MediaAsset> & { id: string }): Promise<Result<MediaAsset>>` | 创建资产 |
+| `update` | `(input: Partial<MediaAsset> & { id: string }): Promise<Result<MediaAsset>>` | 更新资产 |
+| `delete` | `(id: string): Promise<Result<void>>` | 删除资产 |
+
+#### file-storage-port.ts — 文件存储端口
+
+基于 key 寻址的文件 CRUD 端口，本地/云端双向兼容。
+
+##### `IFileStorage`
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `findAll` | `(): Promise<Result<MediaAsset[]>>` | 查找所有媒体资产 |
-| `findById` | `(id: string): Promise<Result<MediaAsset \| null>>` | 按 ID 查找媒体资产 |
-| `create` | `(input: Partial<MediaAsset> & { id: string }): Promise<Result<MediaAsset>>` | 创建媒体资产 |
-| `update` | `(input: Partial<MediaAsset> & { id: string }): Promise<Result<MediaAsset>>` | 更新媒体资产 |
-| `delete` | `(id: string): Promise<Result<void>>` | 删除媒体资产 |
+| `saveFile` | `(params: SaveFileParams): Promise<{ key: string }>` | 保存文件（buffer 或 base64） |
+| `readFile` | `(key: string): Promise<Buffer \| null>` | 读取文件为 Buffer |
+| `readFileAsBase64` | `(key: string): Promise<string \| null>` | 读取文件为 base64 data URL |
+| `deleteFile` | `(key: string): Promise<boolean>` | 删除文件 |
+| `exists` | `(key: string): Promise<boolean>` | 检查文件是否存在 |
+| `copyFile` | `(params: CopyFileParams): Promise<{ key: string }>` | 复制文件 |
+| `listFiles` | `(category: FileCategory): Promise<FileMetadata[]>` | 列出某类别下文件 |
+| `getFileInfo` | `(key: string): Promise<FileMetadata \| null>` | 获取文件元数据 |
+| `ensureDir` | `(category: FileCategory): Promise<void>` | 确保类别目录存在 |
+| `writeFileAtomic` | `(params: WriteFileAtomicParams): Promise<{ key: string }>` | 原子写入（tmp + rename） |
+
+**辅助类型**：
+- `FileCategory` — `"character" | "scene" | "storyboard" | "video-cache" | "image-cache" | "upload" | "plugin"`
+- `FileMetadata` — `{ key; category: FileCategory; size; mimeType; createdAt; updatedAt }`
+- `SaveFileParams` — `{ category: FileCategory; key; data: Buffer | ArrayBuffer | string; mimeType? }`
+- `CopyFileParams` — `{ sourceKey; targetCategory: FileCategory; targetKey }`
+- `WriteFileAtomicParams` — `{ category: FileCategory; key; data: string | Buffer }`
 
 ---
 
-### 1.2 Schema 定义 (domain/schemas)
+### 1.2 Schema (domain/schemas)
+
+所有 Zod Schema 通过 `src/domain/schemas/index.ts` 统一 barrel 导出。每个 schema 文件导出 schema 对象与 `z.infer` 推导的 TypeScript 类型。
 
 #### character.ts
 
-##### `characterOutfitSchema` → `CharacterOutfit`
-
-| 字段 | 类型 | 默认值/约束 | 说明 |
-|------|------|-------------|------|
-| `id` | `string` | — | 服装 ID |
-| `name` | `string` | `min(1)` | 服装名称 |
-| `description` | `string` | — | 服装描述 |
-| `clothing` | `string` | — | 服装内容 |
-| `accessories` | `string[]` | `optional().default([])` | 配饰列表 |
-| `imageUrl` | `string` | `url().optional()` | 图片 URL |
-| `localImagePath` | `string` | `optional()` | 本地图片路径 |
-| `thumbnailPath` | `string` | `optional()` | 缩略图路径 |
-| `isDefault` | `boolean` | `default(false)` | 是否为默认服装 |
-| `createdAt` | `string` | `default(() => new Date().toISOString())` | 创建时间 |
-
-##### `characterAppearanceSchema` → `CharacterAppearance`
-
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `hairColor` | `string` | `""` | 发色 |
-| `hairStyle` | `string` | `""` | 发型 |
-| `eyeColor` | `string` | `""` | 眼睛颜色 |
-| `height` | `string` | `""` | 身高 |
-| `build` | `string` | `""` | 体型 |
-| `clothing` | `string` | `""` | 服装 |
-
-##### `characterSchema` → `Character`
-
-| 字段 | 类型 | 约束/默认值 | 说明 |
-|------|------|-------------|------|
-| `id` | `string` | — | 角色 ID |
-| `name` | `string` | `min(1, "角色名称不能为空")` | 角色名称 |
-| `description` | `string` | — | 角色描述 |
-| `gender` | `string` | — | 性别 |
-| `age` | `number` | `positive().optional()` | 年龄 |
-| `style` | `string` | — | 艺术风格 |
-| `personality` | `string[]` | — | 性格特征 |
-| `appearance` | `CharacterAppearance` | — | 外观 |
-| `outfits` | `CharacterOutfit[]` | `optional()` | 服装列表 |
-| `prompt` | `string` | — | 提示词 |
-| `imageGenerationPrompt` | `string` | `optional()` | 图片生成提示词 |
-| `generatedImage` | `string` | `optional()` | 生成的图片 URL |
-| `refImagePath` | `string` | `optional()` | 参考图路径 |
-| `generatedVideo` | `string` | `optional()` | 生成的视频 URL |
-| `videoGenerationStatus` | `"pending" \| "generating" \| "completed" \| "failed"` | `optional()` | 视频生成状态 |
-| `videoGenerationTaskId` | `string` | `optional()` | 视频生成任务 ID |
-| `updatedAt` | `string` | `optional()` | 更新时间 |
-| `traits` | `string[]` | `optional()` | 特征标签 |
-| `avatarPath` | `string` | `optional()` | 头像路径 |
-| `thumbnailPath` | `string` | `optional()` | 缩略图路径 |
-| `previewPath` | `string` | `optional()` | 预览路径 |
-| `source` | `string` | `optional()` | 来源 |
-| `tags` | `string[]` | `optional()` | 标签 |
-| `generationPrompt` | `string` | `optional()` | 生成提示词 |
-| `generationParams` | `Record<string, unknown>` | `optional()` | 生成参数 |
-| `useCount` | `number` | `nonnegative().optional()` | 使用次数 |
-| `lastUsedAt` | `string` | `optional()` | 最后使用时间 |
-| `createdAt` | `string` | `optional()` | 创建时间 |
-
-##### `createCharacterInputSchema` → `CreateCharacterInput`
-
-从 `characterSchema` 中 pick 以下字段：`name`, `description`, `gender`, `age`, `style`, `personality`, `appearance`, `outfits`, `traits`, `prompt`, `tags`, `generatedImage`, `refImagePath`, `imageGenerationPrompt`, `thumbnailPath`, `previewPath`, `avatarPath`
-
-##### `updateCharacterInputSchema` → `UpdateCharacterInput`
-
-`characterSchema.partial().required({ id: true })` — 所有字段可选，但 `id` 必填。
-
----
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `characterSchema` | `Character` | 角色主体 |
+| `characterOutfitSchema` | `CharacterOutfit` | 角色服装 |
+| `characterAppearanceSchema` | `CharacterAppearance` | 角色外观 |
+| `createCharacterInputSchema` | `CreateCharacterInput` | 创建角色输入 |
+| `updateCharacterInputSchema` | `UpdateCharacterInput` | 更新角色输入 |
 
 #### scene.ts
 
-##### `sceneCameraSchema` → `SceneCamera`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `position` | `string` | `optional()` |
-| `angle` | `string` | `optional()` |
-| `zoom` | `number` | `optional()` |
-| `distance` | `string` | `optional()` |
-| `movement` | `string` | `optional()` |
-
-##### `sceneSchema` → `Scene`
-
-| 字段 | 类型 | 约束/默认值 | 说明 |
-|------|------|-------------|------|
-| `id` | `string` | — | 场景 ID |
-| `name` | `string` | `min(1, "场景名称不能为空")` | 场景名称 |
-| `description` | `string` | — | 场景描述 |
-| `type` | `string` | — | 场景类型 |
-| `timeOfDay` | `string` | — | 时间段 |
-| `weather` | `string` | — | 天气 |
-| `mood` | `string` | — | 氛围 |
-| `lighting` | `string` | — | 光照 |
-| `elements` | `string[]` | — | 场景元素 |
-| `colors` | `string[]` | — | 色彩方案 |
-| `prompt` | `string` | — | 提示词 |
-| `imageGenerationPrompt` | `string` | `optional()` | 图片生成提示词 |
-| `generatedImage` | `string` | `optional()` | 生成的图片 |
-| `generatedVideo` | `string` | `optional()` | 生成的视频 |
-| `videoGenerationStatus` | `"pending" \| "generating" \| "completed" \| "failed"` | `optional()` | 视频生成状态 |
-| `videoGenerationTaskId` | `string` | `optional()` | 视频任务 ID |
-| `updatedAt` | `string` | `optional()` | 更新时间 |
-| `camera` | `SceneCamera` | `optional()` | 相机配置 |
-| `imageUrl` | `string` | `optional()` | 图片 URL |
-| `scenePath` | `string` | `optional()` | 场景路径 |
-| `refImagePath` | `string` | `optional()` | 参考图路径 |
-| `thumbnailPath` | `string` | `optional()` | 缩略图路径 |
-| `previewPath` | `string` | `optional()` | 预览路径 |
-| `atmosphere` | `string` | `optional()` | 氛围描述 |
-| `source` | `string` | `optional()` | 来源 |
-| `tags` | `string[]` | `optional()` | 标签 |
-| `createdAt` | `string` | `optional()` | 创建时间 |
-| `generationPrompt` | `string` | `optional()` | 生成提示词 |
-| `generationParams` | `Record<string, unknown>` | `optional()` | 生成参数 |
-| `useCount` | `number` | `nonnegative().optional()` | 使用次数 |
-| `lastUsedAt` | `number` | `optional()` | 最后使用时间 |
-
-##### `sceneElementTypeSchema` → `SceneElementType`
-
-```typescript
-"existing_character" | "new_character" | "prop" | "environment"
-```
-
-##### `sceneElementSchema` → `SceneElement`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 元素 ID |
-| `name` | `string` | 元素名称 |
-| `type` | `SceneElementType` | 元素类型 |
-| `characterId` | `string` | `optional()` |
-| `characterConfig` | `Record<string, unknown>` | `optional()` |
-| `description` | `string` | `optional()` |
-| `imageUrl` | `string` | `optional()` |
-| `dialogue` | `string` | `optional()` |
-| `action` | `string` | `optional()` |
-| `emotion` | `string` | `optional()` |
-| `position` | `string` | `optional()` |
-| `pose` | `string` | `optional()` |
-| `order` | `number` | `optional()` |
-| `timelineGroup` | `number` | `optional()` |
-| `timelineOrder` | `number` | `optional()` |
-
-##### `createSceneInputSchema` → `CreateSceneInput`
-
-从 `sceneSchema` 中 pick 以下字段：`name`, `description`, `type`, `timeOfDay`, `weather`, `mood`, `lighting`, `atmosphere`, `elements`, `colors`, `camera`, `prompt`, `imageGenerationPrompt`, `generatedImage`, `refImagePath`, `imageUrl`, `scenePath`, `thumbnailPath`, `previewPath`, `source`, `generationPrompt`, `generationParams`, `tags`
-
-##### `updateSceneInputSchema` → `UpdateSceneInput`
-
-`sceneSchema.partial().required({ id: true })`
-
----
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `sceneSchema` | `Scene` | 场景主体 |
+| `sceneCameraSchema` | `SceneCamera` | 场景相机 |
+| `sceneElementTypeSchema` | `SceneElementType` | 场景元素类型 |
+| `sceneElementSchema` | `SceneElement` | 场景元素 |
+| `createSceneInputSchema` | `CreateSceneInput` | 创建场景输入 |
+| `updateSceneInputSchema` | `UpdateSceneInput` | 更新场景输入 |
 
 #### story.ts
 
-##### `storyStyleGuideSchema` → `StoryStyleGuide`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `styleImageUrl` | `string` | `optional()` |
-| `stylePrompt` | `string` | `optional()` |
-| `colorPalette` | `string[]` | `optional()` |
-| `artStyle` | `string` | `optional()` |
-| `moodAtmosphere` | `string` | `optional()` |
-| `generatedAt` | `string` | `optional()` |
-| `source` | `"ai" \| "upload" \| "manual"` | `optional()` |
-
-##### `chainModeSchema` → `ChainMode`
-
-```typescript
-"auto" | "isolated" | "custom" | "asset"  // default: "auto"
-```
-
-##### `beatInputSchema` → `BeatInput`
-
-```typescript
-"ai" | "upload" | "asset" | "isolated"  // default: "ai"
-```
-
-##### `frameInputSchema` → `FrameInput`
-
-```typescript
-"ai" | "upload" | "keyframe" | "isolated"  // default: "ai"
-```
-
-##### `videoInputSchema` → `VideoInput`
-
-```typescript
-"ai" | "upload" | "framepair" | "isolated"  // default: "ai"
-```
-
-##### `referenceImageWeightSchema` → `ReferenceImageWeight`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `url` | `string` | 图片 URL |
-| `weight` | `number` | 权重 (0-1) |
-| `type` | `"portrait" \| "scene" \| "style" \| "prev_frame"` | 类型 |
-| `description` | `string` | 描述 |
-
-##### `promptLabSchema` → `PromptLab`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `coreElements` | `string` | 核心元素 |
-| `cameraAction` | `string` | 镜头动作 |
-| `styleAtmosphere` | `string` | 风格氛围 |
-| `negativePrompt` | `string` | `optional()` |
-| `referenceWeights` | `ReferenceImageWeight[]` | `optional()` |
-| `targetModel` | `string` | `optional()` |
-| `targetProvider` | `string` | `optional()` |
-| `estimatedCost` | `number` | `optional()` |
-| `estimatedTokens` | `number` | `optional()` |
-| `firstFramePrompt` | `string` | `optional()` |
-| `videoPrompt` | `string` | `optional()` |
-
-##### `storyBeatKeyframeSchema` → `StoryBeatKeyframe`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `imageUrl` | `string` | `optional()` |
-| `prompt` | `string` | `optional()` |
-| `generatedAt` | `string` | `optional()` |
-| `source` | `"ai" \| "upload"` | `optional()` |
-| `referencedPrevKeyframe` | `string` | `optional()` |
-
-##### `storyBeatFramePairSchema` → `StoryBeatFramePair`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `firstFrameUrl` | `string` | `optional()` |
-| `lastFrameUrl` | `string` | `optional()` |
-| `firstFramePrompt` | `string` | `optional()` |
-| `lastFramePrompt` | `string` | `optional()` |
-| `generatedAt` | `string` | `optional()` |
-| `source` | `"ai" \| "upload"` | `optional()` |
-| `firstFrame` | `{ imageUrl: string; prompt: string; derivedFrom: string }` | `optional()` |
-| `lastFrame` | `{ imageUrl: string; prompt: string; derivedFrom: string }` | `optional()` |
-
-##### `storyBeatVideoSchema` → `StoryBeatVideoGeneration`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `videoUrl` | `string` | `optional()` |
-| `taskId` | `string` | `optional()` |
-| `status` | `ShotGenerationStatus` | `optional()` |
-| `generatedAt` | `string` | `optional()` |
-| `source` | `"ai" \| "upload"` | `optional()` |
-| `prompt` | `string` | `optional()` |
-| `error` | `string` | `optional()` |
-| `createdAt` | `string` | `optional()` |
-
-##### `elementBindingSchema` → `ElementBinding`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `role` | `string` | `optional()` |
-| `position` | `string` | `optional()` |
-| `action` | `string` | `optional()` |
-| `emotion` | `string` | `optional()` |
-| `description` | `string` | `optional()` |
-| `text` | `string` | `optional()` |
-| `imageUrl` | `string` | `optional()` |
-
-##### `VALID_SHOT_TYPES`
-
-```typescript
-const VALID_SHOT_TYPES: Set<string> = new Set([
-  "wide", "medium", "close", "extreme_close", "extreme_wide",
-  "low", "high", "birdseye", "wormseye",
-]);
-```
-
-##### `storyBeatSchema` → `StoryBeat`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 分镜 ID |
-| `sequence` | `number` | 序号 |
-| `order` | `number` | `optional()` |
-| `description` | `string` | 描述（null 转 ""） |
-| `duration` | `number` | `optional()`（null 转 undefined） |
-| `type` | `"action" \| "dialogue" \| "scene" \| "transition" \| "effect"` | `optional()` |
-| `title` | `string` | `optional()` |
-| `content` | `string` | `optional()` |
-| `transition` | `string` | `optional()` |
-| `characterIds` | `string[]` | 角色 ID 列表 |
-| `characterOutfits` | `Record<string, string>` | `optional()` |
-| `scene` | `string` | `optional()`（@deprecated，使用 sceneId） |
-| `sceneId` | `string` | `optional()` |
-| `sceneElements` | `SceneElement[]` | `optional()` |
-| `elementIds` | `string[]` | 元素 ID 列表 |
-| `elementBindings` | `Record<string, ElementBinding>` | `optional()` |
-| `shotType` | `string` | `optional()`（@deprecated） |
-| `camera` | `BeatCamera` | `optional()`（@deprecated） |
-| `shotInstruction` | `ShotInstruction` | `optional()` |
-| `reference` | `ShotReference` | `optional()` |
-| `featureAnchoring` | `FeatureAnchoringConfig` | `optional()` |
-| `consistencyCheck` | `ConsistencyCheckResult` | `optional()` |
-| `fixedImage` | `FixedImageConfig` | `optional()` |
-| `referenceVideo` | `ReferenceVideoConfig` | `optional()` |
-| `template` | `TemplateConfig` | `optional()` |
-| `generationStatus` | `ShotGenerationStatus` | `optional()` |
-| `generationResult` | `ShotGenerationResult` | `optional()` |
-| `generationPrompt` | `string` | `optional()`（@deprecated） |
-| `enhancedGeneration` | `boolean` | `optional()` |
-| `imageGenerationPrompt` | `string` | `optional()`（@deprecated） |
-| `firstFramePrompt` | `string` | `optional()` |
-| `lastFramePrompt` | `string` | `optional()` |
-| `promptLayers` | `{ coreElements: string; cameraAction: string; styleAtmosphere?: string }` | `optional()` |
-| `keyframe` | `StoryBeatKeyframe` | `optional()` |
-| `framePair` | `StoryBeatFramePair` | `optional()` |
-| `videoGen` | `StoryBeatVideoGeneration` | `optional()` |
-| `imageUrl` | `string` | `optional()` |
-| `videoReferenceUrl` | `string` | `optional()` |
-| `keyframeInput` | `BeatInput` | `optional()` |
-| `framePairInput` | `FrameInput` | `optional()` |
-| `videoInput` | `VideoInput` | `optional()` |
-| `uploadedKeyframe` | `string` | `optional()` |
-| `uploadedFramePair` | `{ firstFrame: string; lastFrame: string; firstFramePrompt?: string; lastFramePrompt?: string }` | `optional()` |
-| `uploadedVideo` | `string` | `optional()` |
-| `chainMode` | `ChainMode` | `optional()` |
-| `customChainTarget` | `string` | `optional()` |
-| `localVideoPath` | `string` | `optional()` |
-| `localKeyframePath` | `string` | `optional()` |
-| `localFirstFramePath` | `string` | `optional()` |
-| `localLastFramePath` | `string` | `optional()` |
-
-##### `storyVersionSchema` → `StoryVersion`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 版本 ID |
-| `storyId` | `string` | 故事 ID |
-| `timestamp` | `number` | 时间戳 |
-| `beats` | `StoryBeat[]` | 分镜列表 |
-| `title` | `string` | 标题 |
-| `description` | `string` | 描述 |
-| `genre` | `string` | 类型 |
-| `tone` | `string` | 基调 |
-| `targetDuration` | `number` | 目标时长 |
-| `characters` | `string[]` | 角色 ID 列表 |
-| `scenes` | `string[]` | 场景 ID 列表 |
-| `changeSummary` | `string` | 变更摘要 |
-| `autoSaved` | `boolean` | 是否自动保存 |
-
-##### `storySchema` → `Story`
-
-| 字段 | 类型 | 约束/默认值 | 说明 |
-|------|------|-------------|------|
-| `id` | `string` | — | 故事 ID |
-| `title` | `string` | `min(1, "故事标题不能为空")` | 标题 |
-| `description` | `string` | null 转 "" | 描述 |
-| `characters` | `string[]` | — | 角色 ID 列表 |
-| `scenes` | `string[]` | — | 场景 ID 列表 |
-| `createdAt` | `number` | — | 创建时间 |
-| `updatedAt` | `number` | — | 更新时间 |
-| `genre` | `string` | `optional()` | 类型 |
-| `tone` | `string` | `optional()` | 基调 |
-| `targetDuration` | `number` | `optional()` | 目标时长 |
-| `keyframeChainValid` | `boolean` | `optional()` | 关键帧链是否有效 |
-| `beats` | `StoryBeat[]` | — | 分镜列表 |
-| `elementIds` | `string[]` | — | 元素 ID 列表 |
-| `elementBindings` | `Record<string, ElementBinding>` | `optional()` | 元素绑定 |
-| `styleGuide` | `StoryStyleGuide` | `optional()` | 风格指南 |
-
-##### `createStoryInputSchema` → `CreateStoryInput`
-
-从 `storySchema` 中 pick：`title`, `description`, `genre`, `tone`, `targetDuration`, `characters`, `scenes`, `beats`, `elementIds`, `elementBindings`
-
-##### `updateStoryInputSchema` → `UpdateStoryInput`
-
-`storySchema.partial().required({ id: true })`
-
----
+| Schema / 常量 | 类型 | 说明 |
+|---------------|------|------|
+| `storySchema` | `Story` | 故事主体 |
+| `storyBeatSchema` | `StoryBeat` | 故事分镜 |
+| `storyBeatKeyframeSchema` | `StoryBeatKeyframe` | 分镜关键帧 |
+| `storyBeatFramePairSchema` | `StoryBeatFramePair` | 分镜首末帧对 |
+| `storyBeatVideoSchema` | `StoryBeatVideoGeneration` | 分镜视频生成 |
+| `elementBindingSchema` | `ElementBinding` | 元素绑定 |
+| `sceneTransitionSchema` | `SceneTransition` | 场景转场 |
+| `beatCameraSchema` | `BeatCamera` | 分镜相机 |
+| `createStoryInputSchema` | `CreateStoryInput` | 创建故事输入 |
+| `updateStoryInputSchema` | `UpdateStoryInput` | 更新故事输入 |
+| `chainModeSchema` | `ChainMode` | 链式生成模式 |
+| `beatInputSchema` | `BeatInput` | 分镜输入 |
+| `frameInputSchema` | `FrameInput` | 帧输入 |
+| `videoInputSchema` | `VideoInput` | 视频输入 |
+| `referenceImageWeightSchema` | `ReferenceImageWeight` | 参考图权重 |
+| `promptLabSchema` | `PromptLab` | Prompt 实验室 |
+| `storyVersionSchema` | `StoryVersion` | 故事版本 |
+| `storyStyleGuideSchema` | `StoryStyleGuide` | 故事风格指南 |
+| `storyStatusSchema` | `StoryStatus` | 故事状态 |
+| `STORY_STATUSES` | — | 故事状态常量数组 |
+| `VALID_SHOT_TYPES` | — | 有效分镜类型常量数组 |
 
 #### shot-system.ts
 
-##### `shotInstructionSchema` → `ShotInstruction`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `shotSize` | `"extreme_close" \| "close" \| "medium" \| "wide" \| "extreme_wide"` | 景别 |
-| `cameraMovement` | `"static" \| "push" \| "pull" \| "pan" \| "orbit" \| "crane_up" \| "crane_down" \| "tracking"` | 运镜方式 |
-| `cameraAngle` | `"eye_level" \| "low" \| "high" \| "birds_eye" \| "worms_eye" \| "dutch"` | 镜头角度 |
-
-##### `featureAnchorItemSchema`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `elementId` | `string` | 元素 ID |
-| `referenceImageUrl` | `string` | 参考图 URL |
-| `featureTags` | `string[]` | 特征标签 |
-| `weight` | `number` | 权重 (0-1)，默认 0.8 |
-
-##### `featureAnchoringSchema` → `FeatureAnchoringConfig`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `enabled` | `boolean` | 是否启用 |
-| `characterAnchors` | `FeatureAnchorItem[]` | 角色锚点列表 |
-| `propAnchors` | `FeatureAnchorItem[]` | `optional()` |
-| `previewImageUrl` | `string` | `optional()` |
-| `disableFrameBinding` | `boolean` | `default(true)` |
-| `featureConsistencyStrength` | `number` | `min(0).max(1).default(0.8)` |
-| `blend` | `{ mode: "anchor_only" \| "chain_only" \| "blend"; chainWeight: number; anchorWeight: number; autoFallback: boolean }` | `optional()` |
-
-##### `consistencyCheckResultSchema` → `ConsistencyCheckResult`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `passed` | `boolean` | 是否通过 |
-| `characterScores` | `{ elementId: string; elementName: string; score: number; issues: string[] }[]` | 角色评分 |
-| `overallScore` | `number` | 总体评分 |
-| `recommendation` | `"accept" \| "regenerate" \| "adjust"` | 建议 |
-
-##### `shotReferenceSchema` → `ShotReference`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `direction` | `"none" \| "previous" \| "next" \| "custom"` | 引用方向 |
-| `targetShotId` | `string` | `optional()` |
-| `contentType` | `"full_video" \| "last_frame" \| "first_frame" \| "video_segment"` | 内容类型 |
-| `segmentDuration` | `number` | `optional()` |
-| `segmentPosition` | `"start" \| "end"` | `optional()` |
-
-##### `shotGenerationStatusSchema` → `ShotGenerationStatus`
-
-```typescript
-"idle" | "pending" | "generating" | "completed" | "failed"
-```
-
-##### `shotGenerationResultSchema` → `ShotGenerationResult`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `videoUrl` | `string` | `optional()` |
-| `lastFrameUrl` | `string` | `optional()` |
-| `firstFrameUrl` | `string` | `optional()` |
-| `duration` | `number` | 时长 |
-| `generatedAt` | `string` | 生成时间 |
-| `prompt` | `string` | 提示词 |
-| `taskId` | `string` | `optional()` |
-| `error` | `string` | `optional()` |
-
-##### `fixedImageSchema` → `FixedImageConfig`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `enabled` | `boolean` | 是否启用 |
-| `lockType` | `"character" \| "scene"` | 锁定类型 |
-| `imageUrl` | `string` | `optional()` |
-| `name` | `string` | `optional()` |
-| `characters` | `{ characterId: string; characterName: string; imageUrl: string }[]` | `optional()` |
-
-##### `referenceVideoSchema` → `ReferenceVideoConfig`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `enabled` | `boolean` | 是否启用 |
-| `videoUrl` | `string` | `optional()` |
-| `mimicryLevel` | `"light" \| "medium" \| "deep"` | 模仿级别 |
-| `name` | `string` | `optional()` |
-| `duration` | `number` | `optional()` |
-
-##### `templateConfigSchema` → `TemplateConfig`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `enabled` | `boolean` | 是否启用 |
-| `templateId` | `string` | `optional()` |
-| `template` | `unknown` | `optional()` |
-| `autoMatchStory` | `boolean` | `optional()` |
-| `name` | `string` | `optional()` |
-| `matchCamera` | `boolean` | `optional()` |
-| `matchTransition` | `boolean` | `optional()` |
-| `matchTiming` | `boolean` | `optional()` |
-
-##### `beatCameraSchema` → `BeatCamera`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `angle` | `string` | `optional()` |
-| `movement` | `string` | `optional()` |
-| `distance` | `string` | `optional()` |
-| `speed` | `string` | `optional()` |
-| `relationType` | `"continuous" \| "contrast" \| "parallel" \| "fade"` | `optional()` |
-| `transitionType` | `"cut" \| "dissolve" \| "wipe" \| "fade"` | `optional()` |
-| `transitionDuration` | `number` | `optional()` |
-
-##### `elementTypeSchema` → `ElementType`
-
-```typescript
-"character" | "prop" | "effect"
-```
-
-##### `assetTypeSchema` → `AssetType`
-
-```typescript
-"image" | "video" | "text"
-```
-
-##### `assetBindingSchema` → `AssetBinding`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `type` | `AssetType` | 资产类型 |
-| `url` | `string` | URL |
-| `name` | `string` | 名称 |
-| `uploadedAt` | `string` | 上传时间 |
-| `isPrimary` | `boolean` | `optional()` |
-
-##### `referenceImageQualitySchema` → `ReferenceImageQuality`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `isValid` | `boolean` | 是否有效 |
-| `resolution` | `{ width: number; height: number }` | 分辨率 |
-| `minResolution` | `number` | 最低分辨率 |
-| `clarityScore` | `number` | 清晰度评分 |
-| `issues` | `string[]` | 问题列表 |
-
-##### `elementFeatureAnchorSchema` → `ElementFeatureAnchor`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `elementId` | `string` | 元素 ID |
-| `elementType` | `ElementType` | 元素类型 |
-| `referenceImageUrl` | `string` | 参考图 URL |
-| `featureTags` | `string[]` | 特征标签 |
-| `characterFeatures` | `{ faceShape?: string; hairColor?: string; hairStyle?: string; eyeColor?: string; build?: string; clothing?: string; colorPalette?: string[]; distinctiveMarks?: string[] }` | `optional()` |
-| `sceneFeatures` | `{ sceneType?: string; colorTone?: string; lightingType?: string; keyElements?: string[]; structureDesc?: string }` | `optional()` |
-| `extractedAt` | `string` | 提取时间 |
-| `confidence` | `number` | 置信度 |
-
-##### `storyElementSchema` → `StoryElement`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 元素 ID |
-| `type` | `ElementType` | 元素类型 |
-| `name` | `string` | 名称 |
-| `description` | `string` | 描述 |
-| `bindings` | `AssetBinding[]` | 资产绑定列表 |
-| `characterConfig` | `{ gender?: string; age?: number; style?: string; personality?: string[]; appearance?: { hairColor?: string; hairStyle?: string; eyeColor?: string; height?: string; build?: string; clothing?: string } }` | `optional()` |
-| `sceneConfig` | `{ timeOfDay?: string; weather?: string; mood?: string; lighting?: string; style?: string }` | `optional()` |
-| `featureAnchor` | `ElementFeatureAnchor` | `optional()` |
-| `referenceImageQuality` | `ReferenceImageQuality` | `optional()` |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | 更新时间 |
-
-##### `elementLibrarySchema` → `ElementLibrary`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `elements` | `StoryElement[]` | 元素列表 |
-| `nextCode` | `Record<ElementType, number>` | 下一个编号 |
-
----
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `shotInstructionSchema` | `ShotInstruction` / `ShotInstructionTemplate` | 分镜指令 |
+| `featureAnchorItemSchema` | — | 特征锚点项 |
+| `featureAnchoringSchema` | `FeatureAnchoringConfig` | 特征锚定配置 |
+| `consistencyCheckResultSchema` | `ConsistencyCheckResult` | 一致性检查结果 |
+| `shotReferenceSchema` | `ShotReference` | 分镜引用 |
+| `shotGenerationStatusSchema` | `ShotGenerationStatus` | 分镜生成状态 |
+| `shotGenerationResultSchema` | `ShotGenerationResult` | 分镜生成结果 |
+| `fixedImageSchema` | `FixedImageConfig` | 固定图像配置 |
+| `referenceVideoSchema` | `ReferenceVideoConfig` | 参考视频配置 |
+| `templateConfigSchema` | `TemplateConfig` | 模板配置 |
+| `elementTypeSchema` | `ElementType` | 元素类型 |
+| `assetTypeSchema` | `AssetType` | 资产类型 |
+| `assetBindingSchema` | `AssetBinding` | 资产绑定 |
+| `referenceImageQualitySchema` | `ReferenceImageQuality` | 参考图质量 |
+| `elementFeatureAnchorSchema` | `ElementFeatureAnchor` | 元素特征锚点 |
+| `storyElementSchema` | `StoryElement` | 故事元素 |
+| `elementLibrarySchema` | `ElementLibrary` | 元素库 |
 
 #### api.ts
 
-##### `apiConfigSchema` → `ApiConfig`
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `apiConfigSchema` | `ApiConfig` | API 配置 |
+| `apiErrorCodeSchema` | `ApiErrorCode` | API 错误码 |
+| `apiResponseSchema` | `ApiResponse` | API 响应包装 |
+| `imageGenerationResultSchema` | `ImageGenerationResult` | 图像生成结果 |
+| `videoGenerationResultSchema` | `VideoGenerationResult` | 视频生成结果 |
+| `videoTaskStatusSchema` | `VideoTaskStatus` | 视频任务状态 |
+| `videoTaskSchema` | `VideoTask` | 视频任务 |
+| `healthStatusSchema` | `HealthStatus` | 健康状态 |
+| `userApiConfigSchema` | `UserApiConfig` | 用户 API 配置 |
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `apiUrl` | `string` | `optional()` |
-| `apiKey` | `string` | `optional()` |
-| `model` | `string` | `optional()` |
-| `size` | `string` | `optional()` |
+附加类型：`ModelSelection`
 
-##### `apiErrorCodeSchema` → `ApiErrorCode`
+#### llm-message.ts
 
-```typescript
-"INVALID_API_KEY" | "RATE_LIMITED" | "ENDPOINT_NOT_FOUND" | "API_SERVER_ERROR" |
-"TIMEOUT" | "CONNECTION_FAILED" | "INVALID_RESPONSE" | "POLLINATIONS_FAILED" |
-"INTERNAL_ERROR" | "UNKNOWN_ERROR"
-```
-
-##### `apiResponseSchema` → `ApiResponse<T>`
-
-```typescript
-| { success: true; data: T; source?: string; error?: string; message?: string }
-| { success: false; error: string; message?: string; data?: T }
-```
-
-##### `imageGenerationResultSchema` → `ImageGenerationResult`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `imageUrl` | `string` | 图片 URL |
-| `source` | `string` | `optional()` |
-| `prompt` | `string` | `optional()` |
-
-##### `videoGenerationResultSchema` → `VideoGenerationResult`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `videoUrl` | `string` | `optional()` |
-| `taskId` | `string` | `optional()` |
-| `status` | `string` | `optional()` |
-| `promptWasTruncated` | `boolean` | `optional()` |
-| `originalPromptLength` | `number` | `optional()` |
-| `providerId` | `string` | `optional()` |
-| `providerModelId` | `string` | `optional()` |
-| `providerFormat` | `string` | `optional()` |
-| `urlTtl` | `number` | `optional()` |
-
-##### `videoTaskStatusSchema` → `VideoTaskStatus`
-
-```typescript
-"pending" | "generating" | "completed" | "failed" | "cancelled" | "retrying" | "timeout"
-```
-
-##### `videoTaskSchema` → `VideoTask`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `taskId` | `string` | 任务 ID |
-| `status` | `VideoTaskStatus` | 状态 |
-| `progress` | `number` | 进度 (0-100) |
-| `videoUrl` | `string` | `optional()` |
-| `localVideoPath` | `string` | `optional()` |
-| `message` | `string` | `default("")` |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | `optional()` |
-| `expiresAt` | `string` | `optional()` |
-| `model` | `string` | `optional()` |
-| `prompt` | `string` | `optional()` |
-| `parameters` | `Record<string, unknown>` | `optional()` |
-| `apiUrl` | `string` | `optional()` |
-| `apiEndpoint` | `string` | `optional()` |
-| `providerId` | `string` | `optional()` |
-| `providerModelId` | `string` | `optional()` |
-| `providerFormat` | `string` | `optional()` |
-| `fixedImageUrl` | `string` | `optional()` |
-| `fixedImageLockType` | `"character" \| "scene"` | `optional()` |
-| `referenceVideoUrl` | `string` | `optional()` |
-| `referenceVideoMimicryLevel` | `"light" \| "medium" \| "deep"` | `optional()` |
-| `templateId` | `string` | `optional()` |
-| `templateShots` | `string` | `optional()` |
-| `beatId` | `string` | `optional()` |
-| `storyId` | `string` | `optional()` |
-| `storyTitle` | `string` | `optional()` |
-| `beatTitle` | `string` | `optional()` |
-| `cacheFailed` | `boolean` | `optional()` |
-| `promptWasTruncated` | `boolean` | `optional()` |
-| `pollFailureCount` | `number` | `optional()` |
-| `pollCount` | `number` | `optional()` |
-| `recoveryAttempts` | `number` | `optional()` |
-| `lastPolledAt` | `string` | `optional()` |
-| `vectorClock` | `string` | `optional()` |
-| `syncStatus` | `"pending" \| "synced" \| "conflict"` | `optional()` |
-| `urlObtainedAt` | `number` | `optional()` |
-| `urlTtl` | `number` | `optional()` |
-
-##### `healthStatusSchema` → `HealthStatus`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `text` | `{ configured: boolean; provider: string; available: boolean }` | 文本服务状态 |
-| `image` | `{ configured: boolean; provider: string; available: boolean }` | 图片服务状态 |
-| `video` | `{ configured: boolean; provider: string; available: boolean }` | 视频服务状态 |
-| `vision` | `{ configured: boolean; provider: string; available: boolean }` | 视觉服务状态 |
-
-##### `userApiConfigSchema` → `UserApiConfig`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `imageApiUrl` | `string` | 图片 API URL |
-| `imageApiKey` | `string` | 图片 API Key |
-| `imageModel` | `string` | 图片模型 |
-| `videoApiUrl` | `string` | 视频 API URL |
-| `videoApiKey` | `string` | 视频 API Key |
-| `videoModel` | `string` | 视频模型 |
-| `textApiUrl` | `string` | 文本 API URL |
-| `textApiKey` | `string` | 文本 API Key |
-| `textModel` | `string` | 文本模型 |
-| `visionApiUrl` | `string` | 视觉 API URL |
-| `visionApiKey` | `string` | 视觉 API Key |
-| `visionModel` | `string` | 视觉模型 |
-| `useCustomImageApi` | `boolean` | 是否使用自定义图片 API |
-| `useCustomVideoApi` | `boolean` | 是否使用自定义视频 API |
-| `useCustomVisionApi` | `boolean` | 是否使用自定义视觉 API |
-
-##### `ModelSelection`（接口）
-
-```typescript
-interface ModelSelection {
-  providerId: string;
-  modelId: string;
-  providerName: string;
-  modelName: string;
-  format?: string;
-}
-```
-
----
+| 类型 | 说明 |
+|------|------|
+| `LLMMessage` | LLM 消息（OpenAI chat 格式） |
+| `ToolDef` | 工具定义 |
+| `ToolCall` | 工具调用 |
+| `StreamChunk` | 流式 chunk |
+| `ChatCompletionRequest` | 对话补全请求 |
+| `ChatCompletionResponse` | 对话补全响应 |
+| `ProviderCapability` | Provider 能力 |
 
 #### media.ts
 
-##### `mediaAssetSchema` → `MediaAsset`
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `mediaAssetSchema` | `MediaAsset` | 媒体资产 |
+| `videoTemplateShotSchema` | `VideoTemplateShot` | 视频模板分镜 |
+| `videoTemplateSchema` | `VideoTemplate` | 视频模板 |
+| `collectionSchema` | `Collection` | 资产集合 |
+| `collectionAssetSchema` | `CollectionAsset` | 集合资产 |
+| `batchTaskSchema` | `BatchTask` | 批量任务 |
+| `batchTaskResultSchema` | `BatchTaskResult` | 批量任务结果 |
+| `storyboardAssetSchema` | `StoryboardAsset` | 分镜板资产 |
+| `asaExportDataSchema` | `AsaExportData` | ASA 导出数据 |
+| `searchResultSchema` | `SearchResult` | 搜索结果 |
+| `enhancedVideoGenerationParamsSchema` | `EnhancedVideoGenerationParams` | 增强视频生成参数 |
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 资产 ID |
-| `name` | `string` | 名称 |
-| `description` | `string` | `default("")` |
-| `type` | `"image" \| "video"` | 类型 |
-| `url` | `string` | URL |
-| `thumbnailUrl` | `string` | `optional()` |
-| `tags` | `string[]` | `default([])` |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | 更新时间 |
-| `boundTo` | `{ type: "character" \| "scene"; id: string; name: string }` | `optional()` |
-| `fileSize` | `number` | `optional()` |
-| `mimeType` | `string` | `optional()` |
-| `width` | `number` | `optional()` |
-| `height` | `number` | `optional()` |
-| `duration` | `number` | `optional()` |
+附加类型：`MediaAssetType`、`AssetLibraryType`、`ImportMode`
 
-##### `videoTemplateShotSchema` → `VideoTemplateShot`
+#### shot.ts
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 镜头 ID |
-| `sequence` | `number` | 序号 |
-| `description` | `string` | 描述 |
-| `duration` | `number` | 时长 |
-| `cameraAngle` | `string` | 镜头角度 |
-| `cameraMovement` | `string` | 运镜方式 |
-| `transition` | `string` | `optional()` |
-| `promptTemplate` | `string` | `optional()` |
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `subShotSchema` | `SubShot` | 子分镜 |
 
-##### `videoTemplateSchema` → `VideoTemplate`
+#### asset.ts
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 模板 ID |
-| `name` | `string` | 名称 |
-| `description` | `string` | 描述 |
-| `category` | `string` | 分类 |
-| `totalDuration` | `number` | 总时长 |
-| `shots` | `VideoTemplateShot[]` | 镜头列表 |
-| `tags` | `string[]` | `default([])` |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | 更新时间 |
-| `thumbnailUrl` | `string` | `optional()` |
+| Schema / 枚举 | 类型 | 说明 |
+|---------------|------|------|
+| `assetTypeEnum` | — | 资产类型枚举 |
+| `generationAssetSchema` | `GenerationAsset`（别名 `GenerationAssetType`） | 生成资产 |
 
-##### `collectionSchema` → `Collection`
+#### prop.ts — 道具库（Task 2A.8）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 集合 ID |
-| `name` | `string` | 名称 |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | 更新时间 |
+| Schema / 枚举 | 类型 | 说明 |
+|---------------|------|------|
+| `propTypeEnum` | — | 道具类型枚举 |
+| `propSchema` | `Prop` | 道具 |
+| `createPropInputSchema` | `CreatePropInput` | 创建道具输入 |
+| `updatePropInputSchema` | `UpdatePropInput` | 更新道具输入 |
 
-##### `collectionAssetSchema` → `CollectionAsset`
+附加类型：`PropType`
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | ID |
-| `collectionId` | `string` | 集合 ID |
-| `assetType` | `"character" \| "scene" \| "storyboard"` | 资产类型 |
-| `assetId` | `string` | 资产 ID |
+#### character-variant.ts — 角色变体（Task 2A.10）
 
-##### `batchTaskSchema` → `BatchTask`
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `characterVariantSchema` | `CharacterVariant` | 角色变体 |
+| `createCharacterVariantInputSchema` | `CreateCharacterVariantInput` | 创建角色变体输入 |
+| `updateCharacterVariantInputSchema` | `UpdateCharacterVariantInput` | 更新角色变体输入 |
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 任务 ID |
-| `itemId` | `string` | 项目 ID |
-| `itemName` | `string` | 项目名称 |
-| `status` | `"pending" \| "generating" \| "completed" \| "failed"` | 状态 |
-| `progress` | `number` | 进度 (0-100) |
-| `error` | `string` | `optional()` |
-| `result` | `BatchTaskResult` | `optional()` |
+#### scene-variant.ts — 场景变体（Q3-1）
 
-##### `batchTaskResultSchema` → `BatchTaskResult`
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `sceneVariantSchema` | `SceneVariant` | 场景变体 |
+| `createSceneVariantInputSchema` | `CreateSceneVariantInput` | 创建场景变体输入 |
+| `updateSceneVariantInputSchema` | `UpdateSceneVariantInput` | 更新场景变体输入 |
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `imageUrl` | `string` | `optional()` |
-| `source` | `string` | `optional()` |
-| `prompt` | `string` | `optional()` |
-| `[key: string]` | `unknown` | passthrough |
+#### timeline.ts — 时间线维度建模（Q3-3）
 
-##### `storyboardAssetSchema` → `StoryboardAsset`
+| Schema | 类型 | 说明 |
+|--------|------|------|
+| `storyTimelineSchema` | `StoryTimeline` | 故事时间线 |
+| `createStoryTimelineInputSchema` | `CreateStoryTimelineInput` | 创建时间线输入 |
+| `updateStoryTimelineInputSchema` | `UpdateStoryTimelineInput` | 更新时间线输入 |
+| `plotNodeSchema` | `PlotNode` | 剧情节点 |
+| `createPlotNodeInputSchema` | `CreatePlotNodeInput` | 创建剧情节点输入 |
+| `updatePlotNodeInputSchema` | `UpdatePlotNodeInput` | 更新剧情节点输入 |
+| `plotEventTypeSchema` | `PlotEventType` | 剧情事件类型 |
+| `timelineTypeSchema` | `TimelineType` | 时间线类型 |
+| `snapshotStrategySchema` | `SnapshotStrategy` | 快照策略 |
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 资产 ID |
-| `script` | `string` | 脚本 |
-| `duration` | `number` | 时长 |
-| `shotType` | `"wide" \| "medium" \| "close_up" \| "extreme_close_up" \| "over_shoulder" \| "aerial" \| "tracking" \| "static"` | `optional()` |
-| `previewPath` | `string` | `optional()` |
-| `characterIds` | `string[]` | 角色 ID 列表 |
-| `sceneId` | `string` | `optional()` |
-| `projectId` | `string` | `optional()` |
-| `createdAt` | `string` | 创建时间 |
-| `updatedAt` | `string` | 更新时间 |
+#### blockout-scene.ts — 3D 白盒预览（Task 2A.21）
 
-##### `asaExportDataSchema` → `AsaExportData`
+仅类型导出（类型定义在 domain 层，工厂函数/预设库在 `@/modules/blockout-3d`）：
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `format` | `"asa"` | 格式标识 |
-| `version` | `"1.0"` | 版本 |
-| `createdAt` | `string` | 创建时间 |
-| `collections` | `{ id: string; name: string; assetIds: { assetType: "character" \| "scene" \| "storyboard"; assetId: string }[] }[]` | `optional()` |
-| `characters` | `Record<string, unknown>[]` | `optional()` |
-| `scenes` | `Record<string, unknown>[]` | `optional()` |
-| `storyboards` | `Record<string, unknown>[]` | `optional()` |
+`Vec3`、`Vec2`、`GroundType`、`GroundPlane`、`PrimitiveType`、`PrimitiveShape`、`LightingType`、`LightingPreset`、`ShotCamera`、`PosePreset`、`PoseMetadata`、`HeightPreset`、`HeightMetadata`、`Mannequin`、`CameraInterpolation`、`CameraKeyframe`、`CameraPath`、`CameraPathValidation`、`BlockoutScene`
 
-##### `searchResultSchema` → `SearchResult`
+---
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `type` | `"character" \| "scene" \| "story"` | 类型 |
-| `id` | `string` | ID |
-| `title` | `string` | 标题 |
-| `subtitle` | `string` | `optional()` |
+### 1.3 类型 (domain/types)
 
-##### `enhancedVideoGenerationParamsSchema` → `EnhancedVideoGenerationParams`
+通过 `src/domain/types/index.ts` 统一 barrel 导出。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `prompt` | `string` | 提示词 |
-| `duration` | `number` | `optional()` |
-| `fixedImage` | `FixedImageConfig` | `optional()` |
-| `referenceVideo` | `ReferenceVideoConfig` | `optional()` |
-| `template` | `TemplateConfig` | `optional()` |
-| `providerId` | `string` | `optional()` |
-| `modelId` | `string` | `optional()` |
-| `featureAnchoring` | `FeatureAnchoringConfig` | `optional()` |
+#### memory.ts
 
-##### 类型别名
-
-| 名称 | 定义 |
+| 类型 | 说明 |
 |------|------|
-| `MediaAssetType` | `"image" \| "video"` |
-| `AssetLibraryType` | `"character" \| "scene" \| "storyboard"` |
-| `ImportMode` | `"replace" \| "skip" \| "merge"` |
-
----
-
-### 1.3 领域服务 (domain/services)
-
-#### story-generation-service.ts
-
-##### `BeatGenerationContext`
-
-```typescript
-interface BeatGenerationContext {
-  beat: StoryBeat;
-  prevBeat: StoryBeat | null;
-  characters: Character[];
-  scenes: Scene[];
-  elements: StoryElement[];
-}
-```
-
-##### `ResolvedGenerationParams`
-
-```typescript
-interface ResolvedGenerationParams {
-  characterRefs: string[];
-  sceneRef: string | undefined;
-  prevKeyframeUrl: string | undefined;
-  prevLastFrameUrl: string | undefined;
-  prevVideoUrl: string | undefined;
-}
-```
-
-##### `StoryGenerationService`
-
-```typescript
-const StoryGenerationService: {
-  resolveGenerationContext: (ctx: BeatGenerationContext) => ResolvedGenerationParams;
-  buildVideoPrompt: (
-    beat: StoryBeat,
-    basePrompt: string,
-    promptLanguage?: "en" | "zh" | "auto",
-    styleGuide?: StoryStyleGuide,
-    shotInstruction?: ShotInstruction,
-  ) => string;
-  validateGenerationPrereqs: (
-    beat: StoryBeat,
-    type: "keyframe" | "framePair" | "video",
-  ) => Result<void>;
-  buildChainReference: (
-    beats: StoryBeat[],
-    beatId: string,
-  ) => { prevBeat: StoryBeat | null };
-} as const;
-```
-
-| 方法 | 说明 |
-|------|------|
-| `resolveGenerationContext` | 解析分镜生成上下文，包括角色引用、场景引用、前一帧 URL 等 |
-| `buildVideoPrompt` | 构建视频生成提示词，支持首尾帧约束、风格指南、镜头指令 |
-| `validateGenerationPrereqs` | 验证生成前置条件（keyframe → framePair → video 的依赖链） |
-| `buildChainReference` | 构建链式引用，找到前一个分镜 |
-
----
-
-#### beat-workflow-service.ts
-
-##### `GenerationStep`
-
-```typescript
-type GenerationStep = "keyframe" | "framePair" | "video";
-```
-
-##### `BeatWorkflowResult`
-
-```typescript
-interface BeatWorkflowResult {
-  step: GenerationStep;
-  beat: StoryBeat;
-  success: boolean;
-  error?: string;
-}
-```
-
-##### `BeatWorkflowService`
-
-```typescript
-const BeatWorkflowService: {
-  getNextStep: (beat: StoryBeat) => GenerationStep | null;
-  getStepPrereqs: (step: GenerationStep) => string;
-  shouldAutoAdvance: (beat: StoryBeat) => boolean;
-} as const;
-```
-
-| 方法 | 说明 |
-|------|------|
-| `getNextStep` | 获取分镜的下一个生成步骤 |
-| `getStepPrereqs` | 获取步骤的前置条件描述 |
-| `shouldAutoAdvance` | 判断是否应自动推进到下一步 |
-
----
-
-#### reference-resolver.ts
-
-##### `resolveCharacterRef`
-
-```typescript
-function resolveCharacterRef(
-  character: Character,
-  beat?: StoryBeat | null,
-  elements?: StoryElement[],
-): string | undefined
-```
-
-解析角色引用图片 URL。优先级：服装图 → 元素绑定图 → avatarPath → generatedImage → refImagePath。
-
-##### `resolveCharacterRefs`
-
-```typescript
-function resolveCharacterRefs(
-  characterIds: string[],
-  characters: Character[],
-  beat?: StoryBeat | null,
-  elements?: StoryElement[],
-): string[]
-```
-
-批量解析角色引用图片 URL。
-
-##### `resolveSceneRef`
-
-```typescript
-function resolveSceneRef(
-  scene: { refImagePath?: string; scenePath?: string; generatedImage?: string; imageUrl?: string },
-): string | undefined
-```
-
-解析场景引用图片 URL。优先级：refImagePath → scenePath → generatedImage → imageUrl。
-
----
-
-#### reference-check.ts
-
-##### `ReferenceInfo`
-
-```typescript
-interface ReferenceInfo {
-  elementId: string;
-  elementType: "character" | "scene";
-  elementName: string;
-  usedInBeats: string[];
-  usedInStories: string[];
-}
-```
-
-##### `DeleteCheckResult`
-
-```typescript
-interface DeleteCheckResult {
-  canDelete: boolean;
-  references: ReferenceInfo[];
-  warningMessage?: string;
-}
-```
-
-##### `checkCharacterReferences`
-
-```typescript
-function checkCharacterReferences(
-  characterId: string,
-  characterName: string,
-  stories: Story[],
-): DeleteCheckResult
-```
-
-检查角色是否被故事引用，用于删除前校验。
-
-##### `checkSceneReferences`
-
-```typescript
-function checkSceneReferences(
-  sceneId: string,
-  sceneName: string,
-  stories: Story[],
-): DeleteCheckResult
-```
-
-检查场景是否被故事引用，用于删除前校验。
-
-##### `checkElementReferences`
-
-```typescript
-function checkElementReferences(
-  elementId: string,
-  elementName: string,
-  stories: Story[],
-  elementType?: "character" | "scene",
-): DeleteCheckResult
-```
-
-检查元素是否被故事引用，用于删除前校验。
-
----
-
-### 1.4 类型定义 (domain/types)
-
-#### result.ts
-
-##### `Result<T, E>`
-
-```typescript
-type Result<T, E = AppError> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
-```
-
-##### `AppError`
-
-```typescript
-class AppError extends Error {
-  readonly code: string;
-  constructor(code: string, message: string, cause?: unknown);
-  toString(): string;
-}
-```
-
-##### 错误类层次
-
-| 类名 | 构造函数签名 | code |
-|------|-------------|------|
-| `DatabaseError` | `(message: string, cause?: unknown)` | `"DATABASE_ERROR"` |
-| `ValidationError` | `(message: string, cause?: unknown)` | `"VALIDATION_ERROR"` |
-| `ApiError` | `(message: string, statusCode?: number, apiCode?: string, cause?: unknown)` | `"API_ERROR"` |
-| `NotFoundError` | `(entity: string, id: string)` | `"NOT_FOUND"` |
-| `NetworkError` | `(message: string, cause?: unknown)` | `"NETWORK_ERROR"` |
-| `StorageError` | `(message: string, cause?: unknown)` | `"STORAGE_ERROR"` |
-| `ConfigurationError` | `(message: string, cause?: unknown)` | `"CONFIGURATION_ERROR"` |
-| `GenerationError` | `(message: string, generationType: GenerationType, cause?: unknown)` | `"GENERATION_ERROR"` |
-| `TimeoutError` | `(message: string, cause?: unknown)` | `"TIMEOUT_ERROR"` |
-| `RateLimitError` | `(message: string, retryAfter?: number, cause?: unknown)` | `"RATE_LIMIT_ERROR"` |
-| `AuthenticationError` | `(message: string, cause?: unknown)` | `"AUTHENTICATION_ERROR"` |
-
-##### `GenerationType`
-
-```typescript
-type GenerationType = "keyframe" | "framePair" | "video" | "image" | "text";
-```
-
-##### 工具函数
-
-| 函数 | 签名 | 说明 |
-|------|------|------|
-| `ok` | `<T>(value: T): Result<T, never>` | 创建成功结果 |
-| `err` | `<E extends AppError>(error: E): Result<never, E>` | 创建错误结果 |
-| `fromThrowable` | `<T>(fn: () => T): Result<T, AppError>` | 将可能抛异常的函数包装为 Result |
-| `fromAsyncThrowable` | `<T>(fn: () => Promise<T>): Promise<Result<T, AppError>>` | 将可能抛异常的异步函数包装为 Result |
-
----
-
-#### sync.ts
-
-##### 类型定义
-
-| 名称 | 定义 |
-|------|------|
-| `SyncStatus` | `"synced" \| "pending" \| "conflict"` |
-| `SyncEntityType` | `"character" \| "scene" \| "story" \| "media_asset" \| "storyboard_asset" \| "video_task" \| "story_version" \| "collection" \| "element" \| "video_template" \| "ast_template"` |
-| `ChangeOperation` | `"insert" \| "update" \| "delete"` |
-
-##### `VectorClock`
-
-```typescript
-interface VectorClock {
-  [deviceId: string]: number;
-}
-```
-
-##### `SyncChangeLogEntry`
-
-```typescript
-interface SyncChangeLogEntry {
-  id: string;
-  entityType: SyncEntityType;
-  entityId: string;
-  operation: ChangeOperation;
-  vectorClock: VectorClock;
-  data: string | null;
-  timestamp: number;
-  synced: number;
-  deviceId: string;
-}
-```
-
-##### `SyncPushResult`
-
-```typescript
-interface SyncPushResult {
-  accepted: number;
-  conflicts: SyncConflict[];
-  serverVectorClock: VectorClock;
-}
-```
-
-##### `SyncPullResult`
-
-```typescript
-interface SyncPullResult {
-  changes: RemoteChange[];
-  latestVectorClock: VectorClock;
-  hasMore: boolean;
-}
-```
-
-##### `RemoteChange`
-
-```typescript
-interface RemoteChange {
-  entityType: SyncEntityType;
-  entityId: string;
-  operation: ChangeOperation;
-  vectorClock: VectorClock;
-  data: Record<string, unknown> | null;
-  timestamp: number;
-  deviceId: string;
-}
-```
-
-##### `SyncConflict`
-
-```typescript
-interface SyncConflict {
-  entityType: SyncEntityType;
-  entityId: string;
-  localVectorClock: VectorClock;
-  remoteVectorClock: VectorClock;
-  localData: Record<string, unknown> | null;
-  remoteData: Record<string, unknown> | null;
-  resolved: boolean;
-  resolution: "local" | "remote" | "merge" | null;
-}
-```
-
-##### `SyncStatusInfo`
-
-```typescript
-interface SyncStatusInfo {
-  lastSyncAt: number | null;
-  pendingChanges: number;
-  conflicts: number;
-  isSyncing: boolean;
-  deviceId: string;
-}
-```
-
-##### `ConflictStrategy`
-
-```typescript
-type ConflictStrategy = "last-write-wins" | "local-wins" | "remote-wins" | "manual";
-```
-
-##### `SyncConfig`
-
-```typescript
-interface SyncConfig {
-  enabled: boolean;
-  autoSync: boolean;
-  syncInterval: number;
-  conflictStrategy: ConflictStrategy;
-  endpoint: string;
-  deviceId: string;
-  deviceVectorClock?: VectorClock;
-  server: SyncServerConfig | null;
-}
-```
-
-##### `SyncServerConfig`
-
-```typescript
-interface SyncServerConfig {
-  url: string;
-  connected: boolean;
-  lastConnectedAt: number | null;
-  serverVersion: string | null;
-}
-```
-
-##### `SyncCredentials`
-
-```typescript
-interface SyncCredentials {
-  username: string;
-  token: string;
-}
-```
-
-##### `SyncTestRequest`
-
-```typescript
-interface SyncTestRequest {
-  url: string;
-  username: string;
-  password: string;
-}
-```
-
-##### `SyncTestResult`
-
-```typescript
-interface SyncTestResult {
-  success: boolean;
-  message: string;
-  serverVersion?: string;
-  token?: string;
-  latency?: number;
-}
-```
-
-##### `SyncAuthResult`
-
-```typescript
-interface SyncAuthResult {
-  success: boolean;
-  token: string;
-  userId: string;
-  expiresIn?: number;
-}
-```
-
-##### `SyncProxyRequest`
-
-```typescript
-interface SyncProxyRequest {
-  action: "push" | "pull";
-  changes?: unknown[];
-  deviceId?: string;
-  since?: number;
-  page?: number;
-}
-```
-
-##### 常量
-
-| 名称 | 类型 | 值 |
-|------|------|-----|
-| `SYNCABLE_TABLE_MAP` | `Record<SyncEntityType, string>` | `{ character: "characters", scene: "scenes", story: "stories", ... }` |
-| `SYNC_TABLES` | `SyncEntityType[]` | 所有可同步实体类型数组 |
-| `DEFAULT_SYNC_CONFIG` | `SyncConfig` | `{ enabled: false, autoSync: true, syncInterval: 30000, conflictStrategy: "last-write-wins", ... }` |
-
-##### 向量时钟工具函数
-
-| 函数 | 签名 | 说明 |
-|------|------|------|
-| `createVectorClock` | `(deviceId: string, counter?: number): VectorClock` | 创建向量时钟 |
-| `incrementVectorClock` | `(clock: VectorClock, deviceId: string): VectorClock` | 递增向量时钟 |
-| `mergeVectorClocks` | `(a: VectorClock, b: VectorClock): VectorClock` | 合并两个向量时钟 |
-| `compareVectorClocks` | `(a: VectorClock, b: VectorClock): number` | 比较两个向量时钟（1: a>b, -1: a<b, 0: 并发） |
-| `isVectorClockConflict` | `(a: VectorClock, b: VectorClock): boolean` | 判断是否存在冲突 |
-
----
-
-#### electron-api.ts
-
-##### `VideoTaskRecord`
-
-```typescript
-interface VideoTaskRecord {
-  taskId: string;
-  status: "pending" | "generating" | "completed" | "failed" | "cancelled" | "retrying";
-  progress: number;
-  videoUrl?: string;
-  localVideoPath?: string;
-  message: string;
-  createdAt: string;
-  updatedAt?: string;
-  storyId?: string;
-  beatId?: string;
-  config?: { model?: string; prompt?: string; parameters?: string; template_id?: string; template_shots?: string };
-  provider?: { api_url?: string; api_endpoint?: string; provider_id?: string; provider_model_id?: string; provider_format?: string };
-  mediaRefs?: { fixed_image_url?: string; fixed_image_lock_type?: string; reference_video_url?: string; reference_video_mimicry_level?: string };
-  tracking?: { last_polled_at?: number; poll_count?: number; poll_failure_count?: number; recovery_attempts?: number; expires_at?: number; url_obtained_at?: number; url_ttl?: number };
-}
-```
-
-##### `VideoTaskHistory`
-
-```typescript
-interface VideoTaskHistory {
-  taskId: string;
-  status: "pending" | "generating" | "completed" | "failed" | "retrying";
-  model?: string;
-  prompt?: string;
-  parameters?: Record<string, unknown>;
-  videoUrl?: string;
-  createdAt: string;
-  expiresAt: string;
-  lastPolledAt?: string;
-  pollCount: number;
-  recoveryAttempts: number;
-}
-```
-
-##### `CustomApiConfig`
-
-```typescript
-interface CustomApiConfig {
-  providerId?: string;
-  modelId?: string;
-  format?: string;
-}
-```
-
----
+| `ArchivalMemoryEntry` | 归档记忆条目 |
 
 #### cloud-provider.ts
 
-##### `CloudProviderInfo`
-
-```typescript
-interface CloudProviderInfo {
-  name: string;
-  websiteUrl?: string;
-  taskUrlPattern?: (taskId: string) => string;
-  queryEndpoint?: (baseUrl: string, taskId: string) => string;
-  apiDocUrl?: string;
-  howToCheck: string;
-}
-```
-
----
+| 类型 | 说明 |
+|------|------|
+| `CloudProviderInfo` | 云 Provider 信息 |
 
 #### video-model.ts
 
-##### `VideoModelFormat`
+| 类型 | 说明 |
+|------|------|
+| `VideoModelFormat` | 视频模型格式 |
 
-```typescript
-type VideoModelFormat =
-  | "volcengine" | "kuaishou" | "zhipu" | "seedance" | "pixverse"
-  | "google" | "anthropic" | "openai-sora" | "minimax"
-  | "openai-compatible" | "openai";
-```
+#### result.ts — Result 类型与错误体系
 
----
+**类型**：
 
-#### error-codes.ts
+| 类型 | 说明 |
+|------|------|
+| `Result<T>` | Result 类型（成功/失败联合） |
+| `GenerationType` | 生成类型 |
 
-##### `ErrorDomain`
+**类**：
 
-```typescript
-type ErrorDomain =
-  | "database" | "validation" | "api" | "network" | "storage"
-  | "generation" | "recovery" | "cache" | "config" | "auth"
-  | "state" | "system";
-```
+| 类 | 说明 |
+|----|------|
+| `AppError` | 应用错误基类 |
+| `DatabaseError` | 数据库错误 |
+| `ValidationError` | 校验错误 |
+| `ApiError` | API 错误 |
+| `NotFoundError` | 未找到错误 |
+| `NetworkError` | 网络错误 |
+| `StorageError` | 存储错误 |
+| `ConfigurationError` | 配置错误 |
+| `GenerationError` | 生成错误 |
+| `TimeoutError` | 超时错误 |
+| `RateLimitError` | 限流错误 |
+| `AuthenticationError` | 认证错误 |
 
-##### `ErrorCodeEntry`
-
-```typescript
-interface ErrorCodeEntry {
-  code: string;
-  domain: ErrorDomain;
-  i18nKey: string;
-  retryable: boolean;
-}
-```
-
-##### `ErrorCategory`
-
-```typescript
-type ErrorCategory =
-  | "timeout" | "rate_limit" | "quota" | "invalid_params"
-  | "network" | "server_error" | "database_busy" | "auth" | "unknown";
-```
-
-##### 错误码列表
-
-| 代码 | 域 | i18nKey | 可重试 |
-|------|-----|--------|--------|
-| `DATABASE_ERROR` | database | errorCode.databaseError | ✅ |
-| `VALIDATION_ERROR` | validation | errorCode.validationError | ❌ |
-| `API_ERROR` | api | errorCode.apiError | ✅ |
-| `NOT_FOUND` | database | errorCode.notFound | ❌ |
-| `NETWORK_ERROR` | network | errorCode.networkError | ✅ |
-| `STORAGE_ERROR` | storage | errorCode.storageError | ✅ |
-| `CONFIGURATION_ERROR` | config | errorCode.configurationError | ❌ |
-| `GENERATION_ERROR` | generation | errorCode.generationError | ✅ |
-| `TIMEOUT_ERROR` | network | errorCode.timeoutError | ✅ |
-| `RATE_LIMIT_ERROR` | api | errorCode.rateLimitError | ✅ |
-| `AUTHENTICATION_ERROR` | auth | errorCode.authenticationError | ❌ |
-| `UNKNOWN_ERROR` | system | errorCode.unknownError | ❌ |
-| `CLEANUP_ERROR` | system | errorCode.cleanupError | ✅ |
-| `CACHE_CLEANUP_ERROR` | cache | errorCode.cacheCleanupError | ✅ |
-| `CACHE_VIDEO_ERROR` | cache | errorCode.cacheVideoError | ✅ |
-| `CACHE_DB_ERROR` | cache | errorCode.cacheDbError | ✅ |
-| `REMOVE_TASK_ERROR` | system | errorCode.removeTaskError | ❌ |
-| `CLEAR_ACTIVE_TASKS_ERROR` | system | errorCode.clearActiveTasksError | ❌ |
-| `RETRY_NOT_RECOMMENDED` | recovery | errorCode.retryNotRecommended | ❌ |
-| `DUPLICATE_DETECTED` | recovery | errorCode.duplicateDetected | ❌ |
-| `HIGH_RISK_RETRY` | recovery | errorCode.highRiskRetry | ❌ |
-| `INVALID_TRANSITION` | state | errorCode.invalidTransition | ❌ |
-| `VERIFICATION_FAILED` | recovery | errorCode.verificationFailed | ✅ |
-| `RECOVERY_INCOMPLETE` | recovery | errorCode.recoveryIncomplete | ✅ |
-| `RECOVERY_FAILED` | recovery | errorCode.recoveryFailed | ❌ |
-| `RECOVERY_PENDING` | recovery | errorCode.recoveryPending | ✅ |
-| `UNKNOWN_STATUS` | recovery | errorCode.unknownStatus | ✅ |
-| `QUERY_FAILED` | recovery | errorCode.queryFailed | ✅ |
-| `BACKGROUND_RECOVERY_ERROR` | recovery | errorCode.backgroundRecoveryError | ✅ |
-| `SYNTHESIZE_PROGRESS` | generation | errorCode.synthesizeProgress | ❌ |
-| `UNHANDLED_REJECTION` | system | errorCode.unhandledRejection | ❌ |
-| `LOG` | system | errorCode.log | ❌ |
-
-##### 工具函数
+**函数**：
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
-| `isRetryable` | `(code: string): boolean` | 判断错误码是否可重试 |
-| `getErrorCodeEntry` | `(code: string): ErrorCodeEntry \| undefined` | 获取错误码条目 |
-| `classifyError` | `(errorCode?: string, errorMessage?: string): ErrorCategory` | 分类错误 |
+| `ok` | `<T>(value: T): Result<T>` | 构造成功结果 |
+| `err` | `<T>(error: AppError): Result<T>` | 构造失败结果 |
+| `fromThrowable` | `<T>(fn: () => T): Result<T>` | 同步函数包装 |
+| `fromAsyncThrowable` | `<T>(fn: () => Promise<T>): Promise<Result<T>>` | 异步函数包装 |
+
+#### sync.ts — 同步类型与工具
+
+**类型**：`SyncStatus`、`SyncEntityType`、`ChangeOperation`、`VectorClock`、`SyncChangeLogEntry`、`SyncPushResult`、`SyncPullResult`、`RemoteChange`、`SyncConflict`、`SyncStatusInfo`、`ConflictStrategy`、`SyncConfig`
+
+**常量**：
+
+| 常量 | 说明 |
+|------|------|
+| `SYNC_TABLES` | 同步表清单 |
+| `DEFAULT_SYNC_CONFIG` | 默认同步配置 |
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `createVectorClock` | `(nodeId: string): VectorClock` | 创建向量时钟 |
+| `incrementVectorClock` | `(clock: VectorClock, nodeId: string): VectorClock` | 递增向量时钟 |
+| `mergeVectorClocks` | `(a: VectorClock, b: VectorClock): VectorClock` | 合并向量时钟 |
+| `compareVectorClocks` | `(a: VectorClock, b: VectorClock): "before" \| "after" \| "equal" \| "concurrent"` | 比较向量时钟 |
+| `isVectorClockConflict` | `(a: VectorClock, b: VectorClock): boolean` | 判断是否冲突 |
+
+#### electron-api.ts
+
+| 类型 | 说明 |
+|------|------|
+| `VideoTaskRecord` | 视频任务记录 |
+| `VideoTaskHistory` | 视频任务历史 |
+| `CustomApiConfig` | 自定义 API 配置 |
+
+#### error-codes.ts — 错误码分类
+
+**类型**：`ErrorDomain`、`ErrorCodeEntry`、`ErrorCategory`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `isRetryable` | `(errorCode: string): boolean` | 判断错误码是否可重试 |
+| `classifyError` | `(errorCode: string): ErrorCategory` | 错误码分类 |
+
+#### agent-tools.ts
+
+Agent 工具相关类型定义（详见源码）。
 
 ---
 
-### 1.5 工具函数 (domain/utils)
+### 1.4 领域服务 (domain/services)
+
+通过 `src/domain/services/index.ts` 统一 barrel 导出。领域服务为纯函数或常量对象，无副作用。
+
+#### StoryGenerationService（story-generation-service.ts）
+
+常量对象，包含故事生成相关纯函数：
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `resolveGenerationContext` | `(ctx: BeatGenerationContext): ResolvedGenerationParams` | 解析分镜生成上下文（角色引用、场景引用等） |
+| `buildVideoPrompt` | `(beat: StoryBeat, basePrompt: string, promptLanguage?: "en" \| "zh" \| "auto", styleGuide?: StoryStyleGuide, shotInstruction?: ShotInstruction): string` | 构建视频 prompt |
+| `validateGenerationPrereqs` | `(beat: StoryBeat, type: "keyframe" \| "framePair" \| "video"): Result<void>` | 校验生成前置条件 |
+| `buildChainReference` | `(beats: StoryBeat[], beatId: string): { prevBeat: StoryBeat \| null }` | 构建链式引用（前一镜） |
+
+**类型**：`BeatGenerationContext`、`ResolvedGenerationParams`
+
+#### BeatWorkflowService（beat-workflow-service.ts）
+
+常量对象，管理分镜工作流步骤：
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `getNextStep` | `(beat: StoryBeat): GenerationStep \| null` | 获取下一待执行步骤 |
+| `getStepPrereqs` | `(step: GenerationStep): string` | 获取步骤前置条件描述 |
+| `shouldAutoAdvance` | `(beat: StoryBeat): boolean` | 判断是否应自动推进 |
+
+**类型**：
+- `GenerationStep` — `"keyframe" | "framePair" | "video"`
+- `BeatWorkflowResult` — `{ step; beat: StoryBeat; success; error? }`
+
+#### reference-resolver.ts — 引用解析
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `resolveCharacterRef` | `(character: Character, beat?: StoryBeat \| null, elements?: StoryElement[]): string \| undefined` | 解析单个角色引用 URL |
+| `resolveCharacterRefs` | `(characterIds: string[], characters: Character[], beat?: StoryBeat \| null, elements?: StoryElement[]): string[]` | 批量解析角色引用 |
+| `resolveSceneRef` | `(scene: { refImagePath?; scenePath?; generatedImage?; imageUrl? }): string \| undefined` | 解析场景引用 URL |
+
+#### reference-check.ts — 引用检查
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `checkCharacterReferences` | `(characterId: string, characterName: string, stories: Story[]): DeleteCheckResult` | 检查角色被哪些故事引用 |
+| `checkSceneReferences` | `(sceneId: string, sceneName: string, stories: Story[]): DeleteCheckResult` | 检查场景被哪些故事引用 |
+| `checkElementReferences` | `(elementId: string, elementName: string, stories: Story[], elementType?: "character" \| "scene"): DeleteCheckResult` | 通用元素引用检查 |
+
+**类型**：
+- `ReferenceInfo` — `{ elementId; elementType: "character" \| "scene"; elementName; usedInBeats: string[] }`
+- `DeleteCheckResult` — `{ canDelete: boolean; references: ReferenceInfo[]; warningMessage? }`
+
+---
+
+### 1.5 领域工具 (domain/utils)
+
+通过 `src/domain/utils/index.ts` 统一 barrel 导出。纯函数工具，供领域服务与模块复用。
 
 #### shot-prompt.ts
 
-##### `SHOT_SIZE_OPTIONS`
+| 导出 | 签名 | 说明 |
+|------|------|------|
+| `SHOT_SIZE_OPTIONS` | `Array<{ value; label; labelKey; description; descKey; keyword }>` | 景别选项 |
+| `CAMERA_MOVEMENT_OPTIONS` | `Array<{ value; label; labelKey; description; descKey; keyword }>` | 运镜选项 |
+| `CAMERA_ANGLE_OPTIONS` | `Array<{ value; label; labelKey; description; descKey; keyword }>` | 角度选项 |
+| `shotInstructionToPrompt` | `(instruction: ResolvedShotInstruction): string` | 分镜指令转 prompt 文本 |
+| `resolveShotInstruction` | `(beat: { shotInstruction?: ShotInstructionTemplate }): ResolvedShotInstruction \| null` | 解析分镜指令 |
 
-```typescript
-const SHOT_SIZE_OPTIONS: Array<{
-  value: ShotInstructionTemplate["shotSize"];
-  label: string;
-  description: string;
-  keyword: string;
-}>
-```
-
-| value | label | description | keyword |
-|-------|-------|-------------|---------|
-| `extreme_close` | 特写 | 极度放大的局部画面，强调细节 | extreme close-up shot |
-| `close` | 近景 | 人物胸部以上的画面，突出表情 | close-up shot |
-| `medium` | 中景 | 人物腰部以上的画面，展示动作 | medium shot |
-| `wide` | 全景 | 人物全身及周围环境的画面 | wide shot |
-| `extreme_wide` | 远景 | 大范围场景画面，强调环境 | extreme wide shot, establishing shot |
-
-##### `CAMERA_MOVEMENT_OPTIONS`
-
-```typescript
-const CAMERA_MOVEMENT_OPTIONS: Array<{
-  value: ShotInstructionTemplate["cameraMovement"];
-  label: string;
-  description: string;
-  keyword: string;
-}>
-```
-
-| value | label | description | keyword |
-|-------|-------|-------------|---------|
-| `static` | 固定 | 镜头不动，画面稳定 | static camera, fixed shot |
-| `push` | 推 | 镜头向主体推进 | push in, zoom in, dolly in |
-| `pull` | 拉 | 镜头远离主体 | pull out, zoom out, dolly out |
-| `pan` | 摇 | 镜头左右或上下旋转 | pan shot, camera pan |
-| `orbit` | 环绕 | 镜头围绕主体旋转 | orbit shot, 360 degree rotation around subject |
-| `crane_up` | 升 | 镜头向上移动 | crane up, rising shot, ascending |
-| `crane_down` | 降 | 镜头向下移动 | crane down, descending shot |
-| `tracking` | 跟拍 | 镜头跟随主体移动 | tracking shot, following shot |
-
-##### `CAMERA_ANGLE_OPTIONS`
-
-```typescript
-const CAMERA_ANGLE_OPTIONS: Array<{
-  value: ShotInstructionTemplate["cameraAngle"];
-  label: string;
-  description: string;
-  keyword: string;
-}>
-```
-
-| value | label | description | keyword |
-|-------|-------|-------------|---------|
-| `eye_level` | 平拍 | 与主体视线平齐 | eye level shot |
-| `low` | 仰视 | 从低处向上拍摄 | low angle shot, looking up |
-| `high` | 俯视 | 从高处向下拍摄 | high angle shot, looking down |
-| `birds_eye` | 鸟瞰 | 正上方垂直向下拍摄 | bird's eye view, overhead shot |
-| `worms_eye` | 虫视 | 从地面仰视拍摄 | worm's eye view, ground level looking up |
-| `dutch` | 倾斜 | 镜头倾斜，制造不安感 | dutch angle, tilted frame, canted angle |
-
-##### `ResolvedShotInstruction`
-
-```typescript
-interface ResolvedShotInstruction {
-  shotSize?: string;
-  cameraMovement?: string;
-  cameraAngle?: string;
-}
-```
-
-##### `shotInstructionToPrompt`
-
-```typescript
-function shotInstructionToPrompt(instruction: ResolvedShotInstruction): string
-```
-
-将镜头指令转换为英文提示词。
-
-##### `resolveShotInstruction`
-
-```typescript
-function resolveShotInstruction(beat: {
-  shotInstruction?: ShotInstructionTemplate;
-  camera?: BeatCamera | string | null;
-  shotType?: string | null;
-}): ResolvedShotInstruction | null
-```
-
-从三个重叠字段中解析有效镜头指令。优先级：`shotInstruction` > `camera` > `shotType`。
-
----
+**类型**：`ResolvedShotInstruction`
 
 #### beat-prompt-builder.ts
 
-##### `BeatImagePromptParams`
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `getBeatCharacterIds` | `(beat: { characterIds?: string[] }): string[]` | 获取分镜角色 ID |
+| `generateBeatImagePrompt` | `(params: BeatImagePromptParams): string` | 生成分镜图像 prompt（增强模式） |
+| `generateSimpleBeatImagePrompt` | `(beat: StoryBeat, characters: Character[], scenes: Scene[], frameType?: string): string` | 生成简单分镜图像 prompt |
 
-```typescript
-interface BeatImagePromptParams {
-  beat: StoryBeat;
-  characters: Character[];
-  scenes: Scene[];
-  isEnhanced?: boolean;
-  fixedImage?: FixedImageConfig;
-  featureAnchoring?: FeatureAnchoringConfig;
-  elements?: StoryElement[];
-  shotInstruction?: ShotInstructionTemplate;
-}
-```
-
-##### `getBeatCharacterIds`
-
-```typescript
-function getBeatCharacterIds(beat: { characterIds?: string[] }): string[]
-```
-
-获取分镜的角色 ID 列表。
-
-##### `generateBeatImagePrompt`
-
-```typescript
-function generateBeatImagePrompt(params: BeatImagePromptParams): string
-```
-
-生成分镜图片提示词。支持特征锚定、固定图片、镜头指令、场景描述、角色描述等。
-
-##### `generateSimpleBeatImagePrompt`
-
-```typescript
-function generateSimpleBeatImagePrompt(
-  beat: StoryBeat,
-  characters: Character[],
-  scenes: Scene[],
-  frameType?: string,
-): string
-```
-
-生成简化的分镜图片提示词，用于首帧/尾帧生成。
-
----
+**类型**：`BeatImagePromptParams` — `{ beat; characters; scenes; isEnhanced?; fixedImage?; featureAnchoring?; shotInstruction? }`
 
 #### frame-pair-accessors.ts
 
-##### `getFirstFrameUrl`
-
-```typescript
-function getFirstFrameUrl(framePair: StoryBeatFramePair | undefined): string | undefined
-```
-
-获取首帧 URL，兼容 `firstFrameUrl` 和 `firstFrame.imageUrl` 两种格式。
-
-##### `getLastFrameUrl`
-
-```typescript
-function getLastFrameUrl(framePair: StoryBeatFramePair | undefined): string | undefined
-```
-
-获取尾帧 URL，兼容 `lastFrameUrl` 和 `lastFrame.imageUrl` 两种格式。
-
----
-
-#### prompt-vocabulary.ts
-
-##### 常量
-
-| 名称 | 类型 | 说明 |
+| 函数 | 签名 | 说明 |
 |------|------|------|
-| `QUALITY_TAGS_IMAGE` | `string[]` | 图片质量标签：`["masterpiece", "best quality", "highly detailed", "sharp focus", "professional"]` |
-| `QUALITY_TAGS_VIDEO` | `string[]` | 视频质量标签：`["high quality", "smooth motion", "cinematic", "professional"]` |
-| `STYLE_KEYWORDS` | `Record<string, string[]>` | 风格关键词映射（anime, realistic, 3d, watercolor, sketch, chibi, pixel, oil_painting） |
-| `SCENE_TYPE_KEYWORDS` | `Record<string, string[]>` | 场景类型关键词映射（室内, 室外, 城市, 自然, 科幻, 古风, 奇幻, 末日） |
-| `MOOD_KEYWORDS` | `Record<string, string[]>` | 氛围关键词映射（平静, 紧张, 欢快, 悲伤, 神秘, 浪漫, 恐怖, 史诗） |
-| `LIGHTING_KEYWORDS` | `Record<string, string>` | 光照关键词映射（自然光, 暖光, 冷光, 逆光, 侧光, 顶光, 霓虹, 烛光, 月光） |
-| `CAMERA_ANGLE_KEYWORDS` | `Record<string, string>` | 镜头角度关键词映射 |
-| `CAMERA_MOVEMENT_KEYWORDS` | `Record<string, string>` | 运镜关键词映射 |
-| `TRANSITION_KEYWORDS` | `Record<string, string>` | 转场关键词映射 |
-| `POSITION_KEYWORDS` | `Record<string, string>` | 位置关键词映射 |
+| `getFirstFrameUrl` | `(framePair: StoryBeatFramePair \| undefined): string \| undefined` | 获取首帧 URL（兼容新旧字段） |
+| `getLastFrameUrl` | `(framePair: StoryBeatFramePair \| undefined): string \| undefined` | 获取末帧 URL（兼容新旧字段） |
 
-##### 工具函数
+#### prompt-vocabulary.ts — Prompt 词汇表
+
+**常量**：
+
+| 常量 | 类型 | 说明 |
+|------|------|------|
+| `QUALITY_TAGS_IMAGE` | `string[]` | 图像质量标签 |
+| `QUALITY_TAGS_VIDEO` | `string[]` | 视频质量标签 |
+| `STYLE_KEYWORDS` | `Record<string, string[]>` | 风格关键词 |
+| `SCENE_TYPE_KEYWORDS` | `Record<string, string[]>` | 场景类型关键词 |
+| `MOOD_KEYWORDS` | `Record<string, string[]>` | 基调关键词 |
+| `LIGHTING_KEYWORDS` | `Record<string, string>` | 光照关键词 |
+| `CAMERA_ANGLE_KEYWORDS`（导出别名 `PROMPT_CAMERA_ANGLE_KEYWORDS`） | `Record<string, string>` | 相机角度关键词 |
+| `CAMERA_MOVEMENT_KEYWORDS` | `Record<string, string>` | 运镜关键词 |
+| `TRANSITION_KEYWORDS` | `Record<string, string>` | 转场关键词 |
+| `POSITION_KEYWORDS` | `Record<string, string>` | 位置关键词 |
+
+**函数**：
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
-| `joinParts` | `(parts: (string \| undefined \| null \| false)[], separator?: string): string` | 过滤空值后拼接字符串 |
-| `buildCharacterAppearanceDesc` | `(char: Character): string` | 构建角色外观描述（中文） |
-| `buildCharacterFullDesc` | `(char: Character): string` | 构建角色完整描述（中文） |
+| `joinParts` | `(parts: (string \| undefined \| null \| false)[], separator?: string): string` | 拼接非空片段 |
+| `buildCharacterAppearanceDesc` | `(char: Character): string` | 构建角色外观描述 |
+| `buildCharacterFullDesc` | `(char: Character): string` | 构建角色完整描述 |
 | `buildSceneAtmosphereDesc` | `(scene: Scene): string` | 构建场景氛围描述 |
 | `buildSceneVisualDesc` | `(scene: Scene): string` | 构建场景视觉描述 |
 | `buildElementEffectDesc` | `(element: SceneElement): string` | 构建元素效果描述 |
-| `buildFixedImageDesc` | `(config: FixedImageConfig): string` | 构建固定图片描述 |
+| `buildFixedImageDesc` | `(config: FixedImageConfig): string` | 构建固定图像描述 |
 | `buildReferenceVideoDesc` | `(config: ReferenceVideoConfig): string` | 构建参考视频描述 |
 | `buildTemplateDesc` | `(config: TemplateConfig): string` | 构建模板描述 |
 | `getStyleKeywords` | `(style: string): string[]` | 获取风格关键词 |
 | `getSceneTypeKeywords` | `(type: string): string[]` | 获取场景类型关键词 |
-| `getMoodKeywords` | `(mood: string): string[]` | 获取氛围关键词 |
+| `getMoodKeywords` | `(mood: string): string[]` | 获取基调关键词 |
+
+---
+
+### 1.6 视频任务状态机 (domain/video)
+
+#### task-state.ts
+
+视频任务状态机定义。
+
+**常量**：
+
+| 常量 | 类型 | 说明 |
+|------|------|------|
+| `VALID_TRANSITIONS` | `Record<VideoTaskStatus, VideoTaskStatus[]>` | 合法状态转移表 |
+| `TERMINAL_STATUSES` | `VideoTaskStatus[]` | 终态列表（`["completed", "cancelled"]`） |
+| `STUCK_TASK_THRESHOLD_MS` | `number` | 卡住阈值（30 分钟，`30 * 60 * 1000`） |
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `isValidTransition` | `(from: VideoTaskStatus, to: VideoTaskStatus): boolean` | 校验状态转移合法性 |
+| `isStuck` | `(task: VideoTask, nowMs?: number): boolean` | 判断任务是否卡住 |
+
+**`TaskMachine`** 常量对象：
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `canTransition` | `(from: VideoTaskStatus, to: VideoTaskStatus): boolean` | 状态转移判定（封装 `isValidTransition`） |
 
 ---
 
 ## 2. 共享逻辑层 (src/shared-logic)
 
-> 共享逻辑层为零外部依赖的纯函数层，仅允许内部相对导入。
+### 2.0 零外部依赖原则
 
-### 2.1 shot/ 子域
+> **CRITICAL**：shared-logic 层是纯逻辑层，**零外部依赖**。
 
-#### reference-engine.ts
-
-##### `ReferenceDirection`
-
-```typescript
-const ReferenceDirection: {
-  None: "none";
-  Previous: "previous";
-  Next: "next";
-  Custom: "custom";
-} as const;
+```
+shared-logic/ → NOTHING（零外部依赖）
 ```
 
-##### `ReferenceDirectionType`
+**强制规则**：
+
+- **禁止**导入 `@/`、`@shared/`、`@domain/`、`@/modules/*`、`@/infrastructure/*` 等任何项目层
+- **仅允许**本目录内的相对导入（如 `./shot/xxx`、`../prompt/xxx`）
+- 所有类型必须自包含（inline 定义，不引用其他层的类型）
+- 不依赖 logger；日志通过回调由调用方处理
+- 不包含 I/O；纯函数 only
+
+**路径别名**：
+- 渲染进程：`@/shared-logic/*`
+- 主进程：`@shared-logic/*`
+
+**顶层 barrel**（`src/shared-logic/index.ts`）按命名空间聚合 9 个子模块：
 
 ```typescript
-type ReferenceDirectionType = "none" | "previous" | "next" | "custom";
+export * as shot from "./shot";
+export * as prompt from "./prompt";
+export * as video from "./video";
+export * as story from "./story";
+export * as retry from "./retry";
+export * as agent from "./agent";
+export * as json from "./json";
+export * as migration from "./migration";
+export * as timeline from "./timeline";
 ```
-
-##### `ReferenceContentType`
-
-```typescript
-const ReferenceContentType: {
-  FullVideo: "full_video";
-  LastFrame: "last_frame";
-  FirstFrame: "first_frame";
-  VideoSegment: "video_segment";
-} as const;
-```
-
-##### `ReferenceContentTypeType`
-
-```typescript
-type ReferenceContentTypeType = "full_video" | "last_frame" | "first_frame" | "video_segment";
-```
-
-##### `Shot`
-
-```typescript
-interface Shot {
-  id: string;
-  sequence?: number;
-  duration?: number;
-  videoGen?: { videoUrl?: string };
-  generationResult?: {
-    videoUrl?: string;
-    lastFrameUrl?: string;
-    firstFrameUrl?: string;
-  };
-}
-```
-
-##### `Reference`
-
-```typescript
-interface Reference {
-  direction: ReferenceDirectionType;
-  contentType?: ReferenceContentTypeType;
-  targetShotId?: string;
-  segmentDuration?: number;
-}
-```
-
-##### `validateReference`
-
-```typescript
-function validateReference(
-  shot: Shot,
-  allShots: Shot[],
-  reference: Reference,
-): { valid: boolean; error?: string }
-```
-
-验证分镜引用的正确性。
-
-##### `getTargetShot`
-
-```typescript
-function getTargetShot(
-  shot: Shot,
-  allShots: Shot[],
-  reference: Reference,
-): Shot | undefined
-```
-
-获取引用目标分镜。
-
-##### `getReferenceVideoUrl`
-
-```typescript
-function getReferenceVideoUrl(
-  shot: Shot,
-  allShots: Shot[],
-  reference: Reference,
-): string | undefined
-```
-
-获取引用视频 URL。
-
-##### `buildReferenceDescription`
-
-```typescript
-function buildReferenceDescription(
-  shot: Shot,
-  allShots: Shot[],
-  reference: Reference,
-): string
-```
-
-构建引用的可读描述。
 
 ---
 
-#### consistency-check.ts
+### 2.1 shot/ 子模块
 
-##### `FeatureAnchoringConfig`
+分镜引用引擎、一致性检查、视觉一致性、情绪-运镜映射、角色一致性增强器。
 
-```typescript
-interface FeatureAnchoringConfig {
-  enabled: boolean;
-  characterAnchors: CharacterAnchor[];
-  disableFrameBinding?: boolean;
-  featureConsistencyStrength?: number;
-}
-```
+#### reference-engine.ts — 分镜引用引擎
 
-其中 `CharacterAnchor`:
+**常量**：
 
-```typescript
-interface CharacterAnchor {
-  elementId: string;
-  referenceImageUrl?: string;
-  featureTags?: string[];
-  weight: number;
-}
-```
-
-##### `performConfigCheck`
-
-```typescript
-function performConfigCheck(params: {
-  featureAnchoring: FeatureAnchoringConfig;
-  elements: { id: string; name: string }[];
-}): {
-  passed: boolean;
-  characterScores: { elementId: string; elementName: string; score: number; issues: string[] }[];
-  overallScore: number;
-  recommendation: "accept" | "adjust" | "regenerate";
-}
-```
-
-执行特征锚定配置检查。
-
-##### `performConsistencyCheck`
-
-```typescript
-function performConsistencyCheck(params: {
-  featureAnchoring: FeatureAnchoringConfig;
-  elements: { id: string; name: string }[];
-}): ConfigCheckResult
-```
-
-执行一致性检查（委托给 `performConfigCheck`）。
-
-##### `validateFeatureAnchoringConfig`
-
-```typescript
-function validateFeatureAnchoringConfig(
-  config: FeatureAnchoringConfig,
-): { valid: boolean; warnings: string[]; errors: string[] }
-```
-
-验证特征锚定配置的完整性和合理性。
-
-##### `validateNoFrameBinding`
-
-```typescript
-function validateNoFrameBinding(params: {
-  videoRequestParams?: {
-    previousLastFrameUrl?: string;
-    fixedImage?: { lockType?: string };
-  };
-}): { valid: boolean; error?: string }
-```
-
-验证特征锚定模式下是否禁用了帧绑定。
-
----
-
-#### reference-check.ts
-
-##### `Story`（局部类型）
-
-```typescript
-interface Story {
-  id: string;
-  title?: string;
-  characters?: string[];
-  scenes?: string[];
-  beats?: StoryBeat[];
-}
-```
-
-##### `ReferenceResult`
-
-```typescript
-interface ReferenceResult {
-  isReferenced: boolean;
-  referencingStories: { storyId: string; storyTitle: string; beatCount: number }[];
-  totalBeats: number;
-}
-```
-
-##### `checkCharacterReferences`
-
-```typescript
-function checkCharacterReferences(
-  characterId: string,
-  stories: Story[],
-): ReferenceResult
-```
-
-检查角色引用情况。
-
-##### `checkSceneReferences`
-
-```typescript
-function checkSceneReferences(
-  sceneId: string,
-  stories: Story[],
-): ReferenceResult
-```
-
-检查场景引用情况。
-
-##### `checkMultipleCharacterReferences`
-
-```typescript
-function checkMultipleCharacterReferences(
-  characterIds: string[],
-  stories: Story[],
-): Record<string, ReferenceResult>
-```
-
-批量检查角色引用情况。
-
-##### `checkMultipleSceneReferences`
-
-```typescript
-function checkMultipleSceneReferences(
-  sceneIds: string[],
-  stories: Story[],
-): Record<string, ReferenceResult>
-```
-
-批量检查场景引用情况。
-
----
-
-#### visual-consistency-check.ts
-
-##### `Element`
-
-```typescript
-interface Element {
-  id: string;
-  name: string;
-  type?: string;
-  description?: string;
-  featureAnchor?: { featureTags?: string[] };
-  characterConfig?: {
-    appearance?: {
-      hairColor?: string;
-      hairStyle?: string;
-      eyeColor?: string;
-      clothing?: string;
-    };
-  };
-  bindings?: Array<{ type: string; url: string }>;
-}
-```
-
-##### `Beat`
-
-```typescript
-interface Beat {
-  id: string;
-  elementIds?: string[];
-}
-```
-
-##### `buildConsistencyPrompt`
-
-```typescript
-function buildConsistencyPrompt(element: Element): string
-```
-
-构建视觉一致性分析提示词。
-
-##### `parseConsistencyAnalysis`
-
-```typescript
-function parseConsistencyAnalysis(
-  analysis: string,
-  _element: Element,
-): { score: number; passed: boolean; issues: string[]; details?: string }
-```
-
-解析视觉一致性分析结果（支持 JSON 和正则两种解析方式）。
-
-##### `checkVisualConsistency`
-
-```typescript
-async function checkVisualConsistency(
-  apiGateway: {
-    analyzeImage: (params: {
-      imageUrl: string;
-      category: string;
-      analysisPrompt: string;
-    }) => Promise<{
-      success: boolean;
-      data?: { analysis?: string };
-      error?: string | { code: string; message: string };
-    }>;
-  },
-  params: {
-    generatedImageUrl?: string;
-    referenceImageUrl?: string;
-    element: Element;
-  },
-): Promise<{ score: number; passed: boolean; issues: string[]; details?: string }>
-```
-
-检查视觉一致性（通过 AI 分析）。
-
-##### `checkBeatElementConsistency`
-
-```typescript
-async function checkBeatElementConsistency(
-  apiGateway: ApiGateway,
-  params: {
-    beat: Beat;
-    elements: Element[];
-    getGeneratedImageUrl: (elementId: string) => string | undefined;
-  },
-): Promise<{
-  passed: boolean;
-  characterScores: Array<{ elementId: string; elementName: string; score: number; issues: string[] }>;
-  overallScore: number;
-  recommendation: "accept" | "adjust" | "regenerate";
-}>
-```
-
-检查分镜中所有元素的视觉一致性。
-
----
-
-### 2.2 prompt/ 子域
-
-#### prompt-engine.ts
-
-##### 常量
-
-| 名称 | 类型 | 说明 |
+| 常量 | 类型 | 说明 |
 |------|------|------|
-| `QUALITY_TAGS_IMAGE` | `string[]` | 图片质量标签 |
+| `ReferenceDirection` | `{ None; Previous; Next; Custom } as const` | 引用方向 |
+| `ReferenceContentType` | `{ FullVideo; LastFrame; FirstFrame; VideoSegment } as const` | 引用内容类型 |
+
+**类型**：`ReferenceDirectionType`、`ReferenceContentTypeType`、`Shot`（别名 `ReferenceShot`）、`Reference`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `validateReference` | `(shot: Shot, allShots: Shot[], reference: Reference): ValidationResult` | 校验分镜引用 |
+| `getTargetShot` | `(shot: Shot, allShots: Shot[], reference: Reference): Shot \| undefined` | 解析目标分镜 |
+| `getReferenceVideoUrl` | `(shot: Shot, allShots: Shot[], reference: Reference): string \| undefined` | 获取引用视频 URL |
+| `buildReferenceDescription` | `(shot: Shot, allShots: Shot[], reference: Reference): string` | 构建引用描述 |
+
+#### consistency-check.ts — 配置一致性检查
+
+**类型**：`FeatureAnchoringConfig` — `{ enabled; characterAnchors: CharacterAnchor[]; disableFrameBinding? }`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `performConfigCheck` | `(params: ConfigCheckParams): ConfigCheckResult` | 执行配置检查 |
+| `performConsistencyCheck` | `(params: ConfigCheckParams): ConfigCheckResult` | 执行一致性检查（封装 `performConfigCheck`） |
+| `validateFeatureAnchoringConfig` | `(config: FeatureAnchoringConfig): ValidationConfigResult` | 校验特征锚定配置 |
+| `validateNoFrameBinding` | `(params: { videoRequestParams?: { previousLastFrameUrl?; fixedImage?: { lockType? } } }): ...` | 校验无帧绑定 |
+
+#### reference-check.ts — 引用计数检查
+
+**类型**：`Story`（别名 `ReferenceCheckStory`）、`ReferenceResult` — `{ isReferenced; referencingStories: { storyId; storyTitle; beatCount }[]; totalBeats }`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `checkCharacterReferences` | `(characterId: string, stories: Story[]): ReferenceResult` | 检查角色引用 |
+| `checkSceneReferences` | `(sceneId: string, stories: Story[]): ReferenceResult` | 检查场景引用 |
+| `checkMultipleCharacterReferences` | `(characterIds: string[], stories: Story[]): Record<string, ReferenceResult>` | 批量检查角色引用 |
+| `checkMultipleSceneReferences` | `(sceneIds: string[], stories: Story[]): Record<string, ReferenceResult>` | 批量检查场景引用 |
+
+#### visual-consistency-check.ts — 视觉一致性检查
+
+**类型**：`Element`（别名 `VisualConsistencyElement`）、`Beat`（别名 `VisualConsistencyBeat`）
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `buildConsistencyPrompt` | `(element: Element): string` | 构建一致性检查 prompt |
+| `parseConsistencyAnalysis` | `(analysis: string, _element: Element): ConsistencyResult` | 解析一致性分析结果 |
+| `checkVisualConsistency` | `(apiGateway: ApiGateway, params: { generatedImageUrl?; referenceImageUrl?; element: Element }): Promise<ConsistencyResult>` | 异步视觉一致性检查 |
+| `checkBeatElementConsistency` | `(apiGateway: ApiGateway, params: { beat: Beat; elements: Element[]; getGeneratedImageUrl: (elementId: string) => string \| undefined }): Promise<BeatConsistencyResult>` | 分镜元素一致性批量检查 |
+
+#### mood-shot-mapping.ts — 情绪-运镜映射
+
+**类型**：
+- `ShotSize`（别名 `MoodShotSize`）— `"extreme_close" | "close" | "medium" | "wide" | "extreme_wide"`
+- `CameraMovement`（别名 `MoodCameraMovement`）
+- `CameraAngle`（别名 `MoodCameraAngle`）
+- `MoodShotMapping`、`SceneVariantInput`、`ShotRecommendation`
+
+**常量**：
+
+| 常量 | 说明 |
+|------|------|
+| `MOOD_TO_CAMERA_MAPPING` | 情绪 → 运镜映射表 |
+| `WEATHER_MODIFIERS` | 天气修饰符 |
+| `CROWD_MODIFIERS` | 人群修饰符 |
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `recommendShotBySceneVariant` | `(variant: SceneVariantInput): ShotRecommendation` | 按场景变体推荐运镜 |
+
+#### consistency-enhancer.ts — 角色一致性增强器（Task 2A.12）
+
+**类型**：
+- `ConsistencyStrategy` — `"multi_ref_fusion" | "single_ref" | "text_only"`
+- `CharacterRefSource` — `"primary" | "default_variant" | "default_outfit" | ...`
+- `CharacterRefCandidate` — `{ url; source: CharacterRefSource; authoritative?: boolean }`
+- `PreprocessHint` — `{ centerCropToSquare; maxEdge; format }`
+- `CharacterAssetInput`、`ModelConsistencyCapability`
+
+**常量**：`DEFAULT_PREPROCESS_HINT`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `extractCharacterReferenceCandidates` | `(input: CharacterAssetInput): CharacterRefCandidate[]` | 提取角色参考图候选 |
+| `selectConsistencyStrategy` | `(capability: ModelConsistencyCapability, availableCandidateCount: number): ConsistencyStrategy` | 选择一致性策略 |
+| `selectReferenceImages` | `(candidates: CharacterRefCandidate[], strategy: ConsistencyStrategy, maxCharacterRefs: number): CharacterRefCandidate[]` | 选择参考图 |
+| `buildConsistencyEnhancedCharacterRefs` | `(input: CharacterAssetInput, capability: ModelConsistencyCapability): string[]` | 构建增强角色引用 |
+| `listAllCharacterReferenceOptions` | `(input: CharacterAssetInput): CharacterRefCandidate[]` | 列出所有角色参考选项 |
+| `buildManualCharacterRefs` | `(selectedUrls: string[], capability: ModelConsistencyCapability): string[]` | 构建手动角色引用 |
+| `describeConsistencyStrategy` | `(strategy: ConsistencyStrategy): string` | 描述策略（中文） |
+
+---
+
+### 2.2 prompt/ 子模块
+
+Prompt 引擎、Prompt 服务、Compositor prompt、Skill 路由、安全改写、多语言词汇表。
+
+#### prompt-engine.ts — Prompt 构建基础
+
+**常量**：
+
+| 常量 | 类型 | 说明 |
+|------|------|------|
+| `QUALITY_TAGS_IMAGE` | `string[]` | 图像质量标签 |
 | `QUALITY_TAGS_VIDEO` | `string[]` | 视频质量标签 |
-| `STYLE_KEYWORDS` | `Record<string, string>` | 风格关键词映射（anime, realistic, 3d, watercolor, oil, sketch, pixel, cyberpunk, chinese, cartoon） |
+| `STYLE_KEYWORDS` | `Record<string, string>` | 风格关键词 |
 | `SCENE_TYPE_MAP` | `Record<string, string>` | 场景类型映射 |
-| `MOOD_MAP` | `Record<string, string>` | 氛围映射 |
+| `MOOD_MAP` | `Record<string, string>` | 基调映射 |
 | `LIGHTING_MAP` | `Record<string, string>` | 光照映射 |
 | `SHOT_TYPE_MAP` | `Record<string, string>` | 景别映射 |
 | `CAMERA_MOVEMENT_MAP` | `Record<string, string>` | 运镜映射 |
 
-##### 内部工具函数
+**函数**：
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
-| `joinParts` | `(parts: (string \| undefined \| null)[]): string` | 过滤空值后以中文逗号拼接 |
+| `joinParts` | `(parts: (string \| undefined \| null)[]): string` | 拼接非空片段（"，"分隔） |
 | `buildCharacterFullDesc` | `(c: CharacterDesc): string` | 构建角色完整描述 |
 | `buildSceneAtmosphereDesc` | `(s: SceneDesc): string` | 构建场景氛围描述 |
 | `buildSceneVisualDesc` | `(s: SceneDesc): string` | 构建场景视觉描述 |
 
----
+#### prompt-service.ts — Prompt 服务
 
-#### prompt-service.ts
+**类型**：
+- `CharacterInput`、`SceneInput`、`BeatInput`、`ElementInput`
+- `VideoPromptParams` — `{ beat?; characters?; scenes?; elements?; shotInstruction?; index? }`
+- `QuickModeParams` — `{ prompt; duration?; resolution?; style?; characters?; scene?; referenceImage? }`
 
-##### `CharacterInput`
-
-```typescript
-interface CharacterInput {
-  name?: string;
-  gender?: string;
-  age?: number | string;
-  style?: string;
-  appearance?: {
-    hairColor?: string;
-    hairStyle?: string;
-    eyeColor?: string;
-    build?: string;
-    clothing?: string;
-    accessories?: string;
-  };
-  description?: string;
-  personality?: string | string[];
-  generatedImage?: string;
-}
-```
-
-##### `SceneInput`
-
-```typescript
-interface SceneInput {
-  name?: string;
-  type?: string;
-  timeOfDay?: string;
-  weather?: string;
-  mood?: string;
-  lighting?: string;
-  atmosphere?: string;
-  description?: string;
-  elements?: string | string[];
-  generatedImage?: string;
-  colors?: string | string[];
-}
-```
-
-##### `BeatInput`
-
-```typescript
-interface BeatInput {
-  content?: string;
-  description?: string;
-  shotType?: string;
-  camera?: { angle?: string; movement?: string };
-  duration?: number;
-}
-```
-
-##### `ElementInput`
-
-```typescript
-interface ElementInput {
-  id?: string;
-  name?: string;
-  type?: string;
-  featureAnchor?: { featureTags?: string[] };
-}
-```
-
-##### `VideoPromptParams`
-
-```typescript
-interface VideoPromptParams {
-  beat?: BeatInput;
-  characters?: CharacterInput[];
-  scenes?: SceneInput[];
-  elements?: ElementInput[];
-  shotInstruction?: string;
-  index?: number;
-}
-```
-
-##### `QuickModeParams`
-
-```typescript
-interface QuickModeParams {
-  prompt: string;
-  duration?: number;
-  resolution?: string;
-  style?: string;
-  characters?: CharacterInput[];
-  scene?: SceneInput;
-  referenceImage?: string;
-}
-```
-
-##### 提示词生成函数
+**函数**：
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
-| `generateCharacterImagePrompt` | `(character: CharacterInput, options?: Record<string, unknown>): string` | 生成角色图片提示词 |
-| `generateCharacterDetailedPromptInstruction` | `(character: CharacterInput): string` | 生成角色详细提示词指令 |
-| `generateSceneImagePrompt` | `(scene: SceneInput, options?: Record<string, unknown>): string` | 生成场景图片提示词 |
-| `generateScenePromptOptimization` | `(description: string): string` | 生成场景提示词优化指令 |
-| `generateVideoPrompt` | `(params: VideoPromptParams): string` | 生成视频提示词 |
-| `generateSingleBeatPrompt` | `(params: VideoPromptParams): string` | 生成单分镜提示词（委托给 generateVideoPrompt） |
-| `generateQuickModeVideoPrompt` | `(params: QuickModeParams): string` | 生成快速模式视频提示词 |
-| `generateKeyframePrompt` | `(params: { content?: string; shotRequirement?: { shotType?: string; cameraAngle?: string; cameraMovement?: string; action?: string }; prevKeyframe?: string }): string` | 生成预览图提示词 |
-| `generateFirstFramePrompt` | `(params: { keyframePrompt?: string; actionDescription?: string }): string` | 生成首帧提示词 |
-| `generateLastFramePrompt` | `(params: { keyframePrompt?: string; actionDescription?: string; duration?: number }): string` | 生成尾帧提示词 |
-| `generateStoryPlanPrompt` | `(params: { title?: string; description?: string; genre?: string; tone?: string; targetDuration?: number; characters?: CharacterInput[]; scenes?: SceneInput[] }): string` | 生成故事规划提示词 |
-| `generateCharacterAnalysisPrompt` | `(): string` | 生成角色分析提示词 |
-| `generateSceneAnalysisPrompt` | `(): string` | 生成场景分析提示词 |
+| `resolveBeatShotInfo` | `(beat: BeatInput): { shotSize?; cameraAngle?; cameraMovement? }` | 解析分镜运镜信息 |
+| `buildShotInstructionFromLegacy` | `(params: { shotSize?; shotType?; cameraAngle?; cameraMovement? }): { shotSize; cameraAngle; cameraMovement } \| undefined` | 旧字段 → 新 shotInstruction 映射 |
+| `generateCharacterImagePrompt` | `(character: CharacterInput, _options?: Record<string, unknown>): string` | 生成角色图像 prompt |
+| `generateCharacterDetailedPromptInstruction` | `(character: CharacterInput): string` | 生成角色详细 prompt 指令 |
+| `generateSceneImagePrompt` | `(scene: SceneInput, _options?: Record<string, unknown>): string` | 生成场景图像 prompt |
+| `generateScenePromptOptimization` | `(description: string): string` | 生成场景 prompt 优化 |
+| `generateVideoPrompt` | `(params: VideoPromptParams): string` | 生成视频 prompt |
+| `generateSingleBeatPrompt` | `(params: VideoPromptParams): string` | 生成单镜 prompt（封装 `generateVideoPrompt`） |
+| `generateQuickModeVideoPrompt` | `(params: QuickModeParams): string` | 生成快捷模式视频 prompt |
+| `generateKeyframePrompt` | `(params: { content?; shotRequirement?; ... }): string` | 生成关键帧 prompt |
+| `generateFirstFramePrompt` | `(params: { keyframePrompt?; actionDescription? }): string` | 生成首帧 prompt |
+| `generateLastFramePrompt` | `(params: { keyframePrompt?; actionDescription?; duration? }): string` | 生成末帧 prompt |
+| `generateStoryPlanPrompt` | `(params: StoryPlanParams): string` | 生成故事规划 prompt |
+| `generateCharacterAnalysisPrompt` | `(): string` | 生成角色分析 prompt |
+| `generateSceneAnalysisPrompt` | `(): string` | 生成场景分析 prompt |
+
+#### compositor-prompt.ts — Compositor 合成 Prompt（Task 2A.9）
+
+**类型**：
+- `PropInput` — `{ id?; name?; type?; description?; tags? }`
+- `CompositorPromptParams` — `{ character: CharacterInput; props?: PropInput[]; scene?: SceneInput; extraPrompt?: string }`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `generateCompositorPrompt` | `(params: CompositorPromptParams): string` | 拼装"角色 + 道具 + 场景 → 单图合成"prompt |
+
+#### skills/ — Skill 路由（Task 1.4 v5.3 增强）
+
+##### skills/index.ts — Skill 注册器
+
+**类型**：`ProjectType`、`FailureDimension`、`FailureContext`、`ConversationTurn`、`AgentContext`、`Skill`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `registerSkill` | `(skill: Skill): void` | 注册 Skill（重复注册覆盖） |
+| `getSkill` | `(id: string): Skill \| undefined` | 按 ID 获取 Skill |
+| `listSkills` | `(): Skill[]` | 列出所有已注册 Skill |
+| `clearSkills` | `(): void` | 清空注册表（仅测试） |
+| `routeSkill` | `(userMessage: string): Skill` | 按 matchers 关键词匹配 Skill |
+
+**核心 Skill 实例**（自动注册）：`interviewSkill`、`promptSkill`、`compressSkill`、`troubleshootSkill`、`qcSkill`
+
+注册优先级：`troubleshoot > qc > interview > compress > prompt`
+
+##### 扩展 Skill（Task 4.7 v5.3）
+
+**camera-skill.ts**：
+- 常量：`cameraSkill`
+- 函数：`buildCameraInstruction(shotSize, movement, lens?)`、`recommendCameraByMood(mood)`
+- 类型：`ShotSize`（别名 `ExtShotSize`）、`CameraMovement`（别名 `ExtCameraMovement`）、`LensParameter`、`CameraInstruction`
+
+**lighting-skill.ts**：
+- 常量：`lightingSkill`
+- 函数：`buildLightingInstruction(type, supplement?)`、`recommendLightingByMood(mood)`
+- 类型：`LightingType`、`LightingInstruction`
+
+**characters-skill.ts**：
+- 常量：`charactersSkill`
+- 函数：`buildCharacterIdentity(identity)`、`buildMultiCharacterBlocking(blocking)`、`detectCharacterConflicts(characters)`
+- 类型：`CharacterIdentity`（别名 `ExtCharacterIdentity`）、`MultiCharacterBlocking`（别名 `ExtMultiCharacterBlocking`）、`CharacterConflict`
+
+**style-skill.ts**：
+- 常量：`styleSkill`
+- 函数：`buildStyleInstruction(style, supplement?)`、`rewriteIpStyle(input)`、`listSupportedStyles()`
+- 类型：`VisualStyle`
+
+**vfx-skill.ts**：
+- 常量：`vfxSkill`
+- 函数：`buildParticleEffect(particle, density?)`、`buildDestructionEffect(effect, scale?)`、`buildEnergyEffect(effect, intensity?)`、`buildWeatherEffect(weather)`
+- 类型：`VfxCategory`、`VfxParticle`、`VfxWeather`
+
+**audio-skill.ts**：
+- 常量：`audioSkill`
+- 函数：`buildDialogueInstruction(dialogue)`、`buildMusicInstruction(music)`、`buildEnvironmentInstruction(env)`、`buildAudioInstruction(instruction)`
+- 类型：`AudioDialogue`、`AudioMusic`、`AudioEnvironment`、`AudioInstruction`
+
+**其他 Skill 文件**：`interview-skill.ts`、`prompt-skill.ts`、`compress-skill.ts`、`troubleshoot-skill.ts`、`qc-skill.ts`（导出对应 Skill 实例）
+
+##### skills/extended-types.ts
+
+扩展 Skill 共享类型定义（`ShotSize`、`CameraMovement`、`LensParameter`、`CameraInstruction`、`LightingType`、`LightingInstruction`、`CharacterIdentity`、`MultiCharacterBlocking`、`VisualStyle`、`VfxCategory`、`VfxParticle`、`VfxWeather`、`AudioDialogue`、`AudioMusic`、`AudioEnvironment`、`AudioInstruction`）。
+
+#### vocabulary/ — 多语言词汇表 + 模型 ID 防混淆（Task 4.7 v5.3）
+
+##### vocabulary/multilingual.ts
+
+**类型**：`SupportedLanguage`（`"zh" | "en" | "ja" | "ko" | "es" | "ru"`）、`MultilingualTerm`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `translate` | `(concept: string, lang: SupportedLanguage): string` | 翻译概念 |
+| `getTranslations` | `(concept: string): Record<SupportedLanguage, string> \| null` | 获取概念的所有语言翻译 |
+| `listConcepts` | `(): string[]` | 列出所有概念 |
+| `buildMixedPrompt` | `(concepts: string[], primaryLang: SupportedLanguage, secondaryLang?: SupportedLanguage): string` | 跨语言混合 prompt 构建 |
+
+##### vocabulary/model-name-map.ts
+
+**类型**：`ModelIdEntry`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `lookupModelId` | `(modelId: string): ModelIdEntry \| null` | 查找模型 ID |
+| `normalizeModelId` | `(modelId: string): string` | 归一化模型 ID |
+| `getModelStandardName` | `(modelId: string): string` | 获取模型标准名 |
+| `listModelEntries` | `(): ModelIdEntry[]` | 列出所有模型条目 |
+| `listModelsByFamily` | `(family: string): ModelIdEntry[]` | 按家族列出模型 |
+| `areSameModel` | `(idA: string, idB: string): boolean` | 判断两个 ID 是否同一模型 |
+
+#### safety/ — 安全改写（Task 1.4 v5.3 → Task 4.12 生产级）
+
+##### safety/ip-rewriter.ts — IP 安全改写
+
+**类型**：`IpCategory`（`"celebrity" | "ip" | "brand"`）、`ConfidenceLevel`、`IpRewriteChange`、`IpRewriteResult`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `rewriteIp` | `(input: string): IpRewriteResult` | IP/名人/品牌关键词安全改写 |
+| `needsUserConfirmation` | `(result: IpRewriteResult, threshold?: number): boolean` | 是否需要用户确认（默认阈值 0.9） |
+| `listKnownKeywords` | `(): { celebrity: string[]; ip: string[]; brand: string[] }` | 列出已知关键词 |
+| `getDatabaseStats` | `(): { celebrity; ip; brand; total }` | 数据库统计 |
+
+##### safety/antislop.ts — 反空泛词汇过滤
+
+**类型**：`AntislopReplacement`、`AntislopResult`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `filterAntislop` | `(input: string): AntislopResult` | 过滤 masterpiece/best quality 等空泛词 |
+| `hasSlop` | `(input: string): boolean` | 判断是否含空泛词 |
+| `listSlopVocabulary` | `(): Array<{ slop; replacement; reason }>` | 列出空泛词汇表 |
+
+##### safety/filter-repair.ts — 误报修复（Task 4.12 新增）
+
+**类型**：`BenignContext`（`"medical" | "education" | "news" | "art" | "scifi"`）、`FilterRepairItem`、`FilterRepairResult`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `repairFalsePositives` | `(input: string): FilterRepairResult` | 为医疗/教育/新闻等良性上下文添加注释 |
+| `listBenignContextEntries` | `(): Array<{ trigger; context: BenignContext; annotation; reason }>` | 列出良性上下文条目 |
+| `getBenignContextStats` | `(): Record<BenignContext, number>` | 良性上下文统计 |
 
 ---
 
-### 2.3 video/ 子域
+### 2.3 video/ 子模块
 
-#### video-task-params.ts
+视频任务参数构建、Provider 追踪、视频恢复。
 
-##### `buildVideoGenerationParams`
+#### video-task-params.ts — 视频任务参数构建
 
-```typescript
-function buildVideoGenerationParams(params: {
-  beat?: Beat;
-  characters?: CharacterInput[];
-  scenes?: SceneInput[];
-  elements?: ElementInput[];
-  shotInstruction?: string;
-  firstFrameUrl?: string;
-  lastFrameUrl?: string;
-  duration?: number;
-  providerId?: string;
-  modelId?: string;
-  videoPrompt?: string;
-}): VideoGenerationParams
-```
+**函数**：
 
-构建视频生成参数。返回类型：
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `buildVideoGenerationParams` | `(params: { beat?; characters?; scenes?; elements?; shotInstruction?; firstFrameUrl?; lastFrameUrl?; duration?; ... }): { ... }` | 构建视频生成参数 |
+| `buildQuickVideoParams` | `(params: { prompt?; duration?; resolution?; style?; characters?; scene?; referenceImage?; providerId?; ... }): { ... }` | 构建快捷模式视频参数 |
+| `buildKeyframeGenerationParams` | `(params: { beat; prevBeat?; characterRef?; sceneRef?; providerId?; modelId? }): { prompt; ... }` | 构建关键帧生成参数 |
+| `buildFramePairGenerationParams` | `(params: { beat; characterRef?; sceneRef?; providerId?; modelId? }): { firstFrame; lastFrame }` | 构建首末帧对生成参数 |
 
-```typescript
-interface VideoGenerationParams {
-  prompt: string;
-  firstFrameUrl?: string;
-  lastFrameUrl?: string;
-  duration: number;
-  providerId?: string;
-  modelId?: string;
-  beatId?: string;
-  storyId?: string;
-}
-```
+#### video-tracker.ts — Provider 追踪
 
-##### `buildQuickVideoParams`
+**类型**：`TrackingInfo` — `{ providerName; taskId; apiUrl; model; apiKeyPreview; taskUrl?; queryEndpoint?; apiDocUrl? }`
 
-```typescript
-function buildQuickVideoParams(params: {
-  prompt?: string;
-  duration?: number;
-  resolution?: string;
-  style?: string;
-  characters?: CharacterInput[];
-  scene?: SceneInput;
-  referenceImage?: string;
-  providerId?: string;
-  modelId?: string;
-  videoPrompt?: string;
-}): Omit<VideoGenerationParams, "firstFrameUrl" | "lastFrameUrl" | "beatId" | "storyId"> & {
-  referenceImageUrl?: string;
-}
-```
+**常量**：
 
-构建快速模式视频参数。
+| 常量 | 说明 |
+|------|------|
+| `PROVIDERS` | `Record<string, ProviderInfo>` — Provider 映射表（火山引擎等） |
+| `DEFAULT_PROVIDER` | `ProviderInfo` — 默认 Provider（自定义 API） |
 
-##### `buildKeyframeGenerationParams`
+**函数**：
 
-```typescript
-function buildKeyframeGenerationParams(params: {
-  beat: Beat;
-  prevBeat?: Beat;
-  characterRef?: string;
-  sceneRef?: string;
-  providerId?: string;
-  modelId?: string;
-}): {
-  prompt: string;
-  characterRef?: string;
-  sceneRef?: string;
-  prevKeyframe?: string;
-  shotRequirement: Record<string, unknown>;
-  providerId?: string;
-  modelId?: string;
-  beatId: string;
-}
-```
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `getProviderInfoByApiUrl` | `(apiUrl?: string): ProviderInfo` | 按 API URL 匹配 Provider |
+| `buildTrackingInfoByApiUrl` | `(apiUrl?, taskId?, model?, apiKeyPreview?, ...): TrackingInfo` | 构建追踪信息 |
 
-构建预览图生成参数。
+#### video-recovery.ts — 视频恢复
 
-##### `buildFramePairGenerationParams`
+**常量**：
 
-```typescript
-function buildFramePairGenerationParams(params: {
-  beat: Beat;
-  characterRef?: string;
-  sceneRef?: string;
-  providerId?: string;
-  modelId?: string;
-}): {
-  firstFrame: { prompt?: string; keyframePrompt: string; actionDescription: string; characterRef?: string; sceneRef?: string };
-  lastFrame: { prompt?: string; keyframePrompt: string; actionDescription: string; characterRef?: string; sceneRef?: string; duration?: number };
-  providerId?: string;
-  modelId?: string;
-  beatId: string;
-}
-```
+| 常量 | 值 | 说明 |
+|------|----|------|
+| `EXPIRY_HOURS` | `720` | 过期阈值（小时） |
+| `MAX_POLL_DURATION_MS` | `30 * 60 * 1000` | 最大轮询时长（30 分钟） |
+| `POLL_INTERVAL_MS` | `60 * 1000` | 轮询间隔（1 分钟） |
+| `MAX_RECOVERY_ATTEMPTS` | `30` | 最大恢复尝试次数 |
 
-构建首尾帧生成参数。
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `recoverVideoByTaskId` | `(apiGateway: ApiGateway, taskId: string, taskRecord?: TaskRecord): Promise<RecoveryResult>` | 按任务 ID 恢复视频 |
 
 ---
 
-#### video-tracker.ts
+### 2.4 story/ 子模块
 
-##### `PROVIDERS`
+故事服务、分镜板生成、Few-shot 示例、故事规划生成器。
 
-```typescript
-const PROVIDERS: Record<string, ProviderInfo>
-```
+#### story-service.ts — 故事服务
 
-支持的云服务商映射。键为域名，包含：`volces.com`（火山引擎）、`bytepluses.com`（BytePlus）、`dashscope.aliyuncs.com`（阿里云百炼）、`klingai.com`（可灵AI）、`bigmodel.cn`（智谱AI）、`openai.com`（OpenAI）、`atlascloud.ai`（Atlas Cloud）。
+**类型**：
+- `RawStoryBeat` — 原始分镜（LLM 输出，字段缩写）
+- `StoryBeat` — 标准化分镜
+- `StoryPlanValidationResult` — 故事规划校验结果
 
-##### `DEFAULT_PROVIDER`
+**re-export**：`StoryInput`、`GenerateStoryPlanOptions`、`TextGenerationResult`（来自 story-plan-generator）、`buildShotInstructionFromLegacy`（来自 prompt-service）
 
-```typescript
-const DEFAULT_PROVIDER: ProviderInfo
-```
+**函数**：
 
-默认提供者（自定义 API）。
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `fixShotParams` | `(data: ShotParamsData): { fixed: ShotParamsData; autoFixed: string[] }` | 修复分镜参数 |
+| `fixStoryBeat` | `(data: StoryBeatData): { fixed: StoryBeatData; autoFixed: string[] }` | 修复分镜数据 |
+| `validateStoryPlan` | `(plan: RawStoryBeat[]): StoryPlanValidationResult` | 校验故事规划 |
+| `parseStoryPlanJSON` | `(text: string): RawStoryBeat[] \| null` | 解析故事规划 JSON（支持 markdown 代码块） |
+| `convertToStoryBeats` | `(rawBeats: RawStoryBeat[], enhancedGeneration?: boolean, idGenerator?: (index: number) => string): StoryBeat[]` | 转换为标准 StoryBeat |
+| `generateStoryPlanWithValidation` | `(story: StoryInput, characters: unknown[], scenes: unknown[], options: GenerateStoryPlanOptions, generateTextFn: (prompt: string, opts: Record<string, unknown>) => Promise<TextGenerationResult>): Promise<GenerateStoryPlanResult>` | 带校验的故事规划生成（re-export from story-plan-generator） |
 
-##### `getProviderInfo`
+#### story-plan-generator.ts — 故事规划生成器
 
-```typescript
-function getProviderInfo(apiUrl?: string): ProviderInfo
-```
+**类型**：
+- `StoryInput` — `{ title?; description?; genre?; tone?; targetDuration? }`
+- `GenerateStoryPlanOptions` — `{ maxRetries?; autoFix?; fewShotCount?; enhancedGeneration?; planPrompt? }`
+- `TextGenerationResult` — `{ success; data?: { text? }; error? }`
+- `GenerateStoryPlanResult` — `{ beats; validationResults; autoFixedCount; retryCount; fixDetails }`
 
-根据 API URL 获取云服务商信息。
+**函数**：
 
-##### `TrackingInfo`
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `generateStoryPlanWithValidation` | `(story: StoryInput, characters: unknown[], scenes: unknown[], options: GenerateStoryPlanOptions, generateTextFn): Promise<GenerateStoryPlanResult>` | 带校验与重试的故事规划生成 |
 
-```typescript
-interface TrackingInfo {
-  providerName: string;
-  taskId: string;
-  apiUrl: string;
-  model: string;
-  apiKeyPreview: string;
-  taskUrl?: string;
-  queryEndpoint?: string;
-  apiDocUrl?: string;
-  howToCheck?: string;
-  providerWebsite?: string;
-}
-```
+#### storyboard-generation.ts — 分镜板生成
 
-##### `buildTrackingInfo`
+**类型**：
+- `Beat`（别名 `StoryboardBeat`）— 分镜
+- `ApiGateway`（别名 `StoryboardApiGateway`）— API 网关接口
 
-```typescript
-function buildTrackingInfo(
-  taskId: string,
-  apiUrl?: string,
-  apiKeyPreview?: string,
-  model?: string,
-): TrackingInfo
-```
+**函数**：
 
-构建视频任务追踪信息。
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `generateBeatKeyframe` | `(apiGateway: ApiGateway, _promptService: unknown, beat: Beat, prevBeat?: Beat, options?: GenerationOptions): Promise<KeyframeResult>` | 生成分镜关键帧 |
+| `generateBeatFramePair` | `(apiGateway: ApiGateway, _promptService: unknown, beat: Beat, options?: GenerationOptions): Promise<FramePairResult>` | 生成分镜首末帧对 |
+| `generateBeatVideo` | `(apiGateway: ApiGateway, beat: Beat, options?: GenerationOptions): Promise<VideoResult>` | 生成分镜视频 |
+| `generateBeatFullWorkflow` | `(apiGateway: ApiGateway, promptService: unknown, beat: Beat, prevBeat: Beat \| undefined, options: GenerationOptions, onProgress?: ProgressCallback): Promise<{ keyframe; framePair; videoTaskId }>` | 分镜完整工作流 |
+| `generateKeyframeChain` | `(apiGateway: ApiGateway, promptService: unknown, beats: Beat[], options: { getCharacterRef?; getSceneRef?; providerId?; modelId?; ... }): Promise<...>` | 关键帧链式生成 |
 
----
+#### story-few-shot.ts — Few-shot 示例
 
-#### video-recovery.ts
+**类型**：`FewShotInput`、`FewShotOutput`、`FewShotExample`
 
-##### 常量
+**函数**：
 
-| 名称 | 类型 | 值 | 说明 |
-|------|------|-----|------|
-| `EXPIRY_HOURS` | `number` | `720` | 过期小时数（30天） |
-| `MAX_POLL_DURATION_MS` | `number` | `30 * 60 * 1000` | 最大轮询时长（30分钟） |
-| `POLL_INTERVAL_MS` | `number` | `60 * 1000` | 轮询间隔（60秒） |
-| `MAX_RECOVERY_ATTEMPTS` | `number` | `30` | 最大恢复尝试次数 |
-
-##### `recoverVideoByTaskId`
-
-```typescript
-async function recoverVideoByTaskId(
-  apiGateway: {
-    videoStatus: (params: {
-      taskId: string;
-      providerId?: string;
-      modelId?: string;
-      format?: string;
-    }) => Promise<{
-      success: boolean;
-      data?: { status?: string; videoUrl?: string };
-    }>;
-  },
-  taskId: string,
-  taskRecord?: {
-    status?: string;
-    videoUrl?: string;
-    providerId?: string;
-    providerModelId?: string;
-    providerFormat?: string;
-  },
-): Promise<{
-  success: boolean;
-  videoUrl?: string;
-  message: string;
-  status?: string;
-}>
-```
-
-通过任务 ID 恢复视频。先检查本地记录，再查询云端状态。
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `selectFewShotExamples` | `(context: FewShotInput, count?: number): FewShotExample[]` | 选择 few-shot 示例（默认 3 条） |
+| `buildFewShotPrompt` | `(examples: FewShotExample[]): string` | 构建 few-shot prompt |
 
 ---
 
-### 2.4 story/ 子域
+### 2.5 timeline/ 子模块
 
-#### story-service.ts
+时间线状态推演引擎，包含状态传播、级联更新、绑定注入、跨时间线注入、重点快照、滑动窗口等。
 
-##### `RawStoryBeat`
+#### state-propagation-engine.ts — 主算法
 
-```typescript
-interface RawStoryBeat {
-  t?: string; title?: string;
-  c?: string; content?: string;
-  desc?: string; description?: string;
-  st?: string; shotType?: string;
-  ca?: string; cameraAngle?: string;
-  cm?: string; cameraMovement?: string;
-  d?: number; duration?: number;
-  tp?: string; type?: string;
-  ci?: string[]; characterIds?: string[];
-  si?: string; sceneId?: string;
-  kp?: string; keyframePrompt?: string;
-  fp?: string; firstFramePrompt?: string;
-  lp?: string; lastFramePrompt?: string;
-  ei?: string[]; elementIds?: string[];
-  eb?: Record<string, unknown>; elementBindings?: Record<string, unknown>;
-  dialogue?: string;
-  emotion?: string;
-  [key: string]: unknown;
-}
-```
+**函数**：
 
-##### `StoryBeat`（shared-logic 局部类型）
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `propagateStates` | `(timeline, plotEvents, ...) => PropagationResult` | 状态推演主入口 |
+| `computeNextNodeSnapshots` | `(...) => NodeSnapshots` | 计算下一节点快照 |
+| `computeCascadeEffects` | `(...) => ...` | 计算级联效果 |
+| `getNodeSnapshots` | `(...) => NodeSnapshots` | 获取节点快照 |
+| `getAllSnapshots` | `(...) => ...` | 获取所有快照 |
 
-```typescript
-interface StoryBeat {
-  id?: string;
-  sequence?: number;
-  title: string;
-  content: string;
-  description: string;
-  shotType: string;
-  camera?: { angle?: string; movement?: string };
-  duration: number;
-  type: string;
-  characterIds: string[];
-  sceneId?: string;
-  keyframePrompt?: string;
-  firstFramePrompt?: string;
-  lastFramePrompt?: string;
-  enhancedGeneration?: boolean;
-  elementIds?: string[];
-  elementBindings?: Record<string, unknown>;
-  imageGenerationPrompt?: string;
-  [key: string]: unknown;
-}
-```
+#### state-transition-rules.ts — 规则库
 
-##### `StoryPlanValidationResult`
+**常量**：
 
-```typescript
-interface StoryPlanValidationResult {
-  fixedPlan: StoryBeat[];
-  errors: string[];
-  autoFixed: string[];
-}
-```
+| 常量 | 说明 |
+|------|------|
+| `CHARACTER_RULES` | 角色状态转换规则 |
+| `SCENE_RULES` | 场景状态转换规则 |
+| `CASCADE_RULES` | 级联规则 |
+| `NO_OP_EVENTS` | 无操作事件 |
 
-##### `fixShotParams`
+**函数**：
 
-```typescript
-function fixShotParams(data: {
-  shotType?: string;
-  cameraMovement?: string;
-  cameraAngle?: string;
-  duration?: number;
-  [key: string]: unknown;
-}): { fixed: ShotParamsData; autoFixed: string[] }
-```
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `isCharacterEvent` | `(event: string): boolean` | 判断是否角色事件 |
+| `isSceneEvent` | `(event: string): boolean` | 判断是否场景事件 |
+| `isNoOpEvent` | `(event: string): boolean` | 判断是否无操作事件 |
+| `isCompoundEvent` | `(event: string): boolean` | 判断是否复合事件 |
+| `createNoOpTransition` | `() => ...` | 创建无操作转换 |
 
-修正镜头参数，将中文/别名标准化为英文枚举值。
+#### cascade-update.ts — 级联更新与脏标记
 
-##### `fixStoryBeat`
+**类型**：`CascadeUpdateMode`、`DirtyLevel`、`DirtyEntry`、`DirtyMap`、`IncrementalUpdateResult`
 
-```typescript
-function fixStoryBeat(data: StoryBeatData): { fixed: StoryBeatData; autoFixed: string[] }
-```
+**函数**：
 
-修正分镜数据，自动补全缺失字段。
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `markDirty` | `(...) => ...` | 标记脏 |
+| `incrementalUpdate` | `(...) => IncrementalUpdateResult` | 增量更新 |
+| `isDirty` | `(...) => boolean` | 判断是否脏 |
+| `getDirtyEntry` | `(...) => DirtyEntry \| undefined` | 获取脏条目 |
+| `getDirtyNodeIds` | `() => string[]` | 获取所有脏节点 ID |
+| `getDirectDirtyNodeIds` | `() => string[]` | 获取直接脏节点 ID |
+| `clearDirty` | `(...) => ...` | 清除脏标记 |
+| `clearAllDirty` | `() => ...` | 清除所有脏标记 |
+| `serializeDirtyMap` | `(map: DirtyMap): string` | 序列化脏标记 |
+| `deserializeDirtyMap` | `(str: string): DirtyMap` | 反序列化脏标记 |
 
-##### `validateStoryPlan`
+#### binding-injector.ts — TimelineBinding 注入层
 
-```typescript
-function validateStoryPlan(plan: RawStoryBeat[]): StoryPlanValidationResult
-```
+**类型**：`BindingType`、`BindingImportance`、`BindingPropagation`、`BindingForInjection`、`InjectedBindingInfo`、`SkippedBindingInfo`、`SkipReason`、`TokenBudget`、`InjectionResult`
 
-验证故事规划，返回修正后的分镜列表和错误/自动修正信息。
+**函数**：
 
-##### `parseStoryPlanJSON`
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `normalizeBinding` | `(...) => BindingForInjection` | 归一化绑定 |
+| `estimateTokenCount` | `(text: string): number` | 估算 token 数 |
+| `injectBindings` | `(...) => InjectionResult` | 注入绑定 |
+| `buildInjectionBlock` | `(...) => string` | 构建注入块 |
+| `computeCascadeAffectedNodeIds` | `(...) => string[]` | 计算级联影响节点 |
+| `getInjectableBindings` | `(...) => BindingForInjection[]` | 获取可注入绑定 |
+| `getNodeBindings` | `(...) => ...` | 获取节点绑定 |
+| `getDownstreamNodeIds` | `(...) => string[]` | 获取下游节点 ID |
+| `extractBindingsFromTimeline` | `(...) => ...` | 从时间线提取绑定 |
 
-```typescript
-function parseStoryPlanJSON(text: string): RawStoryBeat[] | null
-```
+#### prompt-enhancer.ts — 增强 Prompt 合成
 
-从文本中解析故事规划 JSON，支持代码块包裹和容错解析。
+**类型**：`PromptSections`、`EnhancedPrompt`
 
-##### `convertToStoryBeats`
+**函数**：
 
-```typescript
-function convertToStoryBeats(rawBeats: RawStoryBeat[], enhancedGeneration?: boolean): StoryBeat[]
-```
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `enhancePrompt` | `(...) => EnhancedPrompt` | 增强 prompt |
+| `formatTimelinePosition` | `(...) => string` | 格式化时间线位置 |
+| `formatCharacterStates` | `(...) => string` | 格式化角色状态 |
+| `formatSceneStates` | `(...) => string` | 格式化场景状态 |
+| `formatPlotEvent` | `(...) => string` | 格式化剧情事件 |
+| `assembleFinalPrompt` | `(...) => string` | 拼装最终 prompt |
+| `batchEnhancePrompts` | `(...) => EnhancedPrompt[]` | 批量增强 |
 
-将原始分镜数据转换为标准分镜列表。
+#### cross-timeline-injector.ts — 跨时间线绑定注入（Q3-9 / Task 4.6.7）
 
-##### `generateStoryPlanWithValidation`
+**类型**：`CrossTimelineBindingType`、`TimelineRelationshipType`、`CrossTimelineBindingLike`、`TimelineRelationshipLike`、`MultiTimelineLike`、`CrossTimelineInjectionResult`、`CrossTimelineSkipReason`、`TimelineLayerInfoLike`
 
-```typescript
-async function generateStoryPlanWithValidation(
-  story: { title?: string; description?: string; genre?: string; tone?: string; targetDuration?: number },
-  characters: unknown[],
-  scenes: unknown[],
-  options: { maxRetries?: number; autoFix?: boolean; fewShotCount?: number; enhancedGeneration?: boolean; planPrompt?: string },
-  generateTextFn: (prompt: string, opts: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { text?: string };
-    error?: string | { code: string; message: string };
-  }>,
-): Promise<{
-  beats: StoryBeat[];
-  validationResults: StoryPlanValidationResult[];
-  autoFixedCount: number;
-  retryCount: number;
-  fixDetails: string[];
-}>
-```
+**函数**：
 
-带验证的故事规划生成。支持自动重试、自动修正和 few-shot 示例。
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `injectCrossTimelineBindings` | `(...) => CrossTimelineInjectionResult` | 跨时间线绑定注入 |
+| `normalizeCrossTimelineBinding` | `(...) => CrossTimelineBindingLike` | 归一化跨时间线绑定 |
+| `buildCrossTimelineInjectionBlock` | `(...) => string` | 构建跨时间线注入块 |
+| `findRelationship` | `(...) => TimelineRelationshipLike \| undefined` | 查找关系 |
+| `getInboundCrossTimelineBindings` | `(...) => CrossTimelineBindingLike[]` | 获取入站绑定 |
+| `getOutboundCrossTimelineBindings` | `(...) => CrossTimelineBindingLike[]` | 获取出站绑定 |
+| `getBindingsBetweenTimelines` | `(...) => CrossTimelineBindingLike[]` | 获取时间线间绑定 |
+| `getTimelineRelationships` | `(...) => TimelineRelationshipLike[]` | 获取时间线关系 |
+| `computeTimelineLayers` | `(...) => TimelineLayerInfoLike[]` | 计算时间线层级 |
+
+#### pinned-snapshot.ts — 重点快照标注（Q3-10 / Task 4.6.8）
+
+**类型**：`PinReason`、`PinnedBy`、`PinnedSnapshotEntry`、`PinnedSnapshotStore`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `createPinnedSnapshotStore` | `(): PinnedSnapshotStore` | 创建重点快照存储 |
+| `pinNode` | `(...) => ...` | 标注节点 |
+| `unpinNode` | `(nodeId: string): ...` | 取消标注 |
+| `isPinned` | `(nodeId: string): boolean` | 判断是否标注 |
+| `getPinnedEntry` | `(nodeId: string): PinnedSnapshotEntry \| undefined` | 获取标注条目 |
+| `getPinnedNodeIds` | `(): string[]` | 获取所有标注节点 ID |
+| `getPinnedCount` | `(): number` | 获取标注数量 |
+| `shouldAutoPin` | `(...) => boolean` | 判断是否应自动标注 |
+| `autoPinFromTimeline` | `(...) => ...` | 从时间线自动标注 |
+| `getPinnedByReason` | `(reason: PinReason): PinnedSnapshotEntry[]` | 按原因获取标注 |
+| `getPinnedBy` | `(nodeId: string): PinnedBy \| undefined` | 获取标注者 |
+| `serializePinnedStore` | `(store: PinnedSnapshotStore): string` | 序列化 |
+| `deserializePinnedStore` | `(str: string): PinnedSnapshotStore` | 反序列化 |
+
+#### snapshot-window.ts — 滑动窗口管理（Q3-10 / Task 4.6.8）
+
+**类型**：`SnapshotStrategy`、`WindowConfig`、`WindowState`、`SnapshotStore`
+
+**常量**：`DEFAULT_WINDOW_SIZE`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `createSnapshotStore` | `(): SnapshotStore` | 创建快照存储 |
+| `initWindow` | `(...) => WindowState` | 初始化窗口 |
+| `getSnapshotStrategy` | `(...) => SnapshotStrategy` | 获取快照策略 |
+| `slideWindow` | `(...) => WindowState` | 滑动窗口 |
+| `getSnapshot` | `(...) => ...` | 获取快照 |
+| `getWindowNodes` | `(...) => string[]` | 获取窗口内节点 |
+| `getPinnedInWindow` | `(...) => string[]` | 获取窗口内标注节点 |
+| `getCachedCount` | `(...) => number` | 获取缓存数量 |
+| `getCenterNode` | `(...) => string \| undefined` | 获取中心节点 |
+
+#### snapshot-types.ts — 共享类型
+
+包含全部时间线快照相关类型定义：
+
+`PlotEventType`、`PlotEventParameters`、`PlotEventAIAnalysis`、`PlotEvent`、`Injury`、`CharacterStateSnapshot`、`AtmosphereChange`、`SceneStateSnapshot`、`CharacterTransition`、`SceneTransition`、`StateTransition`、`CharacterStateRule`、`SceneStateRule`、`CascadeRule`、`TimelineBindingLike`、`CharacterInitialState`、`SceneInitialState`、`PlotNodeLike`、`StoryTimelineLike`、`NodeSnapshots`、`PropagationResult`
 
 ---
 
-#### storyboard-generation.ts
+### 2.6 retry/ 子模块
 
-##### `Beat`（storyboard 局部类型）
+统一重试执行函数（项目内重试逻辑的单一来源）。
 
-```typescript
-interface Beat {
-  id: string;
-  content?: string;
-  description?: string;
-  duration?: number;
-  shotType?: string;
-  camera?: { angle?: string; movement?: string };
-  enhancedGeneration?: boolean;
-  imageGenerationPrompt?: string;
-  firstFramePrompt?: string;
-  lastFramePrompt?: string;
-  keyframe?: { imageUrl?: string; prompt?: string };
-  framePair?: {
-    firstFrame?: { imageUrl?: string };
-    lastFrame?: { imageUrl?: string };
-  };
-}
-```
+#### retry-with-backoff.ts
 
-##### `ApiGateway`（storyboard 局部类型）
+**类型**：
+- `BackoffStrategy` — `"exponential" | "linear" | "fixed"`
+- `RetryWithBackoffOptions<T>` — `{ fn; maxRetries; baseDelayMs; maxDelayMs?; backoff?; shouldJitter?; retryOn?; onRetry?; signal?; getDelayOverride? }`
 
-```typescript
-interface ApiGateway {
-  generateKeyframe: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { imageUrl: string; prompt?: string; generatedAt?: string };
-    error?: string | { code: string; message: string };
-  }>;
-  generateImage: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { imageUrl: string };
-    error?: string | { code: string; message: string };
-  }>;
-  generateFramePair: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: {
-      firstFrame: { imageUrl: string; prompt?: string };
-      lastFrame: { imageUrl: string; prompt?: string };
-      generatedAt: number;
-    };
-    error?: string | { code: string; message: string };
-  }>;
-  generateVideo: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { taskId: string; videoUrl?: string; status?: string };
-    error?: string | { code: string; message: string };
-  }>;
-  analyzeImage: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { analysis?: string };
-    error?: string | { code: string; message: string };
-  }>;
-  videoStatus: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: { status?: string; videoUrl?: string };
-    error?: string | { code: string; message: string };
-  }>;
-}
-```
+**函数**：
 
-##### `generateBeatKeyframe`
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `retryWithBackoff` | `<T>(options: RetryWithBackoffOptions<T>): Promise<T>` | 统一重试执行 |
+| `defaultRetryableError` | `(error: unknown): boolean` | 默认可重试判定（HTTP 5xx/408/429、网络错误码、应用错误码、消息模式匹配） |
+| `calculateBackoffDelay` | `(attempt: number, baseDelayMs: number, strategy: BackoffStrategy, maxDelayMs: number, shouldJitter: boolean): number` | 计算退避延迟 |
 
-```typescript
-async function generateBeatKeyframe(
-  apiGateway: ApiGateway,
-  _promptService: unknown,
-  beat: Beat,
-  prevBeat?: Beat,
-  options?: Record<string, unknown>,
-): Promise<{
-  imageUrl: string;
-  prompt?: string;
-  generatedAt?: string;
-  referencedPrevKeyframe?: string;
-}>
-```
+**可重试错误判定规则**：
+- `AbortError` → 不可重试（用户主动取消）
+- HTTP 5xx → 可重试
+- HTTP 408/429 → 可重试
+- HTTP 4xx（除 408/429）→ 不可重试
+- 网络错误码（`ECONNREFUSED` 等）→ 可重试
+- 应用错误码（`NETWORK_ERROR`/`TIMEOUT`/`RATE_LIMITED`/`API_SERVER_ERROR`）→ 可重试
 
-生成分镜预览图。
+---
 
-##### `generateBeatFramePair`
+### 2.7 agent/ 子模块
 
-```typescript
-async function generateBeatFramePair(
-  apiGateway: ApiGateway,
-  _promptService: unknown,
-  beat: Beat,
-  options?: Record<string, unknown>,
-): Promise<{
-  firstFrame: { imageUrl: string; prompt?: string; derivedFrom?: string };
-  lastFrame: { imageUrl: string; prompt?: string; derivedFrom?: string };
-  generatedAt: number;
-}>
-```
+Agent 共享逻辑，可供渲染进程和主进程共用。
 
-生成分镜首尾帧。支持增强模式（分别生成）和标准模式（一起生成）。
+#### token-estimator.ts
 
-##### `generateBeatVideo`
+启发式 token 估算器（中英文区分）。
 
-```typescript
-async function generateBeatVideo(
-  apiGateway: ApiGateway,
-  beat: Beat,
-  options?: Record<string, unknown>,
-): Promise<{
-  taskId: string;
-  videoUrl?: string;
-  status: string;
-}>
-```
+**常量**：
 
-生成分镜视频。
+| 常量 | 值 | 说明 |
+|------|----|------|
+| `TOKEN_OVERHEAD_PER_MESSAGE` | `4` | 每条消息固定 overhead |
+| `TOKEN_OVERHEAD_PER_TOOL_CALL` | `3` | 每个工具调用 overhead |
+| `TOKEN_OVERHEAD_PER_TOOL_RESULT` | `3` | 每个工具结果 overhead |
+| `TOKEN_OVERHEAD_SYSTEM` | `3` | system prompt overhead |
 
-##### `generateBeatFullWorkflow`
+**函数**：
 
-```typescript
-async function generateBeatFullWorkflow(
-  apiGateway: ApiGateway,
-  promptService: unknown,
-  beat: Beat,
-  prevBeat: Beat | undefined,
-  options: Record<string, unknown>,
-  onProgress?: (stage: string, progress: number) => void,
-): Promise<{
-  keyframe: KeyframeResult;
-  framePair: FramePairResult;
-  videoTaskId: string;
-}>
-```
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `estimateTokens` | `(text: string): number` | 估算字符串 token 数（中英文混合，CJK 1.5 token/字，ASCII 0.25 token/字符） |
+| `estimateContentTokens` | `(message: { content?; toolCalls? }): number` | 估算消息内容 token 数（不含 overhead） |
+| `estimateMessagesTokens` | `(messages: Array<{ role?; content?; toolCalls? }>, includeSystem?: boolean): number` | 估算消息数组 token 总数（含 overhead） |
+| `estimateSystemPromptTokens` | `(systemPrompt: string): number` | 估算 system prompt token 数（含 overhead） |
 
-执行分镜完整生成流程：预览图 → 首尾帧 → 视频。
+---
 
-##### `generateKeyframeChain`
+### 2.8 json/ 子模块
 
-```typescript
-async function generateKeyframeChain(
-  apiGateway: ApiGateway,
-  promptService: unknown,
-  beats: Beat[],
-  options: {
-    getCharacterRef?: (beat: Beat) => string | undefined;
-    getSceneRef?: (beat: Beat) => string | undefined;
-    providerId?: string;
-    modelId?: string;
-  },
-  onProgress?: (index: number, total: number, beatId: string) => void,
-): Promise<Record<string, KeyframeResult>>
-```
+JSON 提取与安全解析工具，统一替代各模块中重复的 `text.match(/\{[\s\S]*\}/)` + `JSON.parse` + try/catch 模式。
 
-链式生成多个分镜的预览图，每个分镜使用前一个分镜的预览图作为参考。
+#### index.ts
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `extractJsonObject` | `(text: string): string \| null` | 提取第一个 JSON 对象片段（`{...}`） |
+| `extractJsonArray` | `(text: string): string \| null` | 提取第一个 JSON 数组片段（`[...]`） |
+| `safeParseJson` | `<T = unknown>(jsonStr: string): T \| null` | 安全解析 JSON（失败返回 null） |
+| `extractAndParseJsonObject` | `<T = unknown>(text: string): T \| null` | 提取并解析 JSON 对象（支持 markdown 代码块） |
+| `extractAndParseJsonArray` | `<T = unknown>(text: string): T[] \| null` | 提取并解析 JSON 数组（支持 markdown 代码块） |
+
+---
+
+### 2.9 migration/ 子模块
+
+幂等迁移工厂，统一单例 Promise 迁移模式。
+
+#### create-idempotent-migration.ts
+
+**类型**：`IdempotentMigration` — `{ initialize: () => Promise<number>; resetState: () => void }`
+
+**函数**：
+
+| 函数 | 签名 | 说明 |
+|------|------|------|
+| `createIdempotentMigration` | `(migrationFn: () => Promise<number>, onError: (err: unknown) => void): IdempotentMigration` | 创建幂等迁移实例 |
+
+**行为**：
+- 首次调用 `initialize()` 时执行 `migrationFn`，并缓存 Promise
+- 后续调用返回同一个 Promise（单例）
+- `migrationFn` 失败时调用 `onError`，重置 Promise 允许重试，返回 0
+
+---
+
+## 附录：路径别名速查
+
+| 别名 | 适用进程 | 用途 |
+|------|---------|------|
+| `@/domain/*` | 渲染进程 | 导入领域层类型/Port |
+| `@/shared-logic/*` | 渲染进程 | 导入共享逻辑 |
+| `@shared-logic/*` | 主进程 | 导入共享逻辑（electron 主进程专用别名） |
+| `@domain/*` | 主进程 | 导入领域层类型（electron 主进程专用别名） |
+
+## 附录：相关文档
+
+- [ports.md](./ports.md) — Port 接口清单（含分类、依赖方向图）
+- [API_REFERENCE_PART2.md](./API_REFERENCE_PART2.md) — 模块层 API 参考
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — 整体架构
+- [di-tokens.md](./di-tokens.md) — DI 容器 Token 清单

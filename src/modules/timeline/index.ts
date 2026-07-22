@@ -48,3 +48,13 @@ export type { CascadeUpdateApi } from "./hooks/use-cascade-update";
 // Hooks（Q3-6 / Task 4.6.4）
 export { useTimelineBinding } from "./hooks/use-timeline-binding";
 export type { TimelineBindingApi, UseTimelineBindingOptions } from "./hooks/use-timeline-binding";
+
+// Presentation 组件（Q3-7 / Task 4.6.5）
+export { TimelineEditor } from "./presentation/TimelineEditor";
+export { TimelineTrack } from "./presentation/TimelineTrack";
+export { NodeDetailPanel } from "./presentation/NodeDetailPanel";
+export { StateSnapshotView } from "./presentation/StateSnapshotView";
+export { CharacterStateTrack } from "./presentation/CharacterStateTrack";
+export { BindingGraph } from "./presentation/BindingGraph";
+export { BindingCreatorDialog } from "./presentation/BindingCreatorDialog";
+export type { BindingCreatorResult } from "./presentation/BindingCreatorDialog";

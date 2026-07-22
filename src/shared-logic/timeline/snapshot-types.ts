@@ -343,6 +343,10 @@ export interface PlotNodeLike {
   characterInitialStates?: CharacterInitialState[];
   /** 首节点初始化用：场景初始状态 */
   sceneInitialStates?: SceneInitialState[];
+  /** 可选：章节序号（1-based，UI 展示用） */
+  chapterIndex?: number;
+  /** 可选：章节标题（UI 展示用） */
+  chapterTitle?: string;
 }
 
 /**

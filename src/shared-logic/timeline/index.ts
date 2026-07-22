@@ -110,6 +110,49 @@ export type {
   TimelineLayerInfoLike,
 } from "./cross-timeline-injector";
 
+// ── 重点快照标注（Q3-10 / Task 4.6.8）──
+export {
+  createPinnedSnapshotStore,
+  pinNode,
+  unpinNode,
+  isPinned,
+  getPinnedEntry,
+  getPinnedNodeIds,
+  getPinnedCount,
+  shouldAutoPin,
+  autoPinFromTimeline,
+  getPinnedByReason,
+  getPinnedBy,
+  serializePinnedStore,
+  deserializePinnedStore,
+} from "./pinned-snapshot";
+export type {
+  PinReason,
+  PinnedBy,
+  PinnedSnapshotEntry,
+  PinnedSnapshotStore,
+} from "./pinned-snapshot";
+
+// ── 滑动窗口管理（Q3-10 / Task 4.6.8）──
+export {
+  createSnapshotStore,
+  initWindow,
+  getSnapshotStrategy,
+  slideWindow,
+  getSnapshot,
+  getWindowNodes,
+  getPinnedInWindow,
+  getCachedCount,
+  getCenterNode,
+  DEFAULT_WINDOW_SIZE,
+} from "./snapshot-window";
+export type {
+  SnapshotStrategy,
+  WindowConfig,
+  WindowState,
+  SnapshotStore,
+} from "./snapshot-window";
+
 // ── 类型 ──
 export type {
   PlotEventType,

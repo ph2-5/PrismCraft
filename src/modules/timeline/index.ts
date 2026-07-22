@@ -57,6 +57,10 @@ export type { EnhancedPromptApi, UseEnhancedPromptOptions } from "./hooks/use-en
 export { useMultiTimeline } from "./hooks/use-multi-timeline";
 export type { MultiTimelineApi } from "./hooks/use-multi-timeline";
 
+// Hooks（Q3-10 / Task 4.6.8）
+export { useSnapshotWindow } from "./hooks/use-snapshot-window";
+export type { SnapshotWindowApi, UseSnapshotWindowOptions } from "./hooks/use-snapshot-window";
+
 // Presentation 组件（Q3-7 / Task 4.6.5）
 export { TimelineEditor } from "./presentation/TimelineEditor";
 export { TimelineTrack } from "./presentation/TimelineTrack";

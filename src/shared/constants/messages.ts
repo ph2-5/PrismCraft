@@ -4304,6 +4304,15 @@ const messages: Record<MessageKey, string> = {
   "novel.source.importedAt": "导入时间：{time}",
   "novel.source.empty": "暂无原文内容",
   "novel.source.loading": "加载中...",
+  // Q2-2: 原文↔分镜对照视图
+  "novel.source.compare": "原文↔分镜对照",
+  "novel.source.originalText": "原文",
+  "novel.source.beatList": "分镜列表",
+  "novel.source.noSourceLink": "无原文关联",
+  "novel.source.chapterLabel": "第{index}章",
+  "novel.source.beatLabel": "分镜{sequence}",
+  "novel.source.noBeats": "暂无分镜",
+  "novel.source.clickHint": "点击分镜查看对应原文",
 };
 
 export type Messages = typeof messages;

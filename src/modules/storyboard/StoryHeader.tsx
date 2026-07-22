@@ -231,6 +231,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         open={showNovelSourceDialog}
         onClose={() => setShowNovelSourceDialog(false)}
         novelSource={novelSource}
+        beats={story.beats}
       />
     </>
   );

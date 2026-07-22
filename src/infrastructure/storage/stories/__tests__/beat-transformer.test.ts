@@ -225,7 +225,7 @@ describe("buildBeatInsert", () => {
     const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
     expect(result.sql).toContain("INSERT INTO story_beats");
     expect(result.sql).toContain("ON CONFLICT(id) DO UPDATE SET");
-    expect(result.params).toHaveLength(21);
+    expect(result.params).toHaveLength(23);
   });
 
   it("应正确映射 beat 字段到 SQL 参数", () => {

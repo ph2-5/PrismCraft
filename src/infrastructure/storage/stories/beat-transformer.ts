@@ -84,6 +84,9 @@ const KNOWN_BEAT_KEYS = new Set([
   "sourceEndChar", "source_end_char",
   "chapterIndex", "chapter_index",
   "chapterTitle", "chapter_title",
+  // Q3-2: Beat 层关联变体
+  "characterVariantIds", "character_variant_ids_json",
+  "sceneVariantId", "scene_variant_id",
 ]);
 
 function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
@@ -212,8 +215,8 @@ export function flattenBeat(beat: Record<string, unknown>, now: number): Flatten
   };
 }
 
-const BEAT_INSERT_SQL = `INSERT INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, owner_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+const BEAT_INSERT_SQL = `INSERT INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, character_variant_ids_json, scene_variant_id, owner_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        story_id = excluded.story_id,
        sequence = excluded.sequence,
@@ -232,11 +235,19 @@ const BEAT_INSERT_SQL = `INSERT INTO story_beats (id, story_id, sequence, order_
        local_keyframe_path = excluded.local_keyframe_path,
        local_first_frame_path = excluded.local_first_frame_path,
        local_last_frame_path = excluded.local_last_frame_path,
+       character_variant_ids_json = excluded.character_variant_ids_json,
+       scene_variant_id = excluded.scene_variant_id,
        updated_at = excluded.updated_at`;
 
 function resolveCharacterIdsValue(beat: Record<string, unknown>): unknown {
   if (Array.isArray(beat.characterIds)) return toSqlValue(beat.characterIds);
   return beat.character_ids || beat.character_ids_json || null;
+}
+
+// Q3-2: 解析 characterVariantIds（对称 resolveCharacterIdsValue，但可为空）
+function resolveCharacterVariantIdsValue(beat: Record<string, unknown>): unknown {
+  if (Array.isArray(beat.characterVariantIds)) return toSqlValue(beat.characterVariantIds);
+  return beat.character_variant_ids_json || null;
 }
 
 function resolveLocalPath(beat: Record<string, unknown>, camel: string, snake: string): unknown {
@@ -272,6 +283,8 @@ export function buildBeatInsert(
       resolveLocalPath(beat, "localKeyframePath", "local_keyframe_path"),
       resolveLocalPath(beat, "localFirstFramePath", "local_first_frame_path"),
       resolveLocalPath(beat, "localLastFramePath", "local_last_frame_path"),
+      resolveCharacterVariantIdsValue(beat),
+      beat.sceneVariantId || beat.scene_variant_id || null,
       1,
       flat.createdAt,
       flat.updatedAt,

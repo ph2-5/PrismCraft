@@ -85,6 +85,7 @@ registerColumns("story_beats", [
   ["generation", "json"],
   ["meta", "json"],
   ["keyframe_chain_valid", "boolean"],
+  ["character_variant_ids_json", "json"],
 ]);
 
 registerColumns("story_elements", [

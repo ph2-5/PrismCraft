@@ -25,7 +25,7 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 // PR 3 Step 1：shotType 迁移映射表（内联，不导入 shared-logic 以遵守架构边界）
 // 语义：旧 shotType 中的 size 类 → shotSize
@@ -327,6 +327,25 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     }
     db.exec(`CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);`);
     logger.info("[DB] migration v10: stories.status column ensured");
+  },
+  // Q3-2: Beat 层关联变体 — story_beats 新增 character_variant_ids_json + scene_variant_id 列
+  // 对称 character_ids_json + scene_id 模式，支持 beat 级别指定角色/场景变体
+  11: (db) => {
+    const columns = [
+      { table: "story_beats", column: "character_variant_ids_json", type: "TEXT" },
+      { table: "story_beats", column: "scene_variant_id", type: "TEXT" },
+    ];
+    for (const { table, column, type } of columns) {
+      try {
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${sanitizeColumnType(type)};`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("duplicate column")) {
+          throw e;
+        }
+      }
+    }
+    logger.info("[DB] migration v11: story_beats variant columns ensured");
   },
 };
 

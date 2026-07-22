@@ -188,6 +188,9 @@ export const storyBeatSchema = z.object({
   characterIds: z.array(z.string()),
   characterOutfits: z.record(z.string(), z.string()).optional(),
   sceneId: nullToUndef(z.string()),
+  // Q3-2: Beat 层关联变体（characterVariantIds 与 characterIds 一一对应，可为空表示用默认变体）
+  characterVariantIds: z.array(z.string()).optional(),
+  sceneVariantId: nullToUndef(z.string()).optional(),
   /**
    * 场景转换列表。当单张分镜需要进行一系列场景转换时使用（例如"开门进入新房间 → 走过走廊 → 抵达客厅"）。
    *

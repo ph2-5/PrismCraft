@@ -25,6 +25,18 @@ function parseCharacterIds(parsed: Record<string, unknown>): string[] {
   return [];
 }
 
+// Q3-2: 解析 characterVariantIds（对称 parseCharacterIds，但可为空）
+function parseCharacterVariantIds(parsed: Record<string, unknown>): string[] | undefined {
+  const raw = parsed.character_variant_ids_json;
+  if (Array.isArray(raw)) return raw as string[];
+  if (typeof raw === "string" && raw.startsWith("[")) {
+    const arr = safeJsonParseArray(raw);
+    return arr.length > 0 ? (arr as string[]) : undefined;
+  }
+  if (raw) return String(raw).split(",").filter(Boolean);
+  return undefined;
+}
+
 function applyGenerationFields(beat: Record<string, unknown>, gen: Record<string, unknown> | null): void {
   if (!gen) return;
   if (gen.keyframeImageUrl || gen.keyframePrompt) {
@@ -92,6 +104,9 @@ export function parseBeatRow(b: Record<string, unknown>) {
     content: parsed.content,
     characterIds: parseCharacterIds(parsed),
     sceneId: parsed.scene_id,
+    // Q3-2: Beat 层关联变体
+    characterVariantIds: parseCharacterVariantIds(parsed),
+    sceneVariantId: parsed.scene_variant_id || undefined,
     // PR 7：shotType 已删除，只读取 shotInstruction
     shotInstruction: cameraContainer?.shotInstruction ?? undefined,
     imageGenerationPrompt: generationContainer?.imageGenerationPrompt,

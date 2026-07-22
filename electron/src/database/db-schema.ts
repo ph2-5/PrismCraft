@@ -108,6 +108,9 @@ const FEATURE_TABLES: TableDef[] = [
       local_keyframe_path: { type: "TEXT" },
       local_first_frame_path: { type: "TEXT" },
       local_last_frame_path: { type: "TEXT" },
+      // Q3-2: Beat 层关联变体
+      character_variant_ids_json: { type: "TEXT" },
+      scene_variant_id: { type: "TEXT" },
     },
   },
   {

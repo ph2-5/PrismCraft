@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS story_beats (
     generation TEXT DEFAULT '{}',
     meta TEXT DEFAULT '{}',
     local_video_path TEXT,
+    -- Q3-2: Beat 层关联变体
+    character_variant_ids_json TEXT,
+    scene_variant_id TEXT,
     FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE
 );
 

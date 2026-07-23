@@ -4603,7 +4603,7 @@ const messages: Record<MessageKey, string> = {
   "error.downloadIncomplete": "下载不完整: {actual}/{expected} bytes",
   "error.cacheImageFailed": "缓存图片失败: {url}",
   "error.invalidPhase": "无效阶段",
-  "error.cannotRetryPhase": "无法重试阶段",
+  "error.cannotRetryPhase": "无法重试阶段: {current} → {target}",
   "error.downloadImageFailed": "下载图片失败: {status}",
 };
 

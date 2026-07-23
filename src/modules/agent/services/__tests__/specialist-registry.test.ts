@@ -96,7 +96,7 @@ describe("SpecialistRegistry (P4 多 Agent 编排)", () => {
 
     it("重名注册抛错", () => {
       registry.register(makeSpecialist("dup"));
-      expect(() => registry.register(makeSpecialist("dup"))).toThrow(/already registered/);
+      expect(() => registry.register(makeSpecialist("dup"))).toThrow(/已注册/);
     });
   });
 
@@ -109,7 +109,7 @@ describe("SpecialistRegistry (P4 多 Agent 编排)", () => {
     it("批量注册中遇重名抛错", () => {
       expect(() =>
         registry.registerAll([makeSpecialist("x"), makeSpecialist("x")]),
-      ).toThrow(/already registered/);
+      ).toThrow(/已注册/);
     });
   });
 

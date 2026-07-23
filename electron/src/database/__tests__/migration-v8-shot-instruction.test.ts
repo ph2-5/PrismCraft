@@ -64,7 +64,6 @@ function createInMemoryDb(initialRows: BeatRow[]): {
 describe("migration v8: shotInstruction backfill", () => {
   const migrate = MIGRATIONS[8];
   if (!migrate) {
-    it.skip("migration v8 not defined", () => {});
     return;
   }
 

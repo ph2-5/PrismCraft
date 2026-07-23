@@ -165,7 +165,7 @@ export function retryStage(state: PipelineState, stage: PipelineStage): Pipeline
     throw new Error(t("error.invalidPhase"));
   }
   if (retryIndex > currentIndex) {
-    throw new Error(t("error.cannotRetryPhase"));
+    throw new Error(t("error.cannotRetryPhase", { current: state.stage, target: stage }));
   }
   return {
     ...state,

@@ -175,7 +175,7 @@ export class PluginProcessManager {
 
     if (result.type === "error") {
       this.kill();
-      throw new Error(result.message || "插件加载失败");
+      throw new Error(result.message || "PLUGIN_LOAD_FAILED");
     }
 
     this.pluginId = result.pluginId || null;
@@ -212,7 +212,7 @@ export class PluginProcessManager {
     const result = await this.sendAndWait(callId, msg, CALL_TIMEOUT_MS);
 
     if (result.type === "error") {
-      throw new Error(result.message || `调用 ${method}() 失败`);
+      throw new Error(result.message || `PLUGIN_CALL_FAILED (method: ${method})`);
     }
 
     return result.value as T;
@@ -360,7 +360,7 @@ export class PluginProcessManager {
 
       try {
         if (!this.process || !this.alive) {
-          throw new Error("Plugin process not alive");
+          throw new Error("PLUGIN_PROCESS_NOT_ALIVE");
         }
         this.process.send(msg);
       } catch (err) {

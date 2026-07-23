@@ -106,7 +106,7 @@ describe("ToolRegistry", () => {
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
         expect((e as Error).message).toContain("dup-name");
-        expect((e as Error).message).toContain("already registered");
+        expect((e as Error).message).toContain("已注册");
       }
     });
 

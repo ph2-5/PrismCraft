@@ -136,7 +136,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const CHUNK = 0x8000; // 32KB 分块，避免 String.fromCharCode.apply 栈溢出
   for (let i = 0; i < bytes.length; i += CHUNK) {
     const chunk = bytes.subarray(i, i + CHUNK);
-    binary += String.fromCharCode.apply(null, Array.from(chunk) as unknown as number[]);
+    binary += String.fromCharCode.apply(null, Array.from(chunk.values()));
   }
   return btoa(binary);
 }

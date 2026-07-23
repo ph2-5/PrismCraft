@@ -42,7 +42,16 @@ vi.mock("@/shared/constants", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/shared/constants")>();
   return {
     ...actual,
-    t: vi.fn((key: string) => key),
+    // 与生产 t() 行为一致：返回 key 字符串本身并插值参数（避免依赖 messages.ts 翻译内容）
+    t: vi.fn((key: string, params?: Record<string, string | number>) => {
+      let text = key;
+      if (params) {
+        for (const [k, v] of Object.entries(params)) {
+          text = text.replace(`{${k}}`, String(v));
+        }
+      }
+      return text;
+    }),
     CACHE_RETRY_INTERVAL_MS: 1000,
   };
 });
@@ -163,7 +172,7 @@ describe("image-cache", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
       expect(errorLogger.warn).toHaveBeenCalledWith(
         expect.any(String),
@@ -200,9 +209,9 @@ describe("image-cache", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
-        expect(result.error.message).toContain("https://example.com/expired.png");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
+      expect(mocks.resilientFetch).toHaveBeenCalledTimes(2);
     });
 
     it("下载成功但 writeFile 失败时返回 err", async () => {
@@ -218,7 +227,7 @@ describe("image-cache", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
     });
 
@@ -236,11 +245,11 @@ describe("image-cache", () => {
       expect(mocks.fileHttp.deleteFile).toHaveBeenCalledWith(expect.stringContaining("/images/"));
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
       expect(errorLogger.warn).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ message: expect.stringContaining("下载不完整") }),
+        expect.objectContaining({ message: expect.stringContaining("error.downloadIncomplete") }),
       );
     });
 
@@ -265,7 +274,7 @@ describe("image-cache", () => {
       );
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
     });
 
@@ -353,7 +362,7 @@ describe("image-cache", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("缓存图片失败");
+        expect(result.error.message).toContain("error.cacheImageFailed");
       }
     });
   });

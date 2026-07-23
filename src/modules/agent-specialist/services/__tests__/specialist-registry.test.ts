@@ -64,7 +64,7 @@ describe("SpecialistRegistry", () => {
         throw new Error("应抛错但未抛出");
       } catch (err) {
         expect((err as Error).message).toContain("dup-id");
-        expect((err as Error).message).toMatch(/already registered/);
+        expect((err as Error).message).toMatch(/已注册/);
       }
     });
 
@@ -99,7 +99,7 @@ describe("SpecialistRegistry", () => {
         makeSpecialist({ id: "duplicate" }),
         makeSpecialist({ id: "last" }),
       ];
-      expect(() => registry.registerAll(list)).toThrow(/already registered/);
+      expect(() => registry.registerAll(list)).toThrow(/已注册/);
 
       // registerAll 顺序执行，第一个 dup 已注册，第二个 dup 抛错
       expect(registry.has("first")).toBe(true);
@@ -266,7 +266,7 @@ describe("SpecialistRegistry", () => {
       const original = makeSpecialist({ id: "dup", name: "原专家" });
       const updated = makeSpecialist({ id: "dup", name: "新专家" });
       registry.register(original);
-      expect(() => registry.register(updated)).toThrow(/already registered/);
+      expect(() => registry.register(updated)).toThrow(/已注册/);
       // 原对象仍保留
       expect(registry.get("dup")?.name).toBe("原专家");
     });

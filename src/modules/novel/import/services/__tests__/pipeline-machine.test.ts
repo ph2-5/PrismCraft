@@ -202,7 +202,7 @@ describe("transition", () => {
 
   it("非法转换：抛出 Error", () => {
     const state = makeState({ stage: "project_init" });
-    expect(() => transition(state, "done")).toThrow(/无效状态转换/);
+    expect(() => transition(state, "done")).toThrow(/状态转换不合法/);
   });
 
   it("非法转换：错误消息包含 from 和 to", () => {
@@ -212,7 +212,7 @@ describe("transition", () => {
 
   it("从 done 转换：抛出 Error（终态）", () => {
     const state = makeState({ stage: "done" });
-    expect(() => transition(state, "project_init")).toThrow(/无效状态转换/);
+    expect(() => transition(state, "project_init")).toThrow(/状态转换不合法/);
   });
 });
 
@@ -404,7 +404,7 @@ describe("retryStage", () => {
 
   it("重试之后的阶段：抛出 Error（不能向前重试）", () => {
     const state = makeState({ stage: "content_import" });
-    expect(() => retryStage(state, "character_manage")).toThrow(/不能向前重试/);
+    expect(() => retryStage(state, "character_manage")).toThrow(/无法重试阶段/);
   });
 
   it("重试之后的阶段：错误消息包含当前阶段和目标阶段", () => {

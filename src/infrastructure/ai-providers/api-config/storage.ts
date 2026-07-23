@@ -9,7 +9,7 @@ const CONFIG_VERSION = 1;
 // HTTP 配置存储（统一通信层），失败回退到 IPC
 let _httpAvailable: boolean | null = null;
 
-async function httpConfigGet(key: string): Promise<unknown | null> {
+async function withHttpFallback<T>(endpoint: string, body: unknown): Promise<T | null> {
   if (typeof window === "undefined" || typeof fetch !== "function") return null;
   if (_httpAvailable === null) {
     try {
@@ -25,53 +25,32 @@ async function httpConfigGet(key: string): Promise<unknown | null> {
   }
   if (!_httpAvailable) return null;
   try {
-    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/get`, {
+    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return null;
-    const result = await response.json() as { success: boolean; data?: { value: unknown } };
-    if (!result.success) return null;
-    return result.data?.value ?? null;
+    return (await response.json()) as T;
   } catch (e) {
     _httpAvailable = false;
-    errorLogger.debug("[API Config] HTTP config/get 失败，回退到 IPC", e);
+    errorLogger.debug(`[API Config] HTTP ${endpoint} 失败，回退到 IPC`, e);
     return null;
   }
 }
 
+async function httpConfigGet(key: string): Promise<unknown | null> {
+  const result = await withHttpFallback<{ success: boolean; data?: { value: unknown } }>("config/get", { key });
+  if (!result) return null;
+  if (!result.success) return null;
+  return result.data?.value ?? null;
+}
+
 async function httpConfigSet(key: string, value: unknown): Promise<boolean> {
-  if (typeof window === "undefined" || typeof fetch !== "function") return false;
-  if (_httpAvailable === null) {
-    try {
-      const probe = await fetch(`http://localhost:${API_SERVER_PORT}/api/health`, {
-        method: "GET",
-        headers: ELECTRON_APP_HEADERS,
-        signal: AbortSignal.timeout(1000),
-      });
-      _httpAvailable = probe.ok;
-    } catch {
-      _httpAvailable = false;
-    }
-  }
-  if (!_httpAvailable) return false;
-  try {
-    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
-      body: JSON.stringify({ key, value }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!response.ok) return false;
-    const result = await response.json() as { success: boolean };
-    return result.success;
-  } catch (e) {
-    _httpAvailable = false;
-    errorLogger.debug("[API Config] HTTP config/set 失败，回退到 IPC", e);
-    return false;
-  }
+  const result = await withHttpFallback<{ success: boolean }>("config/set", { key, value });
+  if (!result) return false;
+  return result.success;
 }
 
 export function getDefaultConfig(): ApiConfig {

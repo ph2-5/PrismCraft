@@ -236,11 +236,19 @@ export async function composeImage(
   });
 
   // 6. 调用图像生成（P1-8: 通过 withAbortSignal 包装实现可取消）
+  // PrismCraft 第四章: 把角色/场景的 generatedImage 作为参考图传给模型，
+  // 让模型真正"看到"参考图，而非仅靠 prompt 文本描述（characterImageUrl / sceneImageUrl）。
+  // variant 的参考图已在 characterToInput 中优先选取，这里同步取出 URL 传入。
+  const characterImageUrl = variant?.imageUrl || variant?.referenceImagePath || character.generatedImage;
+  const sceneImageUrl = scene?.generatedImage || undefined;
+
   const result = await withAbortSignal(
     container.imageProvider.generateImage(prompt, "compositor", {
       providerId: input.provider,
       modelId: input.modelId,
       purpose: "compositor",
+      characterImageUrl,
+      sceneImageUrl,
     }),
     signal,
   );

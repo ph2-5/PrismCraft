@@ -3,6 +3,7 @@ import { apiCallWithRetry } from "./core";
 import { ApiClientError } from "./errors";
 import { resolveCapability, safeTruncatePrompt } from "./config";
 import { extractErrorMessage } from "@/shared/error-logger";
+import type { ImageGenerationRequestBody } from "./types";
 
 export interface OutfitSynthesisParams {
   characterImageUrl: string;
@@ -60,7 +61,7 @@ export async function synthesizeOutfit(
     const prompt = buildOutfitSynthesisPrompt(params);
     const { truncated: safePrompt } = safeTruncatePrompt(prompt);
 
-    const requestBody: Record<string, unknown> = {
+    const requestBody: ImageGenerationRequestBody = {
       prompt: safePrompt,
       type: "outfit-synthesis",
       size: options?.size || "1920x1920",

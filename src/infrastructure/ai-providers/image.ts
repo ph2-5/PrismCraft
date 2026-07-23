@@ -41,6 +41,11 @@ export async function generateImage(
     providerId?: string;
     modelId?: string;
     purpose?: ImageSizePurpose;
+    // PrismCraft 第四章: 参考图字段，透传到后端 generate-image 路由
+    referenceImageUrl?: string;
+    characterImageUrl?: string;
+    sceneImageUrl?: string;
+    previousFrameUrl?: string;
   },
 ): Promise<ApiResponse<ImageGenerationResult>> {
   try {
@@ -68,6 +73,10 @@ export async function generateImage(
       promptWasTruncated: wasTruncated,
       providerId: resolvedProviderId,
       modelId: resolvedModelId,
+      referenceImageUrl: options?.referenceImageUrl,
+      characterImageUrl: options?.characterImageUrl,
+      sceneImageUrl: options?.sceneImageUrl,
+      previousFrameUrl: options?.previousFrameUrl,
     };
 
     const result = await apiCallWithRetry<ApiResponse<ImageGenerationResult>>(

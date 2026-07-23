@@ -148,6 +148,11 @@ export interface IImageProvider {
       providerId?: string;
       modelId?: string;
       purpose?: string;
+      // PrismCraft 第四章: 参考图字段，供 compositor / outfit-synthesis 传入
+      referenceImageUrl?: string;
+      characterImageUrl?: string;
+      sceneImageUrl?: string;
+      previousFrameUrl?: string;
     },
   ): Promise<ApiResponse<ImageGenerationResult>>;
 

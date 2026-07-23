@@ -39,6 +39,11 @@ export interface ImageGenerationRequestBody {
   promptWasTruncated?: boolean;
   providerId?: string;
   modelId?: string;
+  // PrismCraft 第四章: 参考图字段（与 generateImageSchema 对齐）
+  referenceImageUrl?: string;
+  characterImageUrl?: string;
+  sceneImageUrl?: string;
+  previousFrameUrl?: string;
 }
 
 export interface VideoGenerationRequestBody {

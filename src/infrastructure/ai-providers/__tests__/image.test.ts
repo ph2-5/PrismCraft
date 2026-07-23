@@ -143,6 +143,36 @@ describe("generateImage", () => {
     expect(body.prompt).toBe("truncated prompt");
   });
 
+  it("PrismCraft 第四章: 应传递参考图字段到请求体", async () => {
+    await generateImage("prompt", "compositor", {
+      providerId: "p1",
+      modelId: "m1",
+      characterImageUrl: "https://example.com/char.png",
+      sceneImageUrl: "https://example.com/scene.png",
+      referenceImageUrl: "https://example.com/ref.png",
+      previousFrameUrl: "https://example.com/prev.png",
+    });
+
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
+    expect(body.characterImageUrl).toBe("https://example.com/char.png");
+    expect(body.sceneImageUrl).toBe("https://example.com/scene.png");
+    expect(body.referenceImageUrl).toBe("https://example.com/ref.png");
+    expect(body.previousFrameUrl).toBe("https://example.com/prev.png");
+  });
+
+  it("PrismCraft 第四章: 未传参考图时请求体中对应字段为 undefined（不会被序列化）", async () => {
+    await generateImage("prompt", "character", {
+      providerId: "p1",
+      modelId: "m1",
+    });
+
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
+    expect(body.characterImageUrl).toBeUndefined();
+    expect(body.sceneImageUrl).toBeUndefined();
+    expect(body.referenceImageUrl).toBeUndefined();
+    expect(body.previousFrameUrl).toBeUndefined();
+  });
+
   it("ApiClientError 应直接抛出", async () => {
     const apiError = new ApiClientError("API error", 400, "CONFIG_MISSING");
     mockApiCallWithRetry.mockRejectedValue(apiError);

@@ -24,6 +24,12 @@ export const generateImageSchema = z.object({
   size: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
+  // PrismCraft 第四章: 参考图字段，供 compositor / outfit-synthesis 等多图合成场景使用
+  // 后端 api-gateway-image.ts 已实现参考图处理，schema 暴露后前端可正确传递
+  referenceImageUrl: z.string().optional(),
+  characterImageUrl: z.string().optional(),
+  sceneImageUrl: z.string().optional(),
+  previousFrameUrl: z.string().optional(),
 });
 export type GenerateImageRequest = z.infer<typeof generateImageSchema>;
 

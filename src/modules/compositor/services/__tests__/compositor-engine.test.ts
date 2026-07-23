@@ -223,6 +223,88 @@ describe("compositor-engine — composeImage 取消信号（P1-8）", () => {
 
     expect(result.imageUrl).toBe("/img.png");
   });
+
+  it("PrismCraft 第四章: 角色 generatedImage 应作为 characterImageUrl 传入", async () => {
+    mockCharStorage.getCharacterById.mockResolvedValue({
+      id: "c1",
+      name: "张三",
+      gender: "male",
+      age: 25,
+      appearance: { hairColor: "black" },
+      generatedImage: "/char.png",
+    });
+
+    await composeImage(baseInput);
+
+    expect(mockImageProvider.generateImage).toHaveBeenCalledWith(
+      expect.any(String),
+      "compositor",
+      expect.objectContaining({
+        characterImageUrl: "/char.png",
+      }),
+    );
+  });
+
+  it("PrismCraft 第四章: 场景 generatedImage 应作为 sceneImageUrl 传入", async () => {
+    mockCharStorage.getCharacterById.mockResolvedValue({
+      id: "c1",
+      name: "张三",
+      generatedImage: "/char.png",
+    });
+    mockSceneStorage.getSceneById.mockResolvedValue({
+      id: "s1",
+      name: "森林",
+      generatedImage: "/scene.png",
+    });
+
+    await composeImage({ ...baseInput, sceneId: "s1" });
+
+    expect(mockImageProvider.generateImage).toHaveBeenCalledWith(
+      expect.any(String),
+      "compositor",
+      expect.objectContaining({
+        characterImageUrl: "/char.png",
+        sceneImageUrl: "/scene.png",
+      }),
+    );
+  });
+
+  it("PrismCraft 第四章: 角色变体参考图优先于基础角色 generatedImage", async () => {
+    mockCharStorage.getCharacterById.mockResolvedValue({
+      id: "c1",
+      name: "张三",
+      generatedImage: "/char-base.png",
+    });
+    mockVariantStorage.getVariantById.mockResolvedValue({
+      id: "v1",
+      characterId: "c1",
+      imageUrl: "/variant.png",
+    });
+
+    await composeImage({ ...baseInput, characterVariantId: "v1" });
+
+    expect(mockImageProvider.generateImage).toHaveBeenCalledWith(
+      expect.any(String),
+      "compositor",
+      expect.objectContaining({
+        characterImageUrl: "/variant.png",
+      }),
+    );
+  });
+
+  it("PrismCraft 第四章: 角色和场景都无 generatedImage 时不传参考图（undefined）", async () => {
+    mockCharStorage.getCharacterById.mockResolvedValue({
+      id: "c1",
+      name: "张三",
+      // 无 generatedImage
+    });
+
+    await composeImage(baseInput);
+
+    const callArgs = mockImageProvider.generateImage.mock.calls[0]![2];
+    expect(callArgs.characterImageUrl).toBeUndefined();
+    expect(callArgs.sceneImageUrl).toBeUndefined();
+  });
 });
 
 describe("compositor-engine — buildCompositorPrompt", () => {

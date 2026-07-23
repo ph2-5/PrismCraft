@@ -15,6 +15,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAgent } from "../hooks/use-agent";
 import { AgentMessageView } from "./AgentMessage";
 import { CheckpointRecovery } from "./CheckpointRecovery";
@@ -273,16 +274,29 @@ export function AgentPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // 性能优化：消息列表虚拟化，仅渲染可见区域的消息项
+  // - 消息内容高度差异大，用动态测量（measureElement）而非固定 estimateSize
+  // - overscan=8 保证流式输出时上下文连续可见，减少滚动抖动
+  const messages = session.messages;
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 160,
+    overscan: 8,
+  });
+
   // P1-3 修复：自动滚动到最新消息
   // 原问题：session.messages 被 conversation-manager 原地修改（push、content +=），引用不变，
   // useEffect 依赖 [session.messages, toolExecutions] 不触发自动滚动。
   // 修复：改用递增的 renderVersion 作为依赖，每次 session 变更（包括 delta）都触发滚动。
   // 使用 "auto" 而非 "smooth" 避免流式输出时频繁 smooth 滚动卡顿。
+  // 虚拟化后改用 scrollToIndex 直接定位到底部消息，而非依赖 messagesEndRef.scrollIntoView。
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+    if (messages.length > 0) {
+      virtualizer.scrollToIndex(messages.length - 1, { align: "end" });
     }
-  }, [renderVersion, toolExecutions]);
+     
+  }, [renderVersion, toolExecutions, messages.length]);
 
   const handleSubmit = async () => {
     const text = input.trim();
@@ -503,14 +517,39 @@ export function AgentPage() {
               </div>
             </EmptyState>
           ) : (
-            <div className="mx-auto max-w-3xl space-y-4">
-              {session.messages.map((msg) => (
-                <AgentMessageView
-                  key={msg.id}
-                  message={msg}
-                  toolExecutions={toolExecutions}
-                />
-              ))}
+            <div
+              className="mx-auto max-w-3xl"
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                position: "relative",
+                width: "100%",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const msg = messages[virtualItem.index];
+                if (!msg) return null;
+                return (
+                  <div
+                    key={msg.id}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <div className="py-2">
+                      <AgentMessageView
+                        message={msg}
+                        toolExecutions={toolExecutions}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

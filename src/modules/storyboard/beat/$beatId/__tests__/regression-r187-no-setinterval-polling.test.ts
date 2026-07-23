@@ -10,6 +10,11 @@
  *   原实现自定义 5 秒 setInterval 轮询 task 状态，与 polling-engine 重复，
  *   导致同一任务被轮询两次。
  *
+ * 性能优化（2026-07）：
+ *   原实现在 selector 中使用 .find() 每次返回新引用，导致 allTasks 任意变化都触发重渲染。
+ *   优化为：selector 只订阅 allTasks（稳定引用），useMemo 派生当前 beatId 对应的 task。
+ *   R187 的核心约束（禁止 setInterval、通过 useVideoTaskStore 订阅）仍然满足。
+ *
  * 被测代码：
  *   src/modules/storyboard/beat/$beatId/use-beat-detail.ts
  */
@@ -67,8 +72,14 @@ describe("R187: useBeatDetail 禁止 setInterval 自定义轮询", () => {
     clearIntervalSpy = vi.spyOn(global, "clearInterval");
     setTimeoutSpy = vi.spyOn(global, "setTimeout");
 
-    // 默认返回 undefined（无任务）
-    mockUseVideoTaskStore.mockReturnValue(undefined);
+    // 性能优化后：第一次调用返回 allTasks（数组），后续调用也返回 allTasks
+    // useVideoTaskStore 被调用一次（订阅 allTasks），useMemo 派生 task
+    mockUseVideoTaskStore.mockImplementation((selector: (s: { allTasks: VideoTask[] }) => unknown) => {
+      if (typeof selector === "function") {
+        return selector({ allTasks: [] });
+      }
+      return undefined;
+    });
     mockStoryService.getByBeatId.mockResolvedValue({
       ok: true,
       value: null,
@@ -110,61 +121,65 @@ describe("R187: useBeatDetail 禁止 setInterval 自定义轮询", () => {
     expect(typeof selectorArg).toBe("function");
   });
 
-  it("selector 应根据 beatId 从 allTasks 中查找任务", async () => {
+  it("selector 应订阅 allTasks（性能优化：避免 .find() 在 selector 中返回新引用）", async () => {
     renderHook(() => useBeatDetail());
     await vi.runAllTimersAsync();
 
     const selector = mockUseVideoTaskStore.mock.calls[0]![0] as (
       state: { allTasks: VideoTask[] },
-    ) => VideoTask | undefined;
+    ) => VideoTask[];
 
     const task1 = { taskId: "t1", beatId: "beat-1" } as unknown as VideoTask;
     const task2 = { taskId: "t2", beatId: "beat-2" } as unknown as VideoTask;
 
-    // selector 应找到 beatId 匹配的任务
-    const found = selector({ allTasks: [task1, task2] });
-    expect(found).toBe(task1);
+    // selector 应直接返回 allTasks（稳定引用），而非在 selector 内 .find()
+    const allTasks = [task1, task2];
+    const found = selector({ allTasks });
+    expect(found).toBe(allTasks);
   });
 
-  it("当 beatId 不匹配任何任务时，selector 应返回 undefined", async () => {
-    renderHook(() => useBeatDetail());
-    await vi.runAllTimersAsync();
-
-    const selector = mockUseVideoTaskStore.mock.calls[0]![0] as (
-      state: { allTasks: VideoTask[] },
-    ) => VideoTask | undefined;
-
+  it("task 应通过 useMemo 从 allTasks 中派生（beatId 匹配）", async () => {
+    const task1 = { taskId: "t1", beatId: "beat-1" } as unknown as VideoTask;
     const task2 = { taskId: "t2", beatId: "beat-2" } as unknown as VideoTask;
-    const found = selector({ allTasks: [task2] });
-    expect(found).toBeUndefined();
-  });
+    const allTasks = [task1, task2];
 
-  it("当 beatId 参数缺失时，selector 应返回 undefined", async () => {
-    mockUseParams.mockReturnValue({} as { beatId: string }); // 无 beatId
-
-    renderHook(() => useBeatDetail());
-    await vi.runAllTimersAsync();
-
-    const selector = mockUseVideoTaskStore.mock.calls[0]![0] as (
-      state: { allTasks: VideoTask[] },
-    ) => VideoTask | undefined;
-
-    const found = selector({ allTasks: [] });
-    expect(found).toBeUndefined();
-  });
-
-  it("selector 返回的 task 应被 hook 暴露", async () => {
-    const task = {
-      taskId: "t1",
-      beatId: "beat-1",
-      status: "completed",
-    } as unknown as VideoTask;
-    mockUseVideoTaskStore.mockReturnValue(task);
+    mockUseVideoTaskStore.mockImplementation((selector: (s: { allTasks: VideoTask[] }) => unknown) => {
+      return selector({ allTasks });
+    });
 
     const { result } = renderHook(() => useBeatDetail());
     await vi.runAllTimersAsync();
 
-    expect(result.current.task).toBe(task);
+    // useMemo 应根据 beatId="beat-1" 找到 task1
+    expect(result.current.task).toBe(task1);
+  });
+
+  it("当 beatId 不匹配任何任务时，task 应为 undefined", async () => {
+    const task2 = { taskId: "t2", beatId: "beat-2" } as unknown as VideoTask;
+    const allTasks = [task2];
+
+    mockUseVideoTaskStore.mockImplementation((selector: (s: { allTasks: VideoTask[] }) => unknown) => {
+      return selector({ allTasks });
+    });
+
+    const { result } = renderHook(() => useBeatDetail());
+    await vi.runAllTimersAsync();
+
+    expect(result.current.task).toBeUndefined();
+  });
+
+  it("当 beatId 参数缺失时，task 应为 undefined", async () => {
+    mockUseParams.mockReturnValue({} as { beatId: string }); // 无 beatId
+
+    const task1 = { taskId: "t1", beatId: "beat-1" } as unknown as VideoTask;
+    mockUseVideoTaskStore.mockImplementation((selector: (s: { allTasks: VideoTask[] }) => unknown) => {
+      return selector({ allTasks: [task1] });
+    });
+
+    const { result } = renderHook(() => useBeatDetail());
+    await vi.runAllTimersAsync();
+
+    expect(result.current.task).toBeUndefined();
   });
 
   it("长时间运行也不应触发 setInterval（即使 hook 重新渲染多次）", async () => {

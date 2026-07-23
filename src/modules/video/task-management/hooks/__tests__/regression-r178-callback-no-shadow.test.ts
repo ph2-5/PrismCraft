@@ -107,8 +107,9 @@ const completed = tasks.filter((t) => t.status === "completed");
       "utf-8",
     );
     expect(importsT(source)).toBe(false);
-    // 使用 (t) 作为回调参数是合理的（task 的缩写）
-    expect(source).toMatch(/\.filter\(\(t\)\s*=>/);
+    // 使用 for...of (t of allTasks) 作为遍历参数是合理的（task 的缩写）
+    // 性能优化：原 .filter((t) =>) 已合并为单次 for...of 遍历
+    expect(source).toMatch(/for\s*\(const\s+t\s+of\s+allTasks\)/);
   });
 
   it("回调参数遮蔽会导致 t() 调用失败（行为验证）", () => {

@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import {
   queryAuditLogs,
   getAuditStats,
@@ -449,7 +449,7 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
 }
 
 /** 单条审计日志条目 */
-function AuditLogEntry({ entry }: { entry: AuditEntry }) {
+const AuditLogEntry = memo(function AuditLogEntry({ entry }: { entry: AuditEntry }) {
   const [expanded, setExpanded] = useState(false);
 
   const time = new Date(entry.timestamp).toLocaleTimeString();
@@ -464,17 +464,21 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
         ? "text-amber-600 dark:text-amber-400"
         : "text-muted-foreground";
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const toggleExpand = useCallback(() => {
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      setExpanded(!expanded);
+      setExpanded((prev) => !prev);
     }
-  };
+  }, []);
 
   return (
     <div
       className="rounded border border-border bg-background/50 px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/30"
-      onClick={() => setExpanded(!expanded)}
+      onClick={toggleExpand}
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
@@ -536,4 +540,4 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
       )}
     </div>
   );
-}
+});

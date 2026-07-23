@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback, useMemo } from "react";
 import { t } from "@/shared/constants/messages";
 import { cn } from "@/shared/utils/utils";
 import { Tabs } from "@/shared/presentation/Tabs";
@@ -266,7 +266,7 @@ function TaskGrid({ tasks, viewMode, selectedResults, onToggleSelection, isGener
             key={task.id}
             task={task}
             isSelected={selectedResults.has(task.id)}
-            onToggleSelection={() => onToggleSelection(task.id)}
+            onToggleSelection={onToggleSelection}
             isGenerating={isGenerating}
           />
         ))}
@@ -281,7 +281,7 @@ function TaskGrid({ tasks, viewMode, selectedResults, onToggleSelection, isGener
           key={task.id}
           task={task}
           isSelected={selectedResults.has(task.id)}
-          onToggleSelection={() => onToggleSelection(task.id)}
+          onToggleSelection={onToggleSelection}
           isGenerating={isGenerating}
         />
       ))}
@@ -292,11 +292,11 @@ function TaskGrid({ tasks, viewMode, selectedResults, onToggleSelection, isGener
 interface TaskCardProps {
   task: BatchTask;
   isSelected: boolean;
-  onToggleSelection: () => void;
+  onToggleSelection: (taskId: string) => void;
   isGenerating: boolean;
 }
 
-function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCardProps) {
   const statusColors = {
     pending: "bg-muted",
     generating: "bg-primary/10",
@@ -304,21 +304,29 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
     failed: "bg-destructive/10",
   };
 
+  const canToggle = task.status === "completed" && !isGenerating;
+
+  const handleClick = useCallback(() => {
+    if (canToggle) onToggleSelection(task.id);
+  }, [canToggle, onToggleSelection, task.id]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (canToggle && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onToggleSelection(task.id);
+    }
+  }, [canToggle, onToggleSelection, task.id]);
+
   return (
     <div
       className={`relative rounded-lg border-2 p-3 transition-all ${
         isSelected ? "border-primary" : "border-transparent"
       } ${statusColors[task.status]}`}
-      onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
+      onClick={canToggle ? handleClick : undefined}
       role="button"
-      tabIndex={task.status === "completed" && !isGenerating ? 0 : -1}
+      tabIndex={canToggle ? 0 : -1}
       aria-label={task.itemName}
-      onKeyDown={(e) => {
-        if (task.status === "completed" && !isGenerating && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onToggleSelection();
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       {task.status === "completed" && task.result?.imageUrl && (
         <img
@@ -375,33 +383,41 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       )}
     </div>
   );
-}
+});
 
 type TaskListItemProps = TaskCardProps;
 
-function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: TaskListItemProps) {
-  const statusIcons = {
+const TaskListItem = memo(function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: TaskListItemProps) {
+  const statusIcons = useMemo(() => ({
     pending: <Loader2 className="h-4 w-4 text-muted-foreground" />,
     generating: <Loader2 className="h-4 w-4 text-primary animate-spin" />,
     completed: <CheckCircle2 className="h-4 w-4 text-success" />,
     failed: <AlertCircle className="h-4 w-4 text-destructive" />,
-  };
+  }), []);
+
+  const canToggle = task.status === "completed" && !isGenerating;
+
+  const handleClick = useCallback(() => {
+    if (canToggle) onToggleSelection(task.id);
+  }, [canToggle, onToggleSelection, task.id]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (canToggle && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onToggleSelection(task.id);
+    }
+  }, [canToggle, onToggleSelection, task.id]);
 
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
         isSelected ? "border-primary bg-primary/10" : "border-border"
       }`}
-      onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
+      onClick={canToggle ? handleClick : undefined}
       role="button"
-      tabIndex={task.status === "completed" && !isGenerating ? 0 : -1}
+      tabIndex={canToggle ? 0 : -1}
       aria-label={task.itemName}
-      onKeyDown={(e) => {
-        if (task.status === "completed" && !isGenerating && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onToggleSelection();
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       {statusIcons[task.status]}
 
@@ -435,4 +451,4 @@ function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: Tas
       {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
     </div>
   );
-}
+});

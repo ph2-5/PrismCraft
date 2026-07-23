@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
-import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useState, useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 import { useVideoTaskStore } from "@/modules/video";
@@ -21,11 +21,14 @@ export function useBeatDetail(): UseBeatDetailResult {
   const [beat, setBeat] = useState<StoryBeat | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 通过 Zustand selector 订阅任务状态，由 polling-engine 统一负责轮询
-  const task = useVideoTaskStore((s) => {
-    if (!beatId) return undefined;
-    return s.allTasks.find((t) => t.beatId === beatId);
-  });
+  // 通过 Zustand selector 订阅 allTasks（引用稳定时不会触发重渲染）
+  // 再用 useMemo 派生当前 beatId 对应的 task，避免 .find() 在 selector 中
+  // 每次都返回新引用导致无谓的重渲染
+  const allTasks = useVideoTaskStore((s) => s.allTasks);
+  const task: VideoTask | undefined = useMemo(
+    () => (beatId ? allTasks.find((t) => t.beatId === beatId) : undefined),
+    [allTasks, beatId],
+  );
 
   useEffect(() => {
     if (!beatId) {

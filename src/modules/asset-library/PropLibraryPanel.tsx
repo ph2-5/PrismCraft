@@ -12,7 +12,7 @@
  *
  * 依赖方向：@/modules/asset/props（hooks + services）+ @/shared/* + @/domain/schemas
  */
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import {
   Package,
   Plus,
@@ -62,7 +62,7 @@ interface PropCardProps {
   onDelete: (prop: Prop) => void;
 }
 
-function PropCard({ prop, onEdit, onDelete }: PropCardProps) {
+const PropCard = memo(function PropCard({ prop, onEdit, onDelete }: PropCardProps) {
   const imageUrl = prop.localImagePath || prop.referenceImage;
   const typeLabel = t(TYPE_TO_LABEL_KEY[prop.type]);
   return (
@@ -120,7 +120,7 @@ function PropCard({ prop, onEdit, onDelete }: PropCardProps) {
       </div>
     </div>
   );
-}
+});
 
 /** 道具编辑对话框（新建/编辑共用） */
 interface PropEditDialogProps {

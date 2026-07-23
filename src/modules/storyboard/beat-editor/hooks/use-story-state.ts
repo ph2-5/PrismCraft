@@ -5,7 +5,12 @@ import type { Story, StoryBeat } from "@/domain/schemas";
 import { DEFAULT_STORY } from "@/modules/storyboard";
 
 export function useStoryState() {
-  const { markDirty, markClean, isDirty } = useDirtyState();
+  // 使用精确 selector 订阅，避免任意 dirtyKey 变化都触发本组件重渲染：
+  // - markDirty/markClean 是 Zustand 中稳定的函数引用，selector 不会触发重渲染
+  // - isStoryDirty 仅在 "story" 键的脏状态变化时才更新
+  const markDirty = useDirtyState((s) => s.markDirty);
+  const markClean = useDirtyState((s) => s.markClean);
+  const isStoryDirty = useDirtyState((s) => s.dirtyKeys.has("story"));
   const [stories, setStories] = useState<Story[]>([]);
   const [currentStory, setCurrentStoryRaw] = useState<Story>(DEFAULT_STORY);
 
@@ -112,7 +117,7 @@ export function useStoryState() {
     markDirty("story");
   }, [markDirty]);
 
-  const hasUnsavedChanges = isDirty("story");
+  const hasUnsavedChanges = isStoryDirty;
 
   return {
     stories,

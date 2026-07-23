@@ -1,6 +1,8 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Few-Shot Module
+# Agent Few-Shot Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 > Agent 工具调用 few-shot 缓存模块 — 从历史成功调用中提取示例，引导 LLM 正确调用工具。
 
@@ -13,17 +15,17 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| domain | `domain/` | `FewShotEntry` 类型定义（零外部依赖，打破循环依赖） |
-| services | `services/` | tool-fewshot-cache（运行时缓存）+ builtin-fewshot-examples（内置示例库） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| domain | ✅ | `domain/` | `FewShotEntry` 类型定义（零外部依赖，打破循环依赖） |
+| services | ✅ | `services/` | tool-fewshot-cache（运行时缓存）+ builtin-fewshot-examples（内置示例库） |
 
 ## Public API
 
-### 类型
+### ✅ 类型
 - `FewShotEntry` — 单条 few-shot 缓存条目类型
 
-### 运行时缓存服务（services/tool-fewshot-cache.ts）
+### ✅ 运行时缓存服务（services/tool-fewshot-cache.ts）
 - `recordFewShot` — 记录一条成功调用的 few-shot（仅 success=true）
 - `getFewShots` — 获取指定工具的 few-shot 条目（最新 limit 条）
 - `getRelevantFewShots` — 根据用户查询检索相关 few-shot（合并内置 + 运行时，关键词匹配排序）
@@ -31,7 +33,7 @@
 - `clearFewShotCache` — 清空所有运行时缓存
 - `getFewShotStats` — 获取缓存统计信息（含内置示例统计）
 
-### 内置示例库（services/builtin-fewshot-examples.ts）
+### ✅ 内置示例库（services/builtin-fewshot-examples.ts）
 - `BUILTIN_FEWSHOT_EXAMPLES` — 内置示例常量数组（46 条，覆盖 5 个 domain）
 - `getBuiltinFewShotExamples` — 获取所有内置示例（返回副本）
 - `getBuiltinFewShotsByTool` — 按工具名筛选内置示例

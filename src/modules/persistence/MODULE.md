@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Persistence Module
+# Persistence Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -9,22 +11,22 @@
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `hooks` | [hooks/](./hooks/) | useAutoSave（自动保存） |
-| `services` | [services/](./services/) | transactionalDelete（级联删除 + 本地文件清理） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `hooks` | ✅ | [hooks/](./hooks/) | useAutoSave（自动保存） |
+| `services` | ✅ | [services/](./services/) | transactionalDelete（级联删除 + 本地文件清理） |
 
 ---
 
 ## 公共 API
 
-### hooks 子域
+### ✅ hooks 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `useAutoSave` | `(options: UseAutoSaveOptions & { isDirty?: () => boolean }) → { triggerSave }` | 自动保存 hook，带重试限制（MAX_RETRY=3）和最小间隔（MIN_INTERVAL=0.5min），支持 isDirty 检查跳过无变更保存 |
 
-### services 子域
+### ✅ services 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|

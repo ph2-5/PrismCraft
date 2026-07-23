@@ -1,4 +1,4 @@
-# Video Tasks Page Module
+# Video Tasks Page Module ✅
 
 > 视频任务列表页面型模块。提供视频生成任务的统一查看、状态筛选、批量管理入口。
 
@@ -6,16 +6,18 @@
 
 视频任务页面是用户查看所有视频生成任务（pending/generating/completed/failed 等）的主入口，支持状态筛选、刷新、统计。本模块为页面型模块，仅暴露 `VideoTasksPage` 给路由，业务逻辑由 `video/task-management` 子域提供。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 公共 API
 
 - `VideoTasksPage` — 视频任务页面组件（默认导出，由 router lazy import）
 
 ## 子域
 
-| 子域 | 文件 | 说明 |
-|------|------|------|
-| 页面入口 | `page.tsx` | 视频任务页面主入口 |
-| 页面编排 | `hooks/use-video-tasks-page.ts` | 页面状态编排（列表 + 筛选 + 统计） |
+| 子域 | 状态 | 文件 | 说明 |
+|------|:----:|------|------|
+| 页面入口 | ✅ | `page.tsx` | 视频任务页面主入口 |
+| 页面编排 | ✅ | `hooks/use-video-tasks-page.ts` | 页面状态编排（列表 + 筛选 + 统计） |
 
 ## 边界约束
 

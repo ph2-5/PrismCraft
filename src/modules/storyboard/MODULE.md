@@ -1,9 +1,11 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Storyboard Module
+# Storyboard Module ✅
 
 ## 职责
 
 故事创作与分镜管理：覆盖从故事规划、分镜编辑、AI 生成（关键帧/首尾帧/视频）、批量编排到模板版本控制的完整工作流。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ---
 
@@ -11,19 +13,19 @@
 
 本模块采用子域架构，包含 5 个内部子域：
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `planning` | [planning/](./planning/) | 故事 CRUD、AI 规划、保存逻辑、常量定义 |
-| `beat-editor` | [beat-editor/](./beat-editor/) | 分镜状态管理、资产加载、分镜编辑器 UI |
-| `generation` | [generation/](./generation/) | 关键帧/首尾帧/视频生成、批量编排、上传处理、风格指南 |
-| `template` | [template/](./template/) | 分镜模板管理、版本控制、导入导出 |
-| `prompt-editor` | [prompt-editor/](./prompt-editor/) | 提示词 AI 生成、默认构建、编辑器 Hook |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `planning` | ✅ | [planning/](./planning/) | 故事 CRUD、AI 规划、保存逻辑、常量定义 |
+| `beat-editor` | ✅ | [beat-editor/](./beat-editor/) | 分镜状态管理、资产加载、分镜编辑器 UI |
+| `generation` | ✅ | [generation/](./generation/) | 关键帧/首尾帧/视频生成、批量编排、上传处理、风格指南 |
+| `template` | ✅ | [template/](./template/) | 分镜模板管理、版本控制、导入导出 |
+| `prompt-editor` | ✅ | [prompt-editor/](./prompt-editor/) | 提示词 AI 生成、默认构建、编辑器 Hook |
 
 ---
 
 ## 公共 API (index.ts)
 
-### 规划子域 (planning)
+### ✅ 规划子域 (planning)
 
 #### Services
 
@@ -127,7 +129,7 @@ interface StoryPlanningResult { beats: StoryBeat[]; autoFixedCount: number; retr
 
 > Note: PlaceholderBinding 和 QuickStoryData 为 planning 子域内部类型，未通过 barrel 导出。
 
-### 引用解析
+### ✅ 引用解析
 
 ```typescript
 resolveCharacterRef(character: Character, beat?: StoryBeat | null, elements?: StoryElement[]): string | undefined
@@ -135,7 +137,7 @@ resolveCharacterRefs(characterIds: string[], characters: Character[], beat?: Sto
 resolveSceneRef(scene: { refImagePath?: string; scenePath?: string; generatedImage?: string; imageUrl?: string }): string | undefined
 ```
 
-### 生成子域 (generation)
+### ✅ 生成子域 (generation)
 
 #### Services
 
@@ -327,7 +329,7 @@ interface CacheRequest { beatId: string; field: "localKeyframePath" | "localFirs
 
 Exported types: `ResolvedRefs`, `BatchOptions`, `BatchResult`
 
-### 分镜编辑子域 (beat-editor)
+### ✅ 分镜编辑子域 (beat-editor)
 
 #### Hooks
 
@@ -378,7 +380,7 @@ useAssetLoader(services: {
 - `ElementBindingPanel` — 元素绑定面板
 - `ProfessionalModeEditor` — 专业模式编辑器
 
-### 模板子域 (template)
+### ✅ 模板子域 (template)
 
 #### Services
 
@@ -457,7 +459,7 @@ interface StoryTemplate { id: string; name: string; description: string; genre: 
 
 Exported types: `StoryboardTemplate`, `StoryboardTemplateBeat`, `StoryVersion`, `StoryTemplate`
 
-### 提示词编辑子域 (prompt-editor)
+### ✅ 提示词编辑子域 (prompt-editor)
 
 #### Services
 

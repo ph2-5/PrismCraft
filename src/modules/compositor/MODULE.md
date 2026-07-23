@@ -1,4 +1,4 @@
-# Compositor Module
+# Compositor Module ✅
 
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
@@ -8,22 +8,24 @@
 
 Task 2A.9 实现。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ---
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `domain` | [domain/](./domain/) | Compositor schema 定义（输入/输出/图层/预设/状态） |
-| `services` | [services/](./services/) | compositor-engine：实体加载 + prompt 拼装 + 调用图像模型 + 持久化 |
-| `hooks` | [hooks/](./hooks/) | useCompositor：图层状态管理 + 生成流程编排 |
-| `presentation` | [presentation/](./presentation/) | CompositorPanel：三栏布局 UI |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `domain` | ✅ | [domain/](./domain/) | Compositor schema 定义（输入/输出/图层/预设/状态） |
+| `services` | ✅ | [services/](./services/) | compositor-engine：实体加载 + prompt 拼装 + 调用图像模型 + 持久化 |
+| `hooks` | ✅ | [hooks/](./hooks/) | useCompositor：图层状态管理 + 生成流程编排 |
+| `presentation` | ✅ | [presentation/](./presentation/) | CompositorPanel：三栏布局 UI |
 
 ---
 
 ## 公共 API
 
-### Schemas
+### ✅ Schemas
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -34,7 +36,7 @@ Task 2A.9 实现。
 | `compositorPresetSchema` | `z.ZodObject` | 预设 schema（保存常用组合） |
 | `compositorStatusSchema` | `z.ZodEnum` | 生成状态枚举 schema（idle/building-prompt/generating/saving/success/error） |
 
-### Types
+### ✅ Types
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -45,7 +47,7 @@ Task 2A.9 实现。
 | `CompositorPreset` | type | 预设类型（compositorPresetSchema 推断） |
 | `CompositorStatus` | type | 生成状态枚举类型 |
 
-### Services
+### ✅ Services
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -53,14 +55,14 @@ Task 2A.9 实现。
 | `buildCompositorPrompt` | `(input) → Promise<string>` | 仅拼装 prompt（不调用模型，用于预览） |
 | `getCompositorErrorMessage` | `(err) → string` | 提取错误信息 |
 
-### Hooks
+### ✅ Hooks
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `useCompositor` | `() → UseCompositorResult` | React Hook：图层/状态/生成流程管理 |
 | `UseCompositorResult` | type | useCompositor 返回值类型（图层列表 + 选中状态 + 生成状态 + 操作方法） |
 
-### Components
+### ✅ Components
 
 | API | 签名 | 说明 |
 |-----|------|------|

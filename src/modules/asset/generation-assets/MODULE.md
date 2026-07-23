@@ -1,14 +1,16 @@
-# asset/generation-assets
+# asset/generation-assets ✅
 
 生成资产统一管理（Task 4.11）。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 子域
 
-| 子域 | 说明 | 公共 API |
-|------|------|----------|
-| services | CRUD 业务逻辑 | listAssetsByType, listAssetsByProject, createAsset, deleteAsset, deleteUnreferencedAssets, getReferenceInfo |
-| hooks | React 状态管理 | useGenerationAssets |
-| presentation | UI 组件 | AssetGallery |
+| 子域 | 状态 | 说明 | 公共 API |
+|------|:----:|------|----------|
+| services | ✅ | CRUD 业务逻辑 | listAssetsByType, listAssetsByProject, createAsset, deleteAsset, deleteUnreferencedAssets, getReferenceInfo |
+| hooks | ✅ | React 状态管理 | useGenerationAssets |
+| presentation | ✅ | UI 组件 | AssetGallery |
 
 ## 公共 API
 

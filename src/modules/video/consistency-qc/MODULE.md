@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# consistency-qc 子域（Task 2A.23）
+# consistency-qc 子域（Task 2A.23） ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 职责
 
@@ -41,7 +43,7 @@ src/modules/video/consistency-qc/
 
 ## 公共 API
 
-### Domain 层
+### ✅ Domain 层
 
 ```typescript
 // qc-schema.ts
@@ -75,7 +77,7 @@ function shouldFallbackToFaceSwap(policy): boolean
 function shouldMarkManualReview(policy): boolean
 ```
 
-### Services 层
+### ✅ Services 层
 
 ```typescript
 // face-embedding-service.ts
@@ -121,7 +123,7 @@ function isFallbackTerminal(action): boolean
 function predictNextAction(report, policy): FallbackAction
 ```
 
-### Presentation 层
+### ✅ Presentation 层
 
 ```typescript
 // QCDashboardPanel.tsx

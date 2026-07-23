@@ -1,5 +1,5 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Character Module
+# Character Module ✅
 
 ## 模块概述
 
@@ -7,29 +7,31 @@
 
 > Task 2A.10 引入 `variants` 子域替代 `character_outfits` 功能，提供更灵活的角色变体管理（8 维参数向量）。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ---
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `services` | [services/](./services/) | 角色 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
-| `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成、服装管理 |
-| `constants` | [constants.ts](./constants.ts) | 默认角色、性格建议等常量 |
-| `presentation` | [presentation/](./presentation/) | 角色列表项、服装对话框 |
-| `variants` | [variants/](./variants/) | Task 2A.10 角色变体子域：替代 character_outfits，提供 8 维参数向量的变体 CRUD、迁移、UI 组件 |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `services` | ✅ | [services/](./services/) | 角色 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
+| `hooks` | ✅ | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成、服装管理 |
+| `constants` | ✅ | [constants.ts](./constants.ts) | 默认角色、性格建议等常量 |
+| `presentation` | ✅ | [presentation/](./presentation/) | 角色列表项、服装对话框 |
+| `variants` | ✅ | [variants/](./variants/) | Task 2A.10 角色变体子域：替代 character_outfits，提供 8 维参数向量的变体 CRUD、迁移、UI 组件 |
 
 ---
 
 ## 公共 API
 
-### services 子域
+### ✅ services 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `characterService` | CharacterService | 角色服务（getAll, getById, create, update, delete, count） |
 
-### constants 子域
+### ✅ constants 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -41,7 +43,7 @@
 | `heightSuggestions` | `string[]` | 身高建议列表 |
 | `buildSuggestions` | `string[]` | 体型建议列表 |
 
-### hooks 子域
+### ✅ hooks 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -55,14 +57,14 @@
 | `useCharacterImage` | `() → CharacterImageResult` | 角色图片生成 Hook |
 | `useOutfitManagement` | `() → OutfitManagementResult` | 服装管理 Hook（addOutfit, updateOutfit, deleteOutfit） |
 
-### presentation 子域
+### ✅ presentation 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `CharacterListItem` | `React.FC<CharacterListItemProps>` | 角色列表项组件 |
 | `OutfitDialog` | `React.FC<OutfitDialogProps>` | 服装编辑对话框组件 |
 
-### variants 子域（Task 2A.10）
+### ✅ variants 子域（Task 2A.10）
 
 > 替代 character_outfits 功能。每个角色可拥有多个变体，变体通过 8 维参数向量（timeOfDay / weather / lighting / mood / crowdLevel / cameraAngle / season / colorPalette）描述不同情境下的外观。
 

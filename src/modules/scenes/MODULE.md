@@ -1,4 +1,4 @@
-# Scenes Page Module
+# Scenes Page Module ✅
 
 > 场景管理页面型模块。提供场景列表浏览、场景详情编辑入口。
 
@@ -6,18 +6,20 @@
 
 场景页面是用户管理场景档案的主入口，支持场景列表展示、属性编辑。本模块为页面型模块，仅暴露 `ScenesPage` 给路由，业务逻辑由 `scene` 模块（带子域）提供。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 公共 API
 
 - `ScenesPage` — 场景页面组件（默认导出，由 router lazy import）
 
 ## 子域
 
-| 子域 | 文件 | 说明 |
-|------|------|------|
-| 页面入口 | `page.tsx` | 场景页面主入口 |
-| 页面编排 | `hooks/use-scenes-page.ts` | 页面状态编排（列表 + 编辑器） |
-| 列表展示 | `components/SceneList.tsx` | 场景列表组件 |
-| 场景编辑 | `SceneEditorParts.tsx` | 场景属性编辑器部件 |
+| 子域 | 状态 | 文件 | 说明 |
+|------|:----:|------|------|
+| 页面入口 | ✅ | `page.tsx` | 场景页面主入口 |
+| 页面编排 | ✅ | `hooks/use-scenes-page.ts` | 页面状态编排（列表 + 编辑器） |
+| 列表展示 | ✅ | `components/SceneList.tsx` | 场景列表组件 |
+| 场景编辑 | ✅ | `SceneEditorParts.tsx` | 场景属性编辑器部件 |
 
 ## 边界约束
 

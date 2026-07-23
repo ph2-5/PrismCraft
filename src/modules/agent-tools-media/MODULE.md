@@ -1,6 +1,8 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Tools - Media Module
+# Agent Tools - Media Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 > 音频、视频任务、视频后期工具模块 — 从 agent/tools/ 拆分而来（阶段3-2）。
 
@@ -16,16 +18,16 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| audio | `audio-tools.ts` | 音频处理工具（混音、调速、归一化、降噪、分割） |
-| video | `video-tools.ts` | 视频任务管理工具（创建、查询、取消、恢复、批量） |
-| video-post | `video-post-tools.ts` | 视频后期工具（合并、裁剪、转场、字幕、缩略图、合成） |
-| qc | `qc-tools.ts` | 一致性 QC 工具（Task 2A.23 Agent 集成，对已完成视频执行 QC 与 fallback 派发） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| audio | ✅ | `audio-tools.ts` | 音频处理工具（混音、调速、归一化、降噪、分割） |
+| video | ✅ | `video-tools.ts` | 视频任务管理工具（创建、查询、取消、恢复、批量） |
+| video-post | ✅ | `video-post-tools.ts` | 视频后期工具（合并、裁剪、转场、字幕、缩略图、合成） |
+| qc | ✅ | `qc-tools.ts` | 一致性 QC 工具（Task 2A.23 Agent 集成，对已完成视频执行 QC 与 fallback 派发） |
 
 ## Public API
 
-### Audio Tools（5 个）
+### ✅ Audio Tools（5 个）
 
 - `mixAudioTool` — 混音
 - `adjustAudioSpeedTool` — 调整音频速度
@@ -34,7 +36,7 @@
 - `splitAudioTool` — 分割音频
 - `audioTools` — 所有音频工具数组
 
-### Video Tools（7 个）
+### ✅ Video Tools（7 个）
 
 - `createVideoTaskTool` — 创建视频任务
 - `listVideoTasksTool` — 列出视频任务
@@ -45,7 +47,7 @@
 - `batchCreateVideoTasksTool` — 批量创建视频任务
 - `videoTools` — 所有视频任务工具数组
 
-### Video Post Tools（9 个）
+### ✅ Video Post Tools（9 个）
 
 - `mergeVideosTool` — 合并视频
 - `trimVideoTool` — 裁剪视频
@@ -58,7 +60,7 @@
 - `composeFinalVideoTool` — 合成最终视频
 - `videoPostTools` — 所有视频后期工具数组
 
-### QC Tools（2 个，Task 2A.23 Agent 集成）
+### ✅ QC Tools（2 个，Task 2A.23 Agent 集成）
 
 - `checkVideoConsistencyTool` — 对已完成视频任务执行一致性 QC（工具名为 check_video_consistency）：调用 consistency-qc 模块的 runQualityCheck 服务，将 QCReport 写回 StoryBeat.qcReport，返回精简摘要（避免完整 frameScores 占用 token）
 - `dispatchVideoFallbackTool` — 根据 QCReport 主动触发 fallback（工具名为 dispatch_video_fallback）：调用 consistency-qc 模块的 dispatchFallback 服务，支持 regenerate / face_swap / manual_review 三种策略

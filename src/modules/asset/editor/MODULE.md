@@ -1,6 +1,8 @@
-# asset/editor 子域
+# asset/editor 子域 ✅
 
 > 简单图片编辑（Task 4.5）：基于 Canvas 的本地图片编辑器，支持调色、旋转、裁剪、标注与另存为新版本。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -8,23 +10,23 @@
 
 ## 子域
 
-| 子域 | 路径 | 说明 |
-|------|------|------|
-| services | `./services/image-editor.ts` | Canvas 工具函数：调色、旋转、裁剪、标注绘制、Blob 转换、保存 |
-| presentation | `./presentation/image-editor-panel.tsx` | 图片编辑器面板 UI |
+| 子域 | 状态 | 路径 | 说明 |
+|------|:----:|------|------|
+| services | ✅ | `./services/image-editor.ts` | Canvas 工具函数：调色、旋转、裁剪、标注绘制、Blob 转换、保存 |
+| presentation | ✅ | `./presentation/image-editor-panel.tsx` | 图片编辑器面板 UI |
 
 ## 公共 API
 
 通过 `@/modules/asset/editor` 导入。
 
-### UI 组件
+### ✅ UI 组件
 - `ImageEditorPanel` — 图片编辑器面板
   - Props: `ImageEditorPanelProps`
     - `imageUrl: string` — 初始图片 URL（`file://` 协议或 `http`）
     - `originalPath?: string` — 原图本地路径（用于生成新版本文件名）
     - `onSaved?: (newPath: string) => void` — 保存成功回调
 
-### 服务函数
+### ✅ 服务函数
 - `applyColorAdjustments(ctx, canvas, adjustments)` — 将调色参数应用到 Canvas（基于 ImageData 像素操作）
 - `rotateCanvas(sourceCanvas, degrees)` — 旋转 Canvas 内容（支持 90/180/270/-90 度），返回新 Canvas
 - `cropCanvas(sourceCanvas, rect)` — 裁剪 Canvas，返回新 Canvas
@@ -33,11 +35,11 @@
 - `saveEditedImage(blob, originalPath)` — 保存编辑后的图片为新版本（不覆盖原图），返回 `{ success, path?, error? }`
 - `getEditorSaveDirectory()` — 获取缓存目录下的编辑图片保存目录（`<cacheDir>/image-editor`）
 
-### 常量
+### ✅ 常量
 - `DEFAULT_ADJUSTMENTS` — 默认调色参数（brightness/contrast/saturation 均为 0）
 - `CROP_PRESETS` — 裁剪预设比例列表（自由 / 1:1 / 4:3 / 16:9 / 3:4 / 9:16）
 
-### 类型
+### ✅ 类型
 - `ColorAdjustments` — 调色参数（brightness / contrast / saturation，范围 -100 ~ 100，0 为原始）
 - `CropRect` — 裁剪区域（x / y / width / height）
 - `CropPreset` — 裁剪预设（label / ratio: number | null）

@@ -1,4 +1,6 @@
-# Agent Tools Template Module
+# Agent Tools Template Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 > 模板工具集（项目模板 + Prompt 模板），从 `agent` 模块拆分而来。
 
@@ -23,16 +25,16 @@ agent 模块拆分阶段：将项目模板管理与 Prompt 模板管理工具从
 
 ## 子域表
 
-| 子域 | 文件 | 工具 | 说明 |
-|------|------|------|------|
-| template-tools | template-tools.ts | 5 | 项目模板管理（list_templates / apply_template / create_template / import_template / export_template） |
-| prompt-template-tools | prompt-template-tools.ts | 4 | Prompt 模板管理 |
+| 子域 | 状态 | 文件 | 工具 | 说明 |
+|------|:----:|------|------|------|
+| template-tools | ✅ | template-tools.ts | 5 | 项目模板管理（list_templates / apply_template / create_template / import_template / export_template） |
+| prompt-template-tools | ✅ | prompt-template-tools.ts | 4 | Prompt 模板管理 |
 
 ## Public API
 
 通过 `@/modules/agent-tools-template` 导入。
 
-### 项目模板工具（5 个）
+### ✅ 项目模板工具（5 个）
 - `listTemplatesTool` — 列出模板工具（list_templates）
 - `applyTemplateTool` — 应用模板工具（apply_template）
 - `createTemplateTool` — 创建模板工具（create_template）
@@ -40,13 +42,13 @@ agent 模块拆分阶段：将项目模板管理与 Prompt 模板管理工具从
 - `exportTemplateTool` — 导出模板工具（export_template）
 - `templateTools` — 项目模板工具聚合数组（5 个）
 
-### Prompt 模板工具（4 个）
+### ✅ Prompt 模板工具（4 个）
 - `promptTemplateTools` — Prompt 模板管理工具聚合数组（4 个）
 
-### 工具聚合数组
+### ✅ 工具聚合数组
 - `allTemplateTools` — 全部 9 个模板工具的聚合数组（项目模板 + Prompt 模板）
 
-### 类型签名
+### ✅ 类型签名
 
 ```typescript
 // template-tools（5 个）

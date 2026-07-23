@@ -1,4 +1,6 @@
-# Agent Tools Workflow Module
+# Agent Tools Workflow Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 > 工作流与子流程编排工具集，从 `agent` 模块拆分而来。
 
@@ -25,24 +27,24 @@ agent 模块拆分阶段3-5：将 workflow 与 subworkflow 相关工具从 agent
 
 ## 子域表
 
-| 子域 | 文件 | 工具 | 说明 |
-|------|------|------|------|
-| workflow-tools | workflow-tools.ts | 5 | 工作流编排（create/execute/batch/chain/schedule） |
-| subworkflow-barrel | subworkflow-tools.ts | 0 | 子流程 barrel 聚合（不含工具实现） |
-| subworkflow-helpers | subworkflow-helpers.ts | 0 | 共享辅助函数（AI JSON 推理/工具执行/视频轮询） |
-| subworkflow-character | subworkflow-character-tools.ts | 1 | auto_create_character |
-| subworkflow-scene | subworkflow-scene-tools.ts | 1 | auto_create_scene |
-| subworkflow-story | subworkflow-story-tools.ts | 1 | auto_plan_storyboard |
-| subworkflow-novel | subworkflow-novel-tools.ts | 1 | auto_create_from_novel |
-| subworkflow-video | subworkflow-video-tools.ts | 2 | auto_generate_beat_full / auto_generate_video_full |
-| subworkflow-polish | subworkflow-polish-tools.ts | 1 | auto_polish_video |
-| subworkflow-utility | subworkflow-utility-tools.ts | 2 | auto_find_and_import_asset / auto_fix_common_errors |
+| 子域 | 状态 | 文件 | 工具 | 说明 |
+|------|:----:|------|------|------|
+| workflow-tools | ✅ | workflow-tools.ts | 5 | 工作流编排（create/execute/batch/chain/schedule） |
+| subworkflow-barrel | ✅ | subworkflow-tools.ts | 0 | 子流程 barrel 聚合（不含工具实现） |
+| subworkflow-helpers | ✅ | subworkflow-helpers.ts | 0 | 共享辅助函数（AI JSON 推理/工具执行/视频轮询） |
+| subworkflow-character | ✅ | subworkflow-character-tools.ts | 1 | auto_create_character |
+| subworkflow-scene | ✅ | subworkflow-scene-tools.ts | 1 | auto_create_scene |
+| subworkflow-story | ✅ | subworkflow-story-tools.ts | 1 | auto_plan_storyboard |
+| subworkflow-novel | ✅ | subworkflow-novel-tools.ts | 1 | auto_create_from_novel |
+| subworkflow-video | ✅ | subworkflow-video-tools.ts | 2 | auto_generate_beat_full / auto_generate_video_full |
+| subworkflow-polish | ✅ | subworkflow-polish-tools.ts | 1 | auto_polish_video |
+| subworkflow-utility | ✅ | subworkflow-utility-tools.ts | 2 | auto_find_and_import_asset / auto_fix_common_errors |
 
 ## Public API
 
 通过 `@/modules/agent-tools-workflow` 导入。
 
-### Workflow 工具（5 个）
+### ✅ Workflow 工具（5 个）
 - `createWorkflowTool` — 创建工作流工具（create_workflow）
 - `executeWorkflowTool` — 执行工作流工具（execute_workflow）
 - `batchProcessTool` — 批量处理工具（batch_process）
@@ -50,7 +52,7 @@ agent 模块拆分阶段3-5：将 workflow 与 subworkflow 相关工具从 agent
 - `scheduleTaskTool` — 调度任务工具（schedule_task）
 - `workflowTools` — 工作流编排工具聚合数组（5 个）
 
-### Subworkflow 工具（9 个）
+### ✅ Subworkflow 工具（9 个）
 - `autoCreateCharacterTool` — 自动创建角色工具（auto_create_character）
 - `autoCreateSceneTool` — 自动创建场景工具（auto_create_scene）
 - `autoPlanStoryboardTool` — 自动规划分镜工具（auto_plan_storyboard）
@@ -62,7 +64,7 @@ agent 模块拆分阶段3-5：将 workflow 与 subworkflow 相关工具从 agent
 - `autoFixCommonErrorsTool` — 自动修复常见错误工具（auto_fix_common_errors）
 - `subworkflowTools` — 子流程工具聚合数组（9 个）
 
-### 共享辅助函数与常量
+### ✅ 共享辅助函数与常量
 - `NOVEL_TEXT_MAX_CHARS` — 小说文本最大字符数常量（用于 auto_create_from_novel 输入校验）
 - `generateJsonWithAI` — 调用 AI 生成单个 JSON 对象的辅助函数
 - `generateJsonArrayWithAI` — 调用 AI 生成 JSON 数组的辅助函数
@@ -70,10 +72,10 @@ agent 模块拆分阶段3-5：将 workflow 与 subworkflow 相关工具从 agent
 - `pollVideoTask` — 轮询视频任务直至完成的辅助函数
 - `toStringArray` — 将未知类型安全转换为 string[] 的辅助函数
 
-### 工具聚合数组
+### ✅ 工具聚合数组
 - `allWorkflowTools` — 全部 14 个工作流工具的聚合数组（workflow + subworkflow）
 
-### 类型签名
+### ✅ 类型签名
 
 ```typescript
 // 工具实现（14 个）

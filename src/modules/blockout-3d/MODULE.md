@@ -1,9 +1,11 @@
-# blockout-3d Module Contract
+# blockout-3d Module Contract ✅
 
 > Task 2A.21: 3D 白盒预览编辑器
 >
 > 提供基于 Three.js 的低保真 3D 白盒场景编辑器，用于在视频生成前
 > 预演镜头与构图。Seedance 2.5 原生支持 3D 白模输入；其他模型走 fallback 适配器。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
@@ -11,20 +13,20 @@
 
 ## 子域概览
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| domain | `domain/` | provider-agnostic 场景图类型 + 工厂函数（无外部依赖） |
-| services | `services/` | 纯逻辑服务 + Three.js 渲染 + ffmpeg 合成 + 文件 IO |
-| presentation | `presentation/` | R3F 组件（7 个） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| domain | ✅ | `domain/` | provider-agnostic 场景图类型 + 工厂函数（无外部依赖） |
+| services | ✅ | `services/` | 纯逻辑服务 + Three.js 渲染 + ffmpeg 合成 + 文件 IO |
+| presentation | ✅ | `presentation/` | R3F 组件（7 个） |
 
 ---
 
 ## 公共 API
 
-### 顶层组件
+### ✅ 顶层组件
 - `Blockout3DPanel` — 顶层容器组件（BeatDetailEditor 集成入口）
 
-### Domain 层 — 场景图（scene-schema.ts）
+### ✅ Domain 层 — 场景图（scene-schema.ts）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -43,7 +45,7 @@
 | `createDefaultCamera` | `() → ShotCamera` | 创建默认相机 |
 | `createEmptyScene` | `() → BlockoutScene` | 创建空场景 |
 
-### Domain 层 — 人偶（mannequin-types.ts）
+### ✅ Domain 层 — 人偶（mannequin-types.ts）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -60,7 +62,7 @@
 | `getMannequinHeight` | `(preset: HeightPreset) → number` | 根据身高预设获取高度（cm） |
 | `getMannequinWidth` | `(preset: HeightPreset) → number` | 根据身高预设获取宽度 |
 
-### Domain 层 — 镜头轨迹（camera-path-types.ts）
+### ✅ Domain 层 — 镜头轨迹（camera-path-types.ts）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -73,7 +75,7 @@
 | `createDefaultCameraPath` | `() → CameraPath` | 创建默认镜头轨迹 |
 | `cameraPathToKeyframes` | `(path: CameraPath, fps: number) → CameraKeyframe[]` | 将轨迹转为关键帧序列 |
 
-### Domain 层 — 预设库（preset-library.ts）
+### ✅ Domain 层 — 预设库（preset-library.ts）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -84,7 +86,7 @@
 | `getScenePreset` | `(id: ScenePresetId) → ScenePreset \| undefined` | 获取预设场景 |
 | `createSceneFromPreset` | `(id: ScenePresetId) → BlockoutScene` | 根据预设创建场景 |
 
-### Services 层 — 镜头动画（camera-animator.ts，纯逻辑无 Three.js 依赖）
+### ✅ Services 层 — 镜头动画（camera-animator.ts，纯逻辑无 Three.js 依赖）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -100,7 +102,7 @@
 | `sampleCameraPoses` | `(path, fps, duration) → CameraPose[]` | 采样相机姿态序列 |
 | `sampleKeyframeThumbnails` | `(path, count) → CameraKeyframe[]` | 采样关键帧缩略图 |
 
-### Services 层 — 人偶服务（mannequin-service.ts，纯逻辑无 Three.js 依赖）
+### ✅ Services 层 — 人偶服务（mannequin-service.ts，纯逻辑无 Three.js 依赖）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -119,7 +121,7 @@
 | `getMannequinsByVariantId` | `(scene, variantId) → Mannequin[]` | 按变体 ID 筛选人偶 |
 | `getMannequinGeometry` | `(mannequin) → MannequinGeometry` | 获取人偶几何信息 |
 
-### Services 层 — Seedance 适配器（seedance-adapter.ts，纯逻辑无 Three.js 依赖）
+### ✅ Services 层 — Seedance 适配器（seedance-adapter.ts，纯逻辑无 Three.js 依赖）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -130,7 +132,7 @@
 | `adaptToSeedanceInput` | `(scene, path, options?) → Seedance3DInput` | 适配为 Seedance 输入 |
 | `validateForSeedance` | `(scene) → SeedanceAdapterValidation` | 校验场景是否可用于 Seedance |
 
-### Services 层 — Fallback 适配器（fallback-adapter.ts，纯逻辑无 Three.js 依赖）
+### ✅ Services 层 — Fallback 适配器（fallback-adapter.ts，纯逻辑无 Three.js 依赖）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -143,7 +145,7 @@
 | `getFirstFramePath` | `(set) → string \| undefined` | 获取首帧路径 |
 | `getAllFramePaths` | `(set) → string[]` | 获取所有帧路径 |
 
-### Services 层 — 场景构建（scene-builder.ts，依赖 Three.js）
+### ✅ Services 层 — 场景构建（scene-builder.ts，依赖 Three.js）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -157,7 +159,7 @@
 | `applyShotCamera` | `(camera, shot) → void` | 应用镜头相机配置 |
 | `computeSceneStats` | `(scene) → SceneStats` | 计算场景统计 |
 
-### Services 层 — 渲染（render-service.ts，依赖 Three.js + WebGL）
+### ✅ Services 层 — 渲染（render-service.ts，依赖 Three.js + WebGL）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -175,7 +177,7 @@
 | `isWebGLAvailable` | `() → boolean` | 检测 WebGL 可用性 |
 | `isOffscreenCanvasAvailable` | `() → boolean` | 检测 OffscreenCanvas 可用性 |
 
-### Services 层 — 动画导出（animatic-exporter.ts，依赖 ffmpeg-runner）
+### ✅ Services 层 — 动画导出（animatic-exporter.ts，依赖 ffmpeg-runner）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -185,7 +187,7 @@
 | `exportAnimatic` | `(built, path, options?) → Promise<AnimaticExportResult>` | 导出动画（帧序列 → MP4） |
 | `exportPreviewSnapshot` | `(built, options?) → Promise<PreviewSnapshotResult>` | 导出预览快照 |
 
-### Services 层 — 场景 IO（scene-io.ts，依赖 Three.js + file-http）
+### ✅ Services 层 — 场景 IO（scene-io.ts，依赖 Three.js + file-http）
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -201,7 +203,7 @@
 | `importExternalModel` | `(path) → Promise<ExternalModelImportResult>` | 导入外部模型（GLTF/OBJ） |
 | `validateBlockoutScene` | `(scene) → BlockoutScene` | 校验场景数据 |
 
-### Presentation 层
+### ✅ Presentation 层
 
 | API | 签名 | 说明 |
 |-----|------|------|

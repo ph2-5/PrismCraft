@@ -1,6 +1,8 @@
-# video-compose 模块
+# video-compose 模块 ✅
 
 > 视频片段合成（Task 4.3）：将多个已完成视频任务或本地视频文件按顺序拼接，支持 15 种转场效果。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -19,36 +21,36 @@ VideoComposePanel（UI）
 
 ## 子域
 
-| 子域 | 路径 | 说明 |
-|------|------|------|
-| services | `./services/video-composer.ts` | 合成服务：列出片段、合成片段、检查 ffmpeg 可用性、选择本地文件 |
-| hooks | `./hooks/use-video-compose.ts` | React Hook：管理片段列表、拖拽排序、转场配置、合成进度 |
-| presentation | `./presentation/VideoComposePanel.tsx` | 合成面板 UI 组件 |
-| page | `./page.tsx` | 页面入口 |
+| 子域 | 状态 | 路径 | 说明 |
+|------|:----:|------|------|
+| services | ✅ | `./services/video-composer.ts` | 合成服务：列出片段、合成片段、检查 ffmpeg 可用性、选择本地文件 |
+| hooks | ✅ | `./hooks/use-video-compose.ts` | React Hook：管理片段列表、拖拽排序、转场配置、合成进度 |
+| presentation | ✅ | `./presentation/VideoComposePanel.tsx` | 合成面板 UI 组件 |
+| page | ✅ | `./page.tsx` | 页面入口 |
 
 ## 公共 API
 
 通过 `@/modules/video-compose` 导入。
 
-### UI 组件
+### ✅ UI 组件
 - `VideoComposePanel` — 视频合成面板组件
 
-### 服务函数
+### ✅ 服务函数
 - `listCompletedVideoTasks` — 列出已完成的视频任务作为可用合成片段（按 storyId 可选过滤）
 - `composeVideoSegments` — 合成已排序的片段（至少 2 个），返回 ComposeResult
 - `checkComposerAvailable` — 检查 ffmpeg 是否可用，返回 { available, version?, path? }
 - `pickLocalVideoFiles` — 通过 OpenFileDialog 选择本地视频文件，返回文件路径数组
 
-### 常量
+### ✅ 常量
 - `TRANSITION_OPTIONS` — 支持的转场效果列表（共 15 种：none / fade / cut / dissolve / fadeblack / fadewhite / slideleft / slideright / slideup / slidedown / wipeleft / wiperight / circleopen / circleclose / zoomin）
 
-### 类型
+### ✅ 类型
 - `VideoSegment` — 可合成的视频片段（id / label / path / source: "task" | "file" / taskId? / storyId? / beatId? / beatTitle?）
 - `ComposeResult` — 合成结果（success / outputPath? / error? / metadata?）
 - `TransitionOption` — 转场选项（value / label）
 - `UseVideoComposeResult` — Hook 返回值类型
 
-### Hook
+### ✅ Hook
 - `useVideoCompose` — 管理合成状态的 Hook
 
 ## Hook 返回值详情

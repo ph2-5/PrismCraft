@@ -1,6 +1,8 @@
-# shot/shot-comparison 子域
+# shot/shot-comparison 子域 ✅
 
 > 分镜对比视图（Task 4.4）：并排展示同一分镜的多个生成版本，支持视频/关键帧同步对比、提示词差异高亮、选用与归档。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -21,7 +23,7 @@
 
 通过 `@/modules/shot` 导入（在 `shot/index.ts` 的 "9. 分镜对比视图" 分组中）。
 
-### UI 组件
+### ✅ UI 组件
 - `ShotCompareView` — 顶层对比视图容器
   - Props: `ShotCompareViewProps`
     - `shotId: string` — 分镜 ID
@@ -38,11 +40,11 @@
     - `videoRef?: React.RefObject<HTMLVideoElement | null>` — 同步播放 ref（由父组件控制同步）
     - `playSignal?: { playing: boolean; time?: number; nonce: number }` — 同步播放控制信号
 
-### 工具函数
+### ✅ 工具函数
 - `diffText(left, right)` — 将两段文本按行对比，返回 `DiffLine[]`（`type: "same" | "left" | "right"`）
 - `countDifferences(diffLines)` — 统计差异行数量
 
-### 类型
+### ✅ 类型
 - `ShotVersion` — 分镜的一个生成版本（versionId / taskId / type / url / prompt / parameters / createdAt / isArchived? / label?）
 - `ShotVersionType` — 版本类型联合（`"video" | "keyframe"`）
 - `ShotVersionParameters` — 版本生成参数（model? / duration? / resolution? / style? / providerId? / providerModelId?）

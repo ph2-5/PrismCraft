@@ -1,8 +1,10 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Tools - Asset Module
+# Agent Tools - Asset Module ✅
 
 > 资产查询与 CRUD 工具模块 — 从 agent/tools/ 拆分而来（阶段3-2）。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概览
 
@@ -16,14 +18,14 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| query | `asset-tools.ts` | 资产查询工具（列出角色/场景、获取详情、跨资产搜索） |
-| crud | `asset-crud-tools.ts` | 资产 CRUD 工具（创建/更新/删除角色/场景、打标签、整理、去重） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| query | ✅ | `asset-tools.ts` | 资产查询工具（列出角色/场景、获取详情、跨资产搜索） |
+| crud | ✅ | `asset-crud-tools.ts` | 资产 CRUD 工具（创建/更新/删除角色/场景、打标签、整理、去重） |
 
 ## Public API
 
-### Asset Query Tools（5 个）
+### ✅ Asset Query Tools（5 个）
 
 - `listCharactersTool` — 列出角色
 - `listScenesTool` — 列出场景
@@ -32,7 +34,7 @@
 - `searchAssetsTool` — 跨资产搜索
 - `assetTools` — 所有资产查询工具数组
 
-### Asset CRUD Tools（9 个）
+### ✅ Asset CRUD Tools（9 个）
 
 - `createCharacterTool` — 创建角色
 - `updateCharacterTool` — 更新角色

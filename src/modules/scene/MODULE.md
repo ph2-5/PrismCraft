@@ -1,33 +1,35 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Scene Module
+# Scene Module ✅
 
 ## 模块概述
 
 场景管理模块，负责场景的 CRUD 操作、场景图片生成。本模块使用 Result 模式处理所有异步操作错误，通过领域事件与其他模块解耦。场景模块与角色模块结构对称，共享相同的设计模式。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ---
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `services` | [services/](./services/) | 场景 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
-| `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成 |
-| `constants` | [constants.ts](./constants.ts) | 默认场景、类型建议等常量 |
-| `presentation` | [presentation/](./presentation/) | 场景列表项 |
-| `variants` | [variants/](./variants/) | Q3-1 场景变体子域：管理场景的多个变体（白天/夜晚/战损/雨景等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图。对称 `@/modules/character/variants` |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `services` | ✅ | [services/](./services/) | 场景 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
+| `hooks` | ✅ | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成 |
+| `constants` | ✅ | [constants.ts](./constants.ts) | 默认场景、类型建议等常量 |
+| `presentation` | ✅ | [presentation/](./presentation/) | 场景列表项 |
+| `variants` | ✅ | [variants/](./variants/) | Q3-1 场景变体子域：管理场景的多个变体（白天/夜晚/战损/雨景等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图。对称 `@/modules/character/variants` |
 
 ---
 
 ## 公共 API
 
-### services 子域
+### ✅ services 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `sceneService` | SceneService | 场景服务（getAll, getById, create, update, delete, count） |
 
-### constants 子域
+### ✅ constants 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -42,7 +44,7 @@
 | `distanceSuggestions` | `string[]` | 距离建议列表 |
 | `movementSuggestions` | `string[]` | 运动建议列表 |
 
-### hooks 子域
+### ✅ hooks 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -55,13 +57,13 @@
 | `useSceneCRUD` | `() → SceneCRUDResult` | CRUD 组合 Hook |
 | `useSceneImage` | `() → SceneImageResult` | 场景图片生成 Hook |
 
-### presentation 子域
+### ✅ presentation 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `SceneListItem` | `React.FC<SceneListItemProps>` | 场景列表项组件 |
 
-### variants 子域（Q3-1）
+### ✅ variants 子域（Q3-1）
 
 通过 `@/modules/scene/variants` 直接访问时使用原始名（如 `createVariant`），通过 `@/modules/scene` 桶导出访问时使用带 `Scene` 前缀的别名（如 `createSceneVariant`）以避免与 character variants 冲突。
 

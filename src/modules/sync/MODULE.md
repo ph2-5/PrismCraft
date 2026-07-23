@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Sync Module
+# Sync Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -9,16 +11,16 @@
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `engine` | [engine/](./engine/) | 同步引擎核心：变更追踪、向量时钟管理、推送/拉取远程变更、冲突检测与解决策略 |
-| `presentation` | [presentation/](./presentation/) | 冲突解决面板、同步设置面板、同步状态指示器 |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `engine` | ✅ | [engine/](./engine/) | 同步引擎核心：变更追踪、向量时钟管理、推送/拉取远程变更、冲突检测与解决策略 |
+| `presentation` | ✅ | [presentation/](./presentation/) | 冲突解决面板、同步设置面板、同步状态指示器 |
 
 ---
 
 ## 公共 API
 
-### engine 子域
+### ✅ engine 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -41,7 +43,7 @@
 | `SyncPullResult` | `type` | 同步拉取结果 |
 | `RemoteChange` | `type` | 远程变更 |
 
-### presentation 子域
+### ✅ presentation 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -53,7 +55,7 @@
 
 > 以下 API 仍存在于子域内部文件，但已从模块顶层 barrel (`index.ts`) 移除，不再属于模块公共 API。仅子域内部使用。
 
-### engine 子域（非顶层导出）
+### ✅ engine 子域（非顶层导出）
 
 | API | 签名 | 说明 | 实际位置 |
 |-----|------|------|----------|
@@ -66,7 +68,7 @@
 | `isVectorClockConflict` | `(a: VectorClock, b: VectorClock) → boolean` | 检测向量时钟冲突 | `@/domain/types/sync.ts` |
 | `DEFAULT_SYNC_CONFIG` | `SyncConfig` | 默认同步配置 | `engine/types.ts` |
 
-### presentation 子域（非顶层导出）
+### ✅ presentation 子域（非顶层导出）
 
 | API | 签名 | 说明 | 实际位置 |
 |-----|------|------|----------|

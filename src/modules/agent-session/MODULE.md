@@ -1,4 +1,6 @@
-# Agent Session Module
+# Agent Session Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 > 从 @/modules/agent 拆分而来（阶段2-b，2026-07-14）
 > 职责：会话持久化 + P5 断点恢复检查点
@@ -9,16 +11,16 @@
 
 ## 子域
 
-| 子域 | 文件 | 职责 |
-|------|------|------|
-| domain | `domain/checkpoint-types.ts` | 检查点类型定义 + createCheckpoint 工厂函数（零外部依赖） |
-| services | `services/session-storage.ts` | 会话保存/加载/列出/删除，会话索引维护 |
-| services | `services/session-checkpoint.ts` | 检查点初始化/更新/清除/中断检测，检查点索引维护 |
-| services | `services/session-search.ts` | 会话搜索（按标题/内容）+ 序列化导出（JSON/Markdown，Task 4.9 子项 2） |
+| 子域 | 状态 | 文件 | 职责 |
+|------|:----:|------|------|
+| domain | ✅ | `domain/checkpoint-types.ts` | 检查点类型定义 + createCheckpoint 工厂函数（零外部依赖） |
+| services | ✅ | `services/session-storage.ts` | 会话保存/加载/列出/删除，会话索引维护 |
+| services | ✅ | `services/session-checkpoint.ts` | 检查点初始化/更新/清除/中断检测，检查点索引维护 |
+| services | ✅ | `services/session-search.ts` | 会话搜索（按标题/内容）+ 序列化导出（JSON/Markdown，Task 4.9 子项 2） |
 
 ## Public API
 
-### 会话存储（services/session-storage.ts）
+### ✅ 会话存储（services/session-storage.ts）
 
 - `saveSession` — 保存会话到本地（覆盖同名文件）
 - `loadSession` — 加载会话
@@ -28,7 +30,7 @@
 - `persistSession` — 持久化当前会话（保存 + 更新索引）
 - `SessionListItem` — 会话列表项类型
 
-### 会话搜索与导出（services/session-search.ts，Task 4.9 子项 2）
+### ✅ 会话搜索与导出（services/session-search.ts，Task 4.9 子项 2）
 
 - `searchSessionList` — 按标题过滤会话列表项（快速过滤，不加载会话内容）
 - `searchInSession` — 单会话内搜索消息内容（返回 snippet + offset）
@@ -40,7 +42,7 @@
 - `SessionSearchResult` — 单会话搜索结果类型（sessionId/titleMatched/messageMatches）
 - `ExportFormat` — 导出格式类型（"json" | "markdown"）
 
-### 检查点（services/session-checkpoint.ts + domain/checkpoint-types.ts）
+### ✅ 检查点（services/session-checkpoint.ts + domain/checkpoint-types.ts）
 
 - `saveCheckpoint` — 保存检查点
 - `initCheckpoint` — 初始化检查点

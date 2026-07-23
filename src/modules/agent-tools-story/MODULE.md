@@ -1,8 +1,10 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Tools - Story Module
+# Agent Tools - Story Module ✅
 
 > 故事创作工具模块 — 从 agent/tools/ 拆分而来（阶段3-2）。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概览
 
@@ -16,16 +18,16 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| barrel | `story-tools.ts` | 主入口 barrel：CRUD 工具实现 + re-export 拆分工具 + 聚合 storyTools 数组 |
-| planning | `story-tools-planning.ts` | 故事规划工具（plan_story、validate_story_plan） |
-| generation | `story-tools-generation.ts` | 故事生成工具（风格指南、首尾帧提示词、故事创意） |
-| suggestions | `story-tools-suggestions.ts` | 故事建议工具（角色背景、场景描述、一致性检查） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| barrel | ✅ | `story-tools.ts` | 主入口 barrel：CRUD 工具实现 + re-export 拆分工具 + 聚合 storyTools 数组 |
+| planning | ✅ | `story-tools-planning.ts` | 故事规划工具（plan_story、validate_story_plan） |
+| generation | ✅ | `story-tools-generation.ts` | 故事生成工具（风格指南、首尾帧提示词、故事创意） |
+| suggestions | ✅ | `story-tools-suggestions.ts` | 故事建议工具（角色背景、场景描述、一致性检查） |
 
 ## Public API
 
-### Story CRUD Tools（5 个，定义在 story-tools.ts）
+### ✅ Story CRUD Tools（5 个，定义在 story-tools.ts）
 
 - `listStoriesTool` — 列出所有故事（支持过滤/分页）
 - `getStoryTool` — 获取故事详情（含分镜）
@@ -33,24 +35,24 @@
 - `updateStoryTool` — 更新故事
 - `deleteStoryTool` — 删除故事（需确认）
 
-### Story Planning Tools（2 个）
+### ✅ Story Planning Tools（2 个）
 
 - `planStoryTool` — AI 规划故事分镜
 - `validateStoryPlanTool` — 校验分镜计划
 
-### Story Generation Tools（3 个）
+### ✅ Story Generation Tools（3 个）
 
 - `generateStyleGuideTool` — 生成风格指南
 - `generateFramePromptsTool` — 生成分镜首尾帧提示词
 - `generateStoryIdeasTool` — 生成故事创意
 
-### Story Suggestions Tools（3 个）
+### ✅ Story Suggestions Tools（3 个）
 
 - `suggestCharacterBackstoryTool` — 建议角色背景故事
 - `suggestSceneDescriptionTool` — 建议场景描述
 - `checkStoryConsistencyTool` — 故事逻辑一致性检查
 
-### 聚合导出
+### ✅ 聚合导出
 
 - `storyTools` — 所有故事工具数组（13 个）
 

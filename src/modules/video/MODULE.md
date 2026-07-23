@@ -1,26 +1,28 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Video Module
+# Video Module ✅
 
 ## 职责
 
 视频任务全生命周期管理：创建、轮询、状态机转换、缓存（视频+图片双层磁盘缓存）、智能恢复（验证+去重+重试决策+Token浪费检测）、编解码检测、帧提取、模板与追踪导出。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ---
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `task-management` | [task-management/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/task-management/) | 视频任务状态机、Zustand Store、轮询引擎、同步引擎、策略引擎（超时/过期）、UI 组件 |
-| `cache` | [cache/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/cache/) | 视频 Blob 磁盘缓存、图片磁盘缓存、缓存统计、过期清理、未缓存资源恢复 |
-| `recovery` | [recovery/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/recovery/) | 视频验证（URL/文件）、重复检测、智能重试引擎、智能恢复、Token 浪费检测、任务持久化 |
-| `utils` | [utils/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/utils/) | 编解码检测、帧提取、文件导出、视频模板 |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `task-management` | ✅ | [task-management/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/task-management/) | 视频任务状态机、Zustand Store、轮询引擎、同步引擎、策略引擎（超时/过期）、UI 组件 |
+| `cache` | ✅ | [cache/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/cache/) | 视频 Blob 磁盘缓存、图片磁盘缓存、缓存统计、过期清理、未缓存资源恢复 |
+| `recovery` | ✅ | [recovery/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/recovery/) | 视频验证（URL/文件）、重复检测、智能重试引擎、智能恢复、Token 浪费检测、任务持久化 |
+| `utils` | ✅ | [utils/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/utils/) | 编解码检测、帧提取、文件导出、视频模板 |
 
 ---
 
 ## 公共 API（index.ts）
 
-### 导出清单
+### ✅ 导出清单
 
 > 以下为 `index.ts` 的完整导出列表，详细签名见各子域章节。
 
@@ -32,7 +34,7 @@
 
 **utils**: `detectVideoCodec`、`isCodecSupportedByProvider`、`extractVideoFrames`、`downloadJSONFile`、`videoTemplates`、`templateCategories`、`getTemplatesByCategory`、`applyVideoTemplate`、`VideoTemplate`
 
-### 诊断 UI 组件与类型（task-management）
+### ✅ 诊断 UI 组件与类型（task-management）
 - `TaskDiagnosticPanel` — 任务诊断面板组件
 - `AgentBar` — Agent 状态栏组件
 - `TaskErrorGroup` — 任务错误分组组件
@@ -42,7 +44,7 @@
 
 ---
 
-### 任务管理子域 (`task-management`)
+### ✅ 任务管理子域 (`task-management`)
 
 #### 类型
 
@@ -289,7 +291,7 @@ const VideoTaskManagerUI: ComponentType        // 管理 UI 面板
 
 ---
 
-### 缓存子域
+### ✅ 缓存子域
 
 > **通信层说明**：cache 子域的磁盘文件操作已迁移至 `@/shared/file-http` 统一通信层（HTTP 优先 + IPC 回退），不再直接调用 `window.electronAPI`。`video-cache.ts` 和 `image-cache.ts` 通过别名导入（httpWriteFile、httpReadFile、httpFileExists、httpDeleteFile、httpGetCacheDirectory、httpGetDiskSpace、httpGetFileInfo）使用该层。
 
@@ -342,7 +344,7 @@ function useVideoCacheStats(): UseQueryResult<{ count: number; totalSizeMB: numb
 
 ---
 
-### 恢复子域
+### ✅ 恢复子域
 
 #### 类型
 
@@ -509,7 +511,7 @@ type ErrorCategory = ...
 
 ---
 
-### 工具子域
+### ✅ 工具子域
 
 #### 编解码检测
 

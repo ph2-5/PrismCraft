@@ -1,6 +1,8 @@
-# prompt/prompt-recipes 子域
+# prompt/prompt-recipes 子域 ✅
 
 > Prompt 配方库（Task 4.7）：预设配方 ↔ Skill 组合映射器，将风格化配方（赛博朋克 / 日系动画 / 写实风景 / 水墨 / 电影质感）转换为完整的 prompt 指令片段。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -20,7 +22,7 @@
 
 通过 `@/modules/prompt` 导入（在 `prompt/index.ts` 的 "Task 4.7" 分组中），也可通过 `@/modules/prompt/prompt-recipes` 直接导入。
 
-### 服务函数
+### ✅ 服务函数
 - `getRecipe(id)` — 按 id 获取配方，返回 `Recipe | null`
 - `listRecipes()` — 列出所有预设配方（内置 + 自定义），返回 `Recipe[]`
 - `applyRecipe(id)` — 应用配方，按 Skill 组合构建完整 prompt 指令片段字符串
@@ -28,14 +30,14 @@
 - `registerCustomRecipe(recipe)` — 注册自定义配方（不持久化到本文件，由调用方负责持久化）
 - `unregisterCustomRecipe(id)` — 注销自定义配方（仅移除自定义配方，不影响内置配方）
 
-### UI 组件
+### ✅ UI 组件
 - `PromptRecipePanel` — 配方面板组件
   - Props: `PromptRecipePanelProps`
     - `onApply?: (instruction: string, recipeId: RecipeId) => void` — 应用配方时回调，参数为生成的指令片段
     - `appliedRecipeId?: RecipeId | null` — 当前已应用的配方 id（用于高亮）
     - `compact?: boolean` — 紧凑模式（在侧边栏使用），默认 `false`
 
-### 类型
+### ✅ 类型
 - `RecipeId` — 配方 id 联合（`"cyberpunk" | "anime" | "realistic_landscape" | "ink_wash" | "cinematic"`）
 - `Recipe` — 配方（id / name / nameEn / skillCombination / preview）
 - `SkillCombination` — Skill 组合（skillIds / params / description）

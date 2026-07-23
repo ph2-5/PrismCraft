@@ -1,6 +1,8 @@
-# Audit Log Module
+# Audit Log Module ✅
 
 <!-- AI: Before modifying this module, read contract.json for invariants -->
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 概述
 
@@ -10,13 +12,13 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| services | `./services/` | 审计日志存储服务（JSONL 持久化 + 内存缓存） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| services | ✅ | `./services/` | 审计日志存储服务（JSONL 持久化 + 内存缓存） |
 
 ## Public API
 
-### Functions
+### ✅ Functions
 
 - `recordAudit` — 记录一条审计日志（entry: Omit<AuditEntry, "timestamp">）
 - `queryAuditLogs` — 查询审计日志（支持按会话/工具/状态/时间筛选）
@@ -24,7 +26,7 @@
 - `clearAllAuditLogs` — 清空所有审计日志
 - `getAuditStats` — 获取审计日志统计信息
 
-### Types
+### ✅ Types
 
 - `AuditEntry` — 审计日志条目
 - `AuditQueryFilter` — 审计日志查询过滤条件

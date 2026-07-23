@@ -1,4 +1,4 @@
-# Characters Page Module
+# Characters Page Module ✅
 
 > 角色管理页面型模块。提供角色列表浏览、角色详情编辑、AI 生图预览等入口。
 
@@ -6,19 +6,21 @@
 
 角色页面是用户管理角色档案的主入口，支持角色列表展示、属性编辑、AI 生图请求预览。本模块为页面型模块，仅暴露 `CharactersPage` 给路由，业务逻辑由 `character` 模块（带子域）提供。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 公共 API
 
 - `CharactersPage` — 角色页面组件（默认导出，由 router lazy import）
 
 ## 子域
 
-| 子域 | 文件 | 说明 |
-|------|------|------|
-| 页面入口 | `page.tsx` | 角色页面主入口 |
-| 页面编排 | `hooks/use-character-page.ts` | 页面状态编排（列表 + 编辑器） |
-| 列表展示 | `CharacterList.tsx` | 角色列表组件 |
-| 角色编辑 | `CharacterEditor.tsx` | 角色属性编辑器 |
-| AI 生图预览 | `AiRequestPreview.tsx` | AI 生图请求参数预览 |
+| 子域 | 状态 | 文件 | 说明 |
+|------|:----:|------|------|
+| 页面入口 | ✅ | `page.tsx` | 角色页面主入口 |
+| 页面编排 | ✅ | `hooks/use-character-page.ts` | 页面状态编排（列表 + 编辑器） |
+| 列表展示 | ✅ | `CharacterList.tsx` | 角色列表组件 |
+| 角色编辑 | ✅ | `CharacterEditor.tsx` | 角色属性编辑器 |
+| AI 生图预览 | ✅ | `AiRequestPreview.tsx` | AI 生图请求参数预览 |
 
 ## 边界约束
 

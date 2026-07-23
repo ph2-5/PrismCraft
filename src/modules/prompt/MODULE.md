@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Prompt Module
+# Prompt Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -9,24 +11,24 @@
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `base` | [base/](./base/) | 关键词常量映射（风格/场景/氛围/灯光/镜头）、描述构建工具函数 |
-| `character` | [character/](./character/) | 角色图片提示词、角色详细描述指令、简单角色提示词生成 |
-| `scene` | [scene/](./scene/) | 场景图片提示词、简单场景提示词、场景提示词优化 |
-| `beat-image` | [beat-image/](./beat-image/) | 分镜图片提示词、简单分镜图片提示词生成 |
-| `video` | [video/](./video/) | 专业/增强/快速/单分镜视频提示词生成 |
-| `server-prompts` | [server-prompts/](./server-prompts/) | 首帧/尾帧提示词、角色/场景分析提示词（服务端 API 用） |
-| `builder` | [builder/](./builder/) | PromptBuilder 类、故事计划提示词、快速模式提示词、模型选项配置 |
-| `presentation` | [presentation/](./presentation/) | 模型选择器、配置检查横幅 |
-| `templates` | [templates/](./templates/) | 提示词模板库（内置 + 用户自定义）、负面提示词智能生成、LLM 提示词优化 |
-| `prompt-recipes` | [prompt-recipes/](./prompt-recipes/) | Prompt 配方库（Task 4.7）：配方 ↔ Skill 组合映射器，预设配方应用为 prompt 指令片段 |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `base` | ✅ | [base/](./base/) | 关键词常量映射（风格/场景/氛围/灯光/镜头）、描述构建工具函数 |
+| `character` | ✅ | [character/](./character/) | 角色图片提示词、角色详细描述指令、简单角色提示词生成 |
+| `scene` | ✅ | [scene/](./scene/) | 场景图片提示词、简单场景提示词、场景提示词优化 |
+| `beat-image` | ✅ | [beat-image/](./beat-image/) | 分镜图片提示词、简单分镜图片提示词生成 |
+| `video` | ✅ | [video/](./video/) | 专业/增强/快速/单分镜视频提示词生成 |
+| `server-prompts` | ✅ | [server-prompts/](./server-prompts/) | 首帧/尾帧提示词、角色/场景分析提示词（服务端 API 用） |
+| `builder` | ✅ | [builder/](./builder/) | PromptBuilder 类、故事计划提示词、快速模式提示词、模型选项配置 |
+| `presentation` | ✅ | [presentation/](./presentation/) | 模型选择器、配置检查横幅 |
+| `templates` | ✅ | [templates/](./templates/) | 提示词模板库（内置 + 用户自定义）、负面提示词智能生成、LLM 提示词优化 |
+| `prompt-recipes` | ✅ | [prompt-recipes/](./prompt-recipes/) | Prompt 配方库（Task 4.7）：配方 ↔ Skill 组合映射器，预设配方应用为 prompt 指令片段 |
 
 ---
 
 ## 公共 API
 
-### base 子域
+### ✅ base 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -43,7 +45,7 @@
 | `buildSceneAtmosphereDesc` | `(scene: Scene) → string` | 构建场景氛围描述 |
 | `buildSceneVisualDesc` | `(scene: Scene) → string` | 构建场景视觉描述 |
 
-### character 子域
+### ✅ character 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -51,7 +53,7 @@
 | `generateCharacterDetailedPromptInstruction` | `(character: Character) → string` | 角色详细提示词指令 |
 | `generateSimpleCharacterImagePrompt` | `(character: Character) → string` | 简单角色图片提示词 |
 
-### scene 子域
+### ✅ scene 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -59,14 +61,14 @@
 | `generateSimpleSceneImagePrompt` | `(scene: Scene) → string` | 简单场景图片提示词 |
 | `generateScenePromptOptimization` | `(scene: Scene) → string` | 场景提示词优化 |
 
-### beat-image 子域
+### ✅ beat-image 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
 | `generateBeatImagePrompt` | `(beat: StoryBeat, ...) → string` | 分镜图片提示词 |
 | `generateSimpleBeatImagePrompt` | `(beat: StoryBeat) → string` | 简单分镜图片提示词 |
 
-### video 子域
+### ✅ video 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -75,7 +77,7 @@
 | `generateQuickVideoPrompt` | `(beat: StoryBeat, ...) → string` | 快速视频提示词 |
 | `generateSingleBeatPrompt` | `(beat: StoryBeat, ...) → string` | 单分镜提示词 |
 
-### server-prompts 子域
+### ✅ server-prompts 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -85,7 +87,7 @@
 | `generateCharacterAnalysisPrompt` | `(imageUrl: string) → string` | 角色分析提示词（API 用） |
 | `generateSceneAnalysisPrompt` | `(imageUrl: string) → string` | 场景分析提示词（API 用） |
 
-### builder 子域
+### ✅ builder 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -100,7 +102,7 @@
 | `getResolutionOptionsForModel` | `(model: string) → ResolutionOption[]` | 按模型获取分辨率选项 |
 | `getStyleOptionsForModel` | `(model: string) → string[]` | 按模型获取风格选项 |
 
-### presentation 子域
+### ✅ presentation 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -108,7 +110,7 @@
 | `useModelSelection` | `() → ModelSelection` | 模型选择 Hook |
 | `ModelSelection` | `type` | 模型选择类型 |
 
-### templates 子域
+### ✅ templates 子域
 
 #### 模板库类型
 | API | 签名 | 说明 |
@@ -159,7 +161,7 @@
 | `getCharacterStyles` | `() → string[]` | 获取角色风格列表 |
 | `getVideoStyles` | `() → string[]` | 获取视频风格列表 |
 
-### prompt-recipes 子域（Task 4.7）
+### ✅ prompt-recipes 子域（Task 4.7）
 
 #### 配方服务函数
 | API | 签名 | 说明 |

@@ -1,8 +1,10 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Tools - Generation Module
+# Agent Tools - Generation Module ✅
 
 > AI 生成与图像编辑工具模块 — 从 agent/tools/ 拆分而来（阶段3-2）。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概览
 
@@ -16,14 +18,14 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| generation | `generation-tools.ts` | AI 生成工具（角色/场景/道具图像、文本、音乐、配音、语音合成、音频转录） |
-| image-edit | `image-edit-tools.ts` | 图像编辑工具（编辑、裁剪、合并、合成、去背景、滤镜、调色、修补、文字叠加、缩放） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| generation | ✅ | `generation-tools.ts` | AI 生成工具（角色/场景/道具图像、文本、音乐、配音、语音合成、音频转录） |
+| image-edit | ✅ | `image-edit-tools.ts` | 图像编辑工具（编辑、裁剪、合并、合成、去背景、滤镜、调色、修补、文字叠加、缩放） |
 
 ## Public API
 
-### Generation Tools（9 个）
+### ✅ Generation Tools（9 个）
 
 - `generateCharacterImageTool` — 生成角色图像
 - `generateSceneImageTool` — 生成场景图像
@@ -36,7 +38,7 @@
 - `transcribeAudioTool` — 音频转录
 - `generationTools` — 所有生成工具数组
 
-### Image Edit Tools（10 个）
+### ✅ Image Edit Tools（10 个）
 
 - `editImageTool` — 编辑图像
 - `cropImageTool` — 裁剪图像

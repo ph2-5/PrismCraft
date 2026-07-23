@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Asset Module
+# Asset Module ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -9,15 +11,15 @@
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `asset-library` | [asset-library/](./asset-library/) | 资产库服务：角色、场景、分镜资源、收藏集 CRUD 与本地文件管理、ASA 格式导出 |
-| `media-assets` | [media-assets/](./media-assets/) | 媒体资产管理：媒体文件的创建、更新、删除、批量操作 |
-| `generation-assets` | [generation-assets/](./generation-assets/) | 生成资产统一管理：AI 生成/上传/合成的图片视频资产的 CRUD、引用关系、批量清理（Task 4.11） |
-| `import-export` | [import-export/](./import-export/) | 项目数据导入导出：JSON 格式完整项目备份与恢复、合并策略 |
-| `props` | [props/](./props/) | 道具库管理：服装/武器/配饰/道具/其他 的 CRUD、类型/标签筛选、character_outfits 数据迁移（Task 2A.8） |
-| `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：媒体资产、导入导出、项目导出 |
-| `presentation` | [presentation/](./presentation/) | UI 组件：批量操作、媒体导出、项目导入导出 |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `asset-library` | ✅ | [asset-library/](./asset-library/) | 资产库服务：角色、场景、分镜资源、收藏集 CRUD 与本地文件管理、ASA 格式导出 |
+| `media-assets` | ✅ | [media-assets/](./media-assets/) | 媒体资产管理：媒体文件的创建、更新、删除、批量操作 |
+| `generation-assets` | ✅ | [generation-assets/](./generation-assets/) | 生成资产统一管理：AI 生成/上传/合成的图片视频资产的 CRUD、引用关系、批量清理（Task 4.11） |
+| `import-export` | ✅ | [import-export/](./import-export/) | 项目数据导入导出：JSON 格式完整项目备份与恢复、合并策略 |
+| `props` | ✅ | [props/](./props/) | 道具库管理：服装/武器/配饰/道具/其他 的 CRUD、类型/标签筛选、character_outfits 数据迁移（Task 2A.8） |
+| `hooks` | ✅ | [hooks/](./hooks/) | React Query Hooks 封装：媒体资产、导入导出、项目导出 |
+| `presentation` | ✅ | [presentation/](./presentation/) | UI 组件：批量操作、媒体导出、项目导入导出 |
 
 ---
 
@@ -33,7 +35,7 @@
 | `collectionService` | CollectionService | 收藏集服务（CRUD + 资产关联管理） |
 | `assetExportService` | AsaExportService | ASA 格式导出服务 |
 
-### media-assets 子域
+### ✅ media-assets 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
@@ -99,7 +101,7 @@
 | `ProjectData` | `type` | 项目数据类型 |
 | `ExportResult` | `type` | 导出结果类型 |
 
-### presentation 子域
+### ✅ presentation 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|

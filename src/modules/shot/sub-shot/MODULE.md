@@ -1,14 +1,16 @@
-# shot/sub-shot
+# shot/sub-shot ✅
 
 单分镜多镜头子实体管理（Task 4.10）。
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 子域
 
-| 子域 | 说明 | 公共 API |
-|------|------|----------|
-| services | SubShot CRUD 业务逻辑 | listSubShots, createSubShot, updateSubShot, deleteSubShot, moveSubShot, reorderSubShots |
-| hooks | React 状态管理 | useSubShots |
-| presentation | UI 组件 | SubShotList |
+| 子域 | 状态 | 说明 | 公共 API |
+|------|:----:|------|----------|
+| services | ✅ | SubShot CRUD 业务逻辑 | listSubShots, createSubShot, updateSubShot, deleteSubShot, moveSubShot, reorderSubShots |
+| hooks | ✅ | React 状态管理 | useSubShots |
+| presentation | ✅ | UI 组件 | SubShotList |
 
 ## 公共 API
 

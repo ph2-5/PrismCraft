@@ -1,8 +1,10 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
 
-# Agent Tools - Web & File Management Module
+# Agent Tools - Web & File Management Module ✅
 
 > Web 浏览器/网络工具与文件管理工具模块 — 从 agent/tools/ 拆分而来（阶段3-2）。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概览
 
@@ -16,14 +18,14 @@
 
 ## 子域
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| web | `web-tools.ts` | 浏览器/网络工具（搜索、下载、收藏、网页抓取等） |
-| file-management | `file-management-tools.ts` | 文件管理工具（列出、复制、移动、删除、磁盘空间等） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| web | ✅ | `web-tools.ts` | 浏览器/网络工具（搜索、下载、收藏、网页抓取等） |
+| file-management | ✅ | `file-management-tools.ts` | 文件管理工具（列出、复制、移动、删除、磁盘空间等） |
 
 ## Public API
 
-### Web Tools（8 个）
+### ✅ Web Tools（8 个）
 
 - `searchWebImagesTool` — 搜索网络图片素材
 - `searchWebTool` — 通用网页搜索
@@ -35,7 +37,7 @@
 - `listBookmarksTool` — 列出收藏的资源
 - `webTools` — 所有 web 工具数组
 
-### File Management Tools（6 个）
+### ✅ File Management Tools（6 个）
 
 - `listFilesTool` — 列出指定类别目录文件
 - `getFileInfoTool` — 获取文件信息

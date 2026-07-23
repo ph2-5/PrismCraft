@@ -1,6 +1,8 @@
-# Search 模块
+# Search 模块 ✅
 
 > 全局搜索模块，提供跨角色 / 场景 / 故事 / 素材的统一搜索能力。
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 模块概述
 
@@ -8,10 +10,10 @@ Task 4.6 新增模块。统一搜索入口，支持模糊匹配 + 标签搜索 +
 
 ## 子域
 
-| 子域 | 路径 | 说明 |
-|------|------|------|
-| services | `./services/global-search.ts` | 全局搜索服务（跨四类资源） |
-| presentation | `./presentation/search-bar.tsx` | 搜索栏 UI 组件（含 Ctrl+K 快捷键） |
+| 子域 | 状态 | 路径 | 说明 |
+|------|:----:|------|------|
+| services | ✅ | `./services/global-search.ts` | 全局搜索服务（跨四类资源） |
+| presentation | ✅ | `./presentation/search-bar.tsx` | 搜索栏 UI 组件（含 Ctrl+K 快捷键） |
 
 ## 依赖
 
@@ -30,17 +32,17 @@ Task 4.6 新增模块。统一搜索入口，支持模糊匹配 + 标签搜索 +
 
 通过 `@/modules/search` 导入。
 
-### 搜索服务
+### ✅ 搜索服务
 - `globalSearch` — 跨四类资源搜索，返回 `{ results, total, counts }`
 - `quickSearch` — 简化搜索（仅返回 `SearchResult[]`，兼容 SearchDialog.onSearch 签名）
 - `getSearchResultRoute` — 获取搜索结果对应的路由路径
 
-### 类型
+### ✅ 类型
 - `GlobalSearchOptions` — 搜索选项（assetType / tag / limitPerType / totalLimit）
 - `GlobalSearchResult` — 搜索结果（results / total / counts）
 - `SearchableType` — 可搜索类型联合（"character" | "scene" | "story" | "media-asset"）
 
-### UI 组件
+### ✅ UI 组件
 - `SearchBar` — 搜索栏组件
   - Props: `variant?: "button" | "inline"`、`enableShortcut?: boolean`、`buttonText?: string`
   - 内置 `Ctrl+K` / `Cmd+K` 快捷键监听

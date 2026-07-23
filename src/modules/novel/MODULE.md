@@ -1,5 +1,5 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# Novel Module
+# Novel Module ✅
 
 ## 模块概述
 
@@ -11,42 +11,44 @@
 - AI 助手工具：分段、角色/场景提取、实体匹配、分镜拆解
 - 三栏布局 StoryPipelineShell（顶部指示器 + 左栏片段导航 + 中栏工作区 + 右栏上下文）
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ---
 
 ## 子域结构
 
-| 子域 | 路径 | 职责 |
-|------|------|------|
-| `domain` | [domain/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/domain/) | 领域类型定义（15 个核心类型 + contract.json 不变量） |
-| `tools` | [tools/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/tools/) | 5 个 Novel Agent 工具（segmentNovelText / extractCharacters / extractScenes / matchEntities / breakdownTextToShots） |
-| `import/services` | [import/services/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/import/services/) | Pipeline 状态机（10 阶段转换 + 三档模式 + 失败重试 + FALLBACK_STRATEGIES） |
-| `structure` | [structure/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/structure/) | 故事结构分析层（Task 2A.13）：叙事 beats + Treatment + ShotContract（domain + services） |
-| `hooks` | [hooks/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/hooks/) | React Hooks（useNovelPipeline — 管道状态管理） |
-| `presentation` | [presentation/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/presentation/) | UI 组件（StoryPipelineShell 三栏布局 + Part 1/2 子组件 + Structure/ShotContract Panel） |
+| 子域 | 状态 | 路径 | 职责 |
+|------|:----:|------|------|
+| `domain` | ✅ | [domain/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/domain/) | 领域类型定义（15 个核心类型 + contract.json 不变量） |
+| `tools` | ✅ | [tools/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/tools/) | 5 个 Novel Agent 工具（segmentNovelText / extractCharacters / extractScenes / matchEntities / breakdownTextToShots） |
+| `import/services` | ✅ | [import/services/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/import/services/) | Pipeline 状态机（10 阶段转换 + 三档模式 + 失败重试 + FALLBACK_STRATEGIES） |
+| `structure` | ✅ | [structure/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/structure/) | 故事结构分析层（Task 2A.13）：叙事 beats + Treatment + ShotContract（domain + services） |
+| `hooks` | ✅ | [hooks/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/hooks/) | React Hooks（useNovelPipeline — 管道状态管理） |
+| `presentation` | ✅ | [presentation/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/presentation/) | UI 组件（StoryPipelineShell 三栏布局 + Part 1/2 子组件 + Structure/ShotContract Panel） |
 
 ---
 
 ## 公共 API（index.ts）
 
-### Domain 类型
+### ✅ Domain 类型
 
 `NovelSegment`、`ExtractedCharacter`、`ExtractedScene`、`ShotBreakdown`、`PipelineStage`、`PipelineConfig`、`Segment`、`CharacterVariant`、`CharacterInPipeline`、`SceneVariant`、`SceneInPipeline`、`SegmentPrompt`、`GenerationResult`、`PipelineState`、`NovelProject`
 
-### Tools（5 个 Novel Agent 工具）
+### ✅ Tools（5 个 Novel Agent 工具）
 
 `segmentNovelTextTool`、`extractCharactersFromTextTool`、`extractScenesFromTextTool`、`matchEntitiesTool`、`breakdownTextToShotsTool`、`novelTools`
 
-### Pipeline 状态机
+### ✅ Pipeline 状态机
 
 `STAGE_ORDER`、`VALID_TRANSITIONS`、`canTransition`、`transition`、`getAutoGates`、`shouldPauseAtStage`、`getStagesForMode`、`retryStage`、`getRetryableStages`、`FALLBACK_STRATEGIES`
 
-### Hooks
+### ✅ Hooks
 
 `useNovelPipeline` — 管道状态管理 Hook（state + handlers + 派生渲染标志）
 `UseNovelPipelineOptions` — useNovelPipeline 入参类型
 `UseNovelPipelineResult` — useNovelPipeline 返回值类型
 
-### Presentation 组件
+### ✅ Presentation 组件
 
 **UI Panel Part 1（Task 2A.4）**：`ImportStep`、`SegmentList`、`SegmentCard`、`PipelineProgress`、`PipelineControls`
 
@@ -62,7 +64,7 @@
 
 **故事结构分析层（Task 2A.13）**：`StructureAnalysisPanel`、`ShotContractPanel`（v5.3 增强）
 
-### Structure 子域 API（Task 2A.13）
+### ✅ Structure 子域 API（Task 2A.13）
 
 **Domain 类型**：`NarrativeBeat`、`NarrativeBeatType`、`EmotionPoint`、`OverallPacing`、`StoryStructure`、`StoryTone`、`CharacterArc`、`StoryTreatment`、`ShotSize`、`ShotMovement`、`ShotLighting`、`ShotContract`
 

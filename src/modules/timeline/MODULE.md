@@ -1,4 +1,4 @@
-# Timeline Module
+# Timeline Module ✅
 
 > 时间线维度建模（Q3-3）— 故事时间线系统的核心实体和模块边界。
 > 设计来源：`docs/timeline-variant-design.md`（故事时间线变体系统）
@@ -18,13 +18,15 @@ PlotNode 1 ──→ PlotNode 2 ──→ ... ──→ PlotNode N
   └── 时间线绑定（NodeBinding）：与前后节点的关联
 ```
 
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
+
 ## 子域
 
-| 子域 | 路径 | 说明 |
-|------|------|------|
-| domain | `@/domain/schemas/timeline.ts` | Zod schemas: StoryTimeline, PlotNode, PlotEventType, SnapshotStrategy |
-| storage | `@/infrastructure/storage/timelines/` | timeline-manager.ts + plot-node-manager.ts |
-| module | `src/modules/timeline/` | 模块边界 + contract.json |
+| 子域 | 状态 | 路径 | 说明 |
+|------|:----:|------|------|
+| domain | ✅ | `@/domain/schemas/timeline.ts` | Zod schemas: StoryTimeline, PlotNode, PlotEventType, SnapshotStrategy |
+| storage | ✅ | `@/infrastructure/storage/timelines/` | timeline-manager.ts + plot-node-manager.ts |
+| module | ✅ | `src/modules/timeline/` | 模块边界 + contract.json |
 
 ## 公共 API
 

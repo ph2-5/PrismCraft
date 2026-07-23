@@ -1,5 +1,7 @@
 <!-- AI: Before modifying this module, read contract.json for invariants -->
-# partial-edit 子域（Task 2A.22）
+# partial-edit 子域（Task 2A.22） ✅
+
+> **状态图例**：✅ 已完成并可用 · 🧪 测试中 · 🚧 开发中 · 📐 规划中/待实现
 
 ## 职责
 
@@ -29,7 +31,7 @@ src/modules/video/partial-edit/
 
 ## 公共 API
 
-### Domain 层
+### ✅ Domain 层
 
 ```typescript
 // mask-types.ts
@@ -68,7 +70,7 @@ function validatePartialEditRequest(req): PartialEditValidationError[]
 function isValidPartialEditRequest(req): boolean
 ```
 
-### Services 层
+### ✅ Services 层
 
 ```typescript
 // mask-encoder.ts
@@ -93,7 +95,7 @@ async function savePartialEditAsset(task: VideoTask): Promise<{ ok: true; assetI
 async function listPartialEditHistory(sourceVideoAssetId: string): Promise<GenerationAsset[]>
 ```
 
-### Presentation 层
+### ✅ Presentation 层
 
 ```typescript
 // PartialEditPanel.tsx

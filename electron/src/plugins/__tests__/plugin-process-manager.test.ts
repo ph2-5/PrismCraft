@@ -140,7 +140,7 @@ describe("PluginProcessManager", () => {
         await loadPlugin();
         proc()._emit("exit", 1, null);
       }
-      await expect(manager.load("/path/to/plugin.js")).rejects.toThrow(/崩溃.*3.*次/);
+      await expect(manager.load("/path/to/plugin.js")).rejects.toThrow(/PLUGIN_CRASH_LOOP_DISABLED.*3.*times/);
     });
 
     it("should allow load after crash window expires", async () => {
@@ -171,7 +171,7 @@ describe("PluginProcessManager", () => {
     });
 
     it("should throw if process is not alive", async () => {
-      await expect(manager.call("method", [])).rejects.toThrow("插件进程未运行");
+      await expect(manager.call("method", [])).rejects.toThrow("PLUGIN_NOT_RUNNING");
     });
 
     it("should reject on worker error response", async () => {

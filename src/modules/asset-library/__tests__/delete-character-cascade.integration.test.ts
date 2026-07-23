@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { Character, Story, StoryBeat } from "@/domain/schemas";
+import type { Result } from "@/domain/types/result";
 import type { InMemoryDatabase } from "@/__tests__/mocks/in-memory-db";
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -12,10 +13,7 @@ const { testState } = vi.hoisted(() => ({
     characters: [] as Character[],
     stories: [] as Story[],
     confirmValue: true,
-    storyUpdateResult: { ok: true, value: undefined } as {
-      ok: boolean;
-      value: undefined;
-    },
+    storyUpdateResult: { ok: true, value: undefined } as Result<void>,
   },
 }));
 
@@ -370,12 +368,13 @@ describe("delete-character-cascade integration", () => {
     await runDeleteCharacter("char_1");
 
     // DB 层：story_beats.character_ids_json 不再包含 char_1，保留 char_2
-    const beats = db.query<{ character_ids_json: string | null }>(
+    const beats = db.query(
       "SELECT character_ids_json FROM story_beats WHERE id = ?",
       ["beat_1"],
     );
     expect(beats).toHaveLength(1);
-    const remaining = JSON.parse(beats[0]!.character_ids_json || "[]") as string[];
+    const beatsRow = beats[0] as { character_ids_json: string | null };
+    const remaining = JSON.parse(beatsRow.character_ids_json || "[]") as string[];
     expect(remaining).not.toContain("char_1");
     expect(remaining).toContain("char_2");
 
@@ -460,14 +459,18 @@ describe("delete-character-cascade integration", () => {
       ),
     ).toHaveLength(0);
     // media_assets：解绑（bound_to_* 置空），记录仍存在
-    const media = db.query<{
+    const media = db.query(
+      "SELECT bound_to_type, bound_to_id, bound_to_name FROM media_assets WHERE id = ?",
+      ["media_1"],
+    );
+    expect(media).toHaveLength(1);
+    const mediaRow = media[0] as {
       bound_to_type: string | null;
       bound_to_id: string | null;
       bound_to_name: string | null;
-    }>("SELECT bound_to_type, bound_to_id, bound_to_name FROM media_assets WHERE id = ?", ["media_1"]);
-    expect(media).toHaveLength(1);
-    expect(media[0]!.bound_to_type).toBeNull();
-    expect(media[0]!.bound_to_id).toBeNull();
-    expect(media[0]!.bound_to_name).toBeNull();
+    };
+    expect(mediaRow.bound_to_type).toBeNull();
+    expect(mediaRow.bound_to_id).toBeNull();
+    expect(mediaRow.bound_to_name).toBeNull();
   });
 });

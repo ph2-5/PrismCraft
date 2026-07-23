@@ -100,14 +100,14 @@ describe("DI Container", () => {
 
       overrideToken(eventBusToken(), factory);
 
-      const first = container.eventBus;
+      const first = container.eventBus as unknown as { count: number };
       expect(first.count).toBe(1);
       expect(factory).toHaveBeenCalledTimes(1);
 
       resetContainer();
 
       // 缓存清除后重新执行 overridden factory（非原始 factory）
-      const second = container.eventBus;
+      const second = container.eventBus as unknown as { count: number };
       expect(second.count).toBe(2);
       expect(second).not.toBe(first);
       expect(factory).toHaveBeenCalledTimes(2);
@@ -121,7 +121,7 @@ describe("DI Container", () => {
       let callCount = 0;
       overrideToken(eventBusToken(), () => ({ id: ++callCount }));
 
-      const first = container.eventBus;
+      const first = container.eventBus as unknown as { id: number };
       expect(first.id).toBe(1);
 
       const cached = container.eventBus;
@@ -130,7 +130,7 @@ describe("DI Container", () => {
 
       resetContainer();
 
-      const second = container.eventBus;
+      const second = container.eventBus as unknown as { id: number };
       expect(second).not.toBe(first);
       expect(second.id).toBe(2);
       expect(callCount).toBe(2);

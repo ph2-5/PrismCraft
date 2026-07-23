@@ -14,7 +14,6 @@
 
 import { describe, it, expect } from "vitest";
 import { generateCompositorPrompt } from "../compositor-prompt";
-import type { CompositorPromptParams } from "../compositor-prompt";
 import { QUALITY_TAGS_IMAGE } from "../prompt-engine";
 
 describe("generateCompositorPrompt — 角色描述", () => {

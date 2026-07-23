@@ -94,6 +94,8 @@ const makeFeatureAnchoring = (
       weight: 0.9,
     },
   ],
+  disableFrameBinding: false,
+  featureConsistencyStrength: 0,
   ...overrides,
 });
 

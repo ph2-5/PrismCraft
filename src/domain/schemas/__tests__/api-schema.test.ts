@@ -8,7 +8,7 @@ import {
   imageGenerationResultSchema,
   healthStatusSchema,
 } from "@/domain/schemas/api";
-import { factories } from "@/__tests__/mocks/factories";
+import { factories } from "./helpers/factories";
 
 describe("videoTaskSchema", () => {
   it("应解析有效的视频任务数据", () => {

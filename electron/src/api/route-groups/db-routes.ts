@@ -1,5 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import { validateSql, isSensitiveQuery } from "../../handlers/database";
 import { getDb, query, run } from "../../database";
 import { ensureDbInitialized, scheduleSave } from "../../handlers/database";
@@ -27,7 +28,7 @@ export const dbRoutes: Record<string, Route> = {
         return { success: true, data: redactSensitiveResult(sql, result) };
       } catch (error) {
         logger.error("[DB HTTP] Query failed:", error instanceof Error ? error : new Error(String(error)));
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database query error" };
       }
     },
@@ -47,7 +48,7 @@ export const dbRoutes: Record<string, Route> = {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[DB HTTP] Run failed:", error instanceof Error ? error : new Error(String(error)));
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database run error" };
       }
     },
@@ -85,7 +86,7 @@ export const dbRoutes: Record<string, Route> = {
         return { success: true, data: results };
       } catch (error) {
         logger.error("[DB HTTP] Transaction failed:", error instanceof Error ? error : new Error(String(error)));
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database transaction error" };
       }
     },

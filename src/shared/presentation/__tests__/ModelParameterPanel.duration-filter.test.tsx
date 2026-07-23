@@ -9,8 +9,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { ModelParameterProfile } from "@/infrastructure/ai-providers/model-capabilities-types";
-import { setModelProfiles } from "@/infrastructure/ai-providers/model-parameter-profile";
+import { setModelProfiles, type ModelParameterProfile } from "@/shared/model-capabilities";
 import { ModelParameterPanel, type ModelParameterValues } from "../ModelParameterPanel";
 
 const DEFAULT_VALUES: ModelParameterValues = {

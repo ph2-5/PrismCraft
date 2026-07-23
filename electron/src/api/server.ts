@@ -1,6 +1,7 @@
 import http from "http";
 import type net from "net";
 import { getLogger } from "../logging";
+import { extractErrorMessage } from "../logging/extract-error";
 import { API_SERVER_PORT, APP_SERVER_PORT, DEV_SERVER_PORT } from "../config/ports";
 import { getDb, CURRENT_SCHEMA_VERSION } from "../database";
 import { routes } from "./routes";
@@ -73,7 +74,7 @@ async function executeStreamRoute(
       res.write(
         `data: ${JSON.stringify({
           _t: "error",
-          error: error instanceof Error ? error.message : String(error),
+          error: extractErrorMessage(error),
         })}\n\n`,
       );
       res.end();

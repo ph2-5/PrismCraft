@@ -6,7 +6,7 @@ import {
   createCharacterInputSchema,
   updateCharacterInputSchema,
 } from "@/domain/schemas/character";
-import { factories } from "@/__tests__/mocks/factories";
+import { factories } from "./helpers/factories";
 
 describe("characterSchema", () => {
   it("应解析有效的角色数据", () => {

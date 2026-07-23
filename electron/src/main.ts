@@ -4,6 +4,7 @@ import path from "path";
 import { app, crashReporter } from "electron";
 import { autoUpdater } from "electron-updater";
 import { getLogger, loggerRegistry } from "./logging/logger";
+import { extractErrorMessage } from "./logging/extract-error";
 import { ConsoleTransport } from "./logging/transports/console.transport";
 import { FileTransport } from "./logging/transports/file.transport";
 import { startApiServer } from "./api-server";
@@ -115,7 +116,7 @@ setupApiHandlers({
         version: (result.updateInfo as { version?: string })?.version,
       };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = extractErrorMessage(error);
       return { success: false, error: message };
     }
   },

@@ -1,5 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import { createApiGatewayAdapter } from "../../api-gateway";
 import type { ApiGateway } from "@shared-logic/story/storyboard-generation";
 import * as promptService from "@shared-logic/prompt/prompt-service";
@@ -174,7 +175,7 @@ export const storyboardRoutes: Record<string, Route> = {
               saved++;
             } catch (error) {
               const taskId = (task.taskId as string) || (task.id as string) || "unknown";
-              failures.push({ taskId, error: error instanceof Error ? error.message : String(error) });
+              failures.push({ taskId, error: extractErrorMessage(error) });
               logger.warn("[API] Failed to save individual video task in bulk-save", { taskId });
             }
           }

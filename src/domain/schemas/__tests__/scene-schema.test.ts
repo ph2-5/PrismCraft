@@ -7,7 +7,7 @@ import {
   createSceneInputSchema,
   updateSceneInputSchema,
 } from "@/domain/schemas/scene";
-import { factories } from "@/__tests__/mocks/factories";
+import { factories } from "./helpers/factories";
 
 describe("sceneSchema", () => {
   it("应解析有效的场景数据", () => {

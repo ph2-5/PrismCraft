@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ICharacterStorage } from "@/domain/ports/storage-port";
-import { factories } from "@/__tests__/mocks/factories";
+import { factories } from "@/domain/schemas/__tests__/helpers/factories";
 import { expectOk, expectErr } from "@/__tests__/utils/result-helpers";
 
 vi.mock("@/infrastructure/di", () => {

@@ -17,6 +17,7 @@
 import { z } from "zod";
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import { getLogger } from "../../logging";
 import { downloadToFile } from "../../handlers/download-to-file";
 
@@ -59,7 +60,7 @@ export const downloadRoutes: Record<string, Route> = {
         );
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: extractErrorMessage(error),
         };
       }
     },

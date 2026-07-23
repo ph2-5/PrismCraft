@@ -13,6 +13,7 @@
 import { z } from "zod";
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import { getLogger } from "../../logging";
 import { probeFfmpeg, executeFfmpeg, type FfmpegExecuteResult } from "../../handlers/ffmpeg-handler";
 
@@ -46,7 +47,7 @@ export const ffmpegRoutes: Record<string, Route> = {
         );
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: extractErrorMessage(error),
         };
       }
     },
@@ -91,7 +92,7 @@ export const ffmpegRoutes: Record<string, Route> = {
         );
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: extractErrorMessage(error),
         };
       }
     },

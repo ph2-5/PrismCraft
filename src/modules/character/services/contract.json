@@ -1,7 +1,7 @@
 {
   "name": "character-service",
   "description": "角色服务：角色的 CRUD 操作，使用 Result 模式处理错误，触发领域事件",
-  "dependencies": ["domain/Character", "domain/CreateCharacterInput", "domain/UpdateCharacterInput", "domain/Result", "domain/fromAsyncThrowable", "domain/NotFoundError", "domain/ValidationError", "infrastructure/di", "shared/DomainEvents"],
+  "dependencies": ["domain/Character", "domain/CreateCharacterInput", "domain/UpdateCharacterInput", "domain/Result", "domain/fromAsyncThrowable", "domain/NotFoundError", "domain/ValidationError", "infrastructure/di", "@/shared/event-types"],
   "publicAPI": {
     "hooks": [],
     "services": ["characterService"],

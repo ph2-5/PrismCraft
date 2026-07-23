@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { vi, beforeEach, afterEach } from 'vitest';
-import { factories } from "./mocks/factories";
+import { factories } from "@/domain/schemas/__tests__/helpers/factories";
 
 // NOTE: All cleanup functions are dynamically imported in afterEach
 // to avoid caching modules (sqlite-core, error-logger, safe-json, etc.)

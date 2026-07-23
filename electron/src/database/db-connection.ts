@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import BetterSqlite3 from "better-sqlite3";
 import { getLogger } from "../logging/logger";
+import { extractErrorMessage } from "../logging/extract-error";
 import { createOptimalDatabase, type DatabaseInterface } from "../db-interface";
 import {
   getDbPaths,
@@ -449,7 +450,7 @@ function performSoftDeleteCleanup(): void {
       }
     }
   } catch (error) {
-    logger.warn("[DB] Soft delete cleanup failed", { error: error instanceof Error ? error.message : String(error) });
+    logger.warn("[DB] Soft delete cleanup failed", { error: extractErrorMessage(error) });
   }
 }
 

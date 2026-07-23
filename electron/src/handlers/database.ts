@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import { getLogger } from "../logging/logger";
+import { extractErrorMessage } from "../logging/extract-error";
 import {
   initDatabase,
   getDb,
@@ -271,7 +272,7 @@ async function handleDbTransaction(
     scheduleSave();
     return { success: true, data: results };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = extractErrorMessage(error);
     logger.error("[DB] Transaction failed:", error instanceof Error ? error : new Error(String(error)));
     return { success: false, error: msg || "Unknown database transaction error" };
   }
@@ -337,7 +338,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true, dbType: getDbType() };
     } catch (error) {
       logger.error("[DB] Init failed:", error instanceof Error ? error : new Error(String(error)));
-      return { success: false, error: (error as Error).message };
+      return { success: false, error: extractErrorMessage(error) };
     }
   });
 
@@ -352,7 +353,7 @@ export function setupDatabaseHandlers(): void {
         return { success: true, data: redactResult(sql, result) };
       } catch (error) {
         logger.error("[DB] Query failed:", error instanceof Error ? error : new Error(String(error)), { sql: String(sql).substring(0, 200) });
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database query error" };
       }
     }
@@ -371,7 +372,7 @@ export function setupDatabaseHandlers(): void {
         return { success: true, data: redactResult(sql, result) };
       } catch (error) {
         logger.error("[DB] Get failed:", error instanceof Error ? error : new Error(String(error)));
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database get error" };
       }
     }
@@ -389,7 +390,7 @@ export function setupDatabaseHandlers(): void {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[DB] Run failed:", error instanceof Error ? error : new Error(String(error)));
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = extractErrorMessage(error);
         return { success: false, error: msg || "Unknown database run error" };
       }
     }
@@ -423,7 +424,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true };
     } catch (error) {
       logger.error("[DB] Save failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database save error" };
     }
   });
@@ -440,7 +441,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true };
     } catch (error) {
       logger.error("[DB] Close failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database close error" };
     }
   });
@@ -463,7 +464,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true, data: stats[0] };
     } catch (error) {
       logger.error("[DB] Stats failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database stats error" };
     }
   });
@@ -473,7 +474,7 @@ export function setupDatabaseHandlers(): void {
       await ensureDb();
       return { success: true, data: { type: getDbType() } };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database type error" };
     }
   });
@@ -490,7 +491,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true };
     } catch (error) {
       logger.error("[DB] Vacuum failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database vacuum error" };
     }
   });
@@ -503,7 +504,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true };
     } catch (error) {
       logger.error("[DB] Analyze failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database analyze error" };
     }
   });
@@ -520,7 +521,7 @@ export function setupDatabaseHandlers(): void {
       return { success: true };
     } catch (error) {
       logger.error("[DB] Checkpoint failed:", error instanceof Error ? error : new Error(String(error)));
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       return { success: false, error: msg || "Unknown database checkpoint error" };
     }
   });

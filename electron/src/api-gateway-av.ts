@@ -8,6 +8,7 @@
  * 业务逻辑与原 api-gateway.ts 完全一致，仅做文件拆分。
  */
 import { pluginRegistry } from "./plugins";
+import { extractErrorMessage } from "./logging/extract-error";
 import { API_ERROR_CODES } from "./api-gateway-error-codes";
 import {
   type ApiResult,
@@ -124,7 +125,7 @@ export async function generateAudio(body: Record<string, unknown>): Promise<ApiR
   } catch (error) {
     return {
       success: false,
-      error: (error as Error).message,
+      error: extractErrorMessage(error),
       httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
     };
   }
@@ -278,7 +279,7 @@ export async function transcribeAudio(body: Record<string, unknown>): Promise<Ap
   } catch (error) {
     return {
       success: false,
-      error: (error as Error).message,
+      error: extractErrorMessage(error),
       httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
     };
   }

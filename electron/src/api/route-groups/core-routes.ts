@@ -1,5 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import { handleConfig, handleSecureConfig, maskApiKey } from "../../handlers/config";
 import type { AppConfig, ProviderConfig } from "../../handlers/config";
 import { handleTestConnection } from "../../handlers/test-connection";
@@ -59,7 +60,7 @@ export const coreRoutes: Record<string, Route> = {
         return { success: true, data: { value } };
       } catch (error) {
         logger.error("[Core HTTP] config/get failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -87,7 +88,7 @@ export const coreRoutes: Record<string, Route> = {
         return { success: true };
       } catch (error) {
         logger.error("[Core HTTP] config/set failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],

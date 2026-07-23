@@ -1,4 +1,5 @@
 import { getLogger } from "../logging/logger";
+import { extractErrorMessage } from "../logging/extract-error";
 import type { DatabaseInterface } from "../db-interface";
 import {
   getSchemaSQL,
@@ -127,7 +128,7 @@ export function executeSchemaSafely(db: DatabaseInterface): void {
     try {
       db.exec(stmt + ";");
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = extractErrorMessage(error);
       if (
         msg.includes("already exists") ||
         msg.includes("duplicate column")

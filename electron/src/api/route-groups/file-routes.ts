@@ -1,5 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
+import { extractErrorMessage } from "../../logging/extract-error";
 import {
   fileSaveSchema,
   fileReadSchema,
@@ -228,7 +229,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { key: finalKey } };
       } catch (error) {
         logger.error("[File HTTP] save failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -255,7 +256,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { base64: buffer.toString("base64") } };
       } catch (error) {
         logger.error("[File HTTP] read failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -283,7 +284,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { dataUrl: `data:${mime};base64,${buffer.toString("base64")}` } };
       } catch (error) {
         logger.error("[File HTTP] read-base64 failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -305,7 +306,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { deleted } };
       } catch (error) {
         logger.error("[File HTTP] delete failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -322,7 +323,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { exists: await pathExists(filePath) } };
       } catch (error) {
         logger.error("[File HTTP] exists failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -351,7 +352,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { key: finalTargetKey } };
       } catch (error) {
         logger.error("[File HTTP] copy failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -435,7 +436,7 @@ export const fileRoutes: Record<string, Route> = {
         };
       } catch (error) {
         logger.error("[File HTTP] list failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -476,7 +477,7 @@ export const fileRoutes: Record<string, Route> = {
         };
       } catch (error) {
         logger.error("[File HTTP] info failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -511,7 +512,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { key: body.key } };
       } catch (error) {
         logger.error("[File HTTP] write-atomic failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -546,7 +547,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true };
       } catch (error) {
         logger.error("[File HTTP] write failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -589,7 +590,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true };
       } catch (error) {
         logger.error("[File HTTP] write-binary failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],
@@ -604,7 +605,7 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true, data: { path: cacheDir } };
       } catch (error) {
         logger.error("[File HTTP] cache-directory failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST", "GET"],
@@ -629,7 +630,7 @@ export const fileRoutes: Record<string, Route> = {
         };
       } catch (error) {
         logger.error("[File HTTP] disk-space failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, error: extractErrorMessage(error) };
       }
     },
     methods: ["POST"],

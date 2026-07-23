@@ -23,6 +23,7 @@ import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import { getLogger } from "../logging";
+import { extractErrorMessage } from "../logging/extract-error";
 import { ssrfGuard } from "../security";
 import {
   getUserDataRootDir,
@@ -105,7 +106,7 @@ export async function downloadToFile(
       success: false,
       totalBytes: 0,
       duration: Date.now() - startTime,
-      error: `Failed to create parent directory: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Failed to create parent directory: ${extractErrorMessage(error)}`,
     };
   }
 
@@ -275,9 +276,9 @@ async function validateUrlWithSsrf(urlStr: string): Promise<void> {
     }
     logger.warn("[DownloadToFile] SSRF validation failed, blocking by default (fail-close)", {
       url: urlStr,
-      error: error instanceof Error ? error.message : String(error),
+      error: extractErrorMessage(error),
     });
-    throw new Error(`SSRF validation failed (fail-close): ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`SSRF validation failed (fail-close): ${extractErrorMessage(error)}`);
   }
 }
 

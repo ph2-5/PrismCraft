@@ -1,4 +1,5 @@
 import { classifyError } from "@/domain/types";
+import { ConfigurationError, DatabaseError } from "@/domain/types/result";
 import { performanceMonitor } from "@/infrastructure/monitoring";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
@@ -13,7 +14,7 @@ function getElectronAPI() {
       _electronApiWarned = true;
       errorLogger.debug("[sqlite-core] electronAPI not available - running in browser mode");
     }
-    throw new Error("electronAPI not available");
+    throw new ConfigurationError("electronAPI not available");
   }
   return window.electronAPI;
 }
@@ -108,7 +109,7 @@ export async function safeQuery<T>(
       const httpResult = await httpDbCall<T[]>("db/query", { sql, params });
       if (httpResult !== null) {
         if (!httpResult.success) {
-          throw new Error(extractDbErrorMessage(httpResult, `SQLite query failed: ${sql.substring(0, 100)}`));
+          throw new DatabaseError(extractDbErrorMessage(httpResult, `SQLite query failed: ${sql.substring(0, 100)}`));
         }
         return (httpResult.data ?? []) as T[];
       }
@@ -118,7 +119,7 @@ export async function safeQuery<T>(
         // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
         // 错误信息已通过 throw 传递给调用方，由调用方决定日志级别。
         errorLogger.debug("SQLite query failed", { sql: sql.substring(0, 200) });
-        throw new Error(extractDbErrorMessage(response, "SQLite query failed"));
+        throw new DatabaseError(extractDbErrorMessage(response, "SQLite query failed"));
       }
       return (response.data ?? []) as T[];
     }),
@@ -137,7 +138,7 @@ export async function safeRun(
         if (!httpResult.success) {
           // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
           errorLogger.debug("SQLite run failed", { sql: sql.substring(0, 200) });
-          throw new Error(extractDbErrorMessage(httpResult, "SQLite run failed"));
+          throw new DatabaseError(extractDbErrorMessage(httpResult, "SQLite run failed"));
         }
         const data = httpResult.data;
         const rowid = data?.lastInsertRowid;
@@ -151,7 +152,7 @@ export async function safeRun(
       if (!response.success) {
         // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
         errorLogger.debug("SQLite run failed", { sql: sql.substring(0, 200) });
-        throw new Error(extractDbErrorMessage(response, "SQLite run failed"));
+        throw new DatabaseError(extractDbErrorMessage(response, "SQLite run failed"));
       }
       return { changes: response.data?.changes, lastInsertRowid: response.data?.lastInsertRowid };
     }),
@@ -170,7 +171,7 @@ export async function safeTransaction(
           const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
           // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
           errorLogger.debug("SQLite transaction failed", { sql: sqlPreview });
-          throw new Error(extractDbErrorMessage(httpResult, "SQLite transaction failed"));
+          throw new DatabaseError(extractDbErrorMessage(httpResult, "SQLite transaction failed"));
         }
         return (httpResult.data ?? []) as unknown[];
       }
@@ -180,7 +181,7 @@ export async function safeTransaction(
         const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
         // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
         errorLogger.debug("SQLite transaction failed", { sql: sqlPreview });
-        throw new Error(extractDbErrorMessage(response, "SQLite transaction failed"));
+        throw new DatabaseError(extractDbErrorMessage(response, "SQLite transaction failed"));
       }
       return (response.data ?? []) as unknown[];
     }),

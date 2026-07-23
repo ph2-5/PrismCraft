@@ -35,6 +35,8 @@ const MEMORY_THRESHOLDS = {
   medium: 1024, // 1GB
   high: 1536   // 1.5GB
 };
+const MEMORY_CHECK_INTERVAL_MS = 1000;
+const MEMORY_WARNING_THRESHOLD_MS = 1100;
 
 // 根据已用堆大小判定警告等级
 function getWarningLevel(usedJSHeapSize: number): MemoryState["warningLevel"] {
@@ -227,9 +229,9 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
     }));
 
     // 重新检查内存
-    const timeoutId = setTimeout(checkMemory, 1000);
+    const timeoutId = setTimeout(checkMemory, MEMORY_CHECK_INTERVAL_MS);
     pendingTimeoutsRef.current.add(timeoutId);
-    setTimeout(() => { pendingTimeoutsRef.current.delete(timeoutId); }, 1100);
+    setTimeout(() => { pendingTimeoutsRef.current.delete(timeoutId); }, MEMORY_WARNING_THRESHOLD_MS);
 
     return cleanedCount;
   }, [checkMemory]);

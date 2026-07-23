@@ -2,6 +2,7 @@ import { safeQuery, safeTransaction } from "./sqlite-core";
 import { parseRecordWithTable, toSqlValue, trackChange } from "./core";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { NotFoundError } from "@/domain/types/result";
 import type { Story, StoryStatus } from "@/domain/schemas";
 import type { StorySearchOptions } from "@/domain/ports/storage-port";
 import { buildBeatInsert } from "./stories/beat-transformer";
@@ -376,7 +377,7 @@ export const storyStorage = {
         [id],
       );
       if (existing.length === 0) {
-        throw new Error(`Story not found for update: id="${id}"`);
+        throw new NotFoundError("Story", id);
       }
       if (version !== undefined && existing[0]!.version !== version) {
         throw new VersionConflictError("stories", id, version);
@@ -410,7 +411,7 @@ export const storyStorage = {
         [id],
       );
       if (existing.length === 0) {
-        throw new Error(`Story not found for status update: id="${id}"`);
+        throw new NotFoundError("Story", id);
       }
     }
 
@@ -455,7 +456,7 @@ export const storyStorage = {
     // a. 读取源 Story
     const source = await storyStorage.getStoryById<Story>(sourceId);
     if (!source) {
-      throw new Error(`Story not found for duplicate: id="${sourceId}"`);
+      throw new NotFoundError("Story", sourceId);
     }
 
     const now = Math.floor(Date.now() / 1000);

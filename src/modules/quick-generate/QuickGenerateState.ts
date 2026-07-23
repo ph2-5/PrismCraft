@@ -30,6 +30,7 @@ import { quickGenerateReducer, initialState, type QuickGenerateAction } from "./
 export type { QuickGenerateState, QuickGenerateAction } from "./quick-generate-reducer";
 
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const BLOB_URL_REVOKE_DELAY_MS = 60000;
 
 const QUICK_EXAMPLES = [
   t("quickGenerate.example1"),
@@ -65,7 +66,7 @@ async function downloadVideoFile(videoUrl: string, filename: string): Promise<vo
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
   } catch (e) {
     errorLogger.warn("[QuickGenerate] Failed to download video via fetch, falling back to direct link", e as Error);
     const link = document.createElement("a");

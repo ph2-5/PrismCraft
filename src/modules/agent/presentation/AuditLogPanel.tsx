@@ -38,6 +38,8 @@ const TOP_TOOLS = 5;
 const PAGE_SIZE = 20;
 /** 导出时使用的条数上限（足够大以导出全部） */
 const EXPORT_LIMIT = 100000;
+/** 导出状态反馈持续时间（毫秒） */
+const EXPORT_STATUS_DURATION_MS = 2000;
 
 /** 格式化导出文件名时间戳：YYYYMMDD-HHmmss */
 function formatExportTimestamp(now: Date): string {
@@ -276,7 +278,7 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   /** 重置导出状态定时器（2 秒后恢复 idle） */
   const resetExportStatusTimer = () => {
     if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
-    exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
+    exportTimerRef.current = setTimeout(() => setExportStatus("idle"), EXPORT_STATUS_DURATION_MS);
   };
 
   /** 工具名去重列表（来自 stats，用于筛选下拉） */

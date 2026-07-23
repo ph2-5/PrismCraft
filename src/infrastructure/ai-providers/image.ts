@@ -7,6 +7,7 @@ import type { ImageGenerationRequestBody } from "./types";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { resolveImageSize, type ImageSizePurpose } from "./model-capabilities";
 import { t } from "@/shared/constants";
+import { GenerationError } from "@/domain/types/result";
 
 async function validateImageSize(
   imageUrl: string,
@@ -90,7 +91,7 @@ export async function generateImage(
     return result;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "image");
   }
 }
 
@@ -160,6 +161,6 @@ export async function analyzeImage(
     return result;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error((error as Error).message);
+    throw new GenerationError(extractErrorMessage(error), "image");
   }
 }

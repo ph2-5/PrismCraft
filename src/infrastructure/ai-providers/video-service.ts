@@ -17,7 +17,7 @@
  */
 
 import type { ApiResponse, VideoGenerationResult } from "@/domain/schemas";
-import { AppError } from "@/domain/types";
+import { AppError, GenerationError } from "@/domain/types";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { apiCallWithRetry, ApiClientError } from "./core";
 import { resolveCapability, safeTruncatePrompt } from "./config";
@@ -198,7 +198,7 @@ export async function generateVideo(
     return result;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "video");
   }
 }
 

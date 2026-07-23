@@ -34,6 +34,7 @@
 
 import { getCacheDirectory, fileExists, readFile, writeFile, deleteFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
+import { ConfigurationError } from "@/domain/types/result";
 import {
   MODEL_DIR,
   REGISTRY_FILE_NAME,
@@ -98,7 +99,7 @@ function notifyActiveModelChange(newId: string | null): void {
 export async function getModelDirectory(): Promise<string> {
   const result = await getCacheDirectory();
   if (!result.success || !result.path) {
-    throw new Error("Failed to get cache directory");
+    throw new ConfigurationError("Failed to get cache directory");
   }
   // 规范化路径分隔符
   const cacheDir = result.path.replace(/\\/g, "/");

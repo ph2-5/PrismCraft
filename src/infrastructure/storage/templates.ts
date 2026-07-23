@@ -1,6 +1,7 @@
 import { safeQuery, safeRun } from "./sqlite-core";
 import { parseRecordWithTable, toSqlValue, trackChange } from "./core";
 import { errorLogger } from "@/shared/error-logger";
+import { NotFoundError } from "@/domain/types/result";
 
 export const templateStorage = {
   async getVideoTemplates<T = Record<string, unknown>>(): Promise<T[]> {
@@ -158,7 +159,7 @@ export const templateStorage = {
         [id],
       );
       if (existing.length === 0) {
-        throw new Error(`ASTTemplate not found for update: id="${id}"`);
+        throw new NotFoundError("ASTTemplate", id);
       }
     }
     try {

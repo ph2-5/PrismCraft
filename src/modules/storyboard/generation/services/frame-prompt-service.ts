@@ -8,6 +8,8 @@ import { t } from "@/shared/constants";
 import { extractJsonObject } from "@/shared-logic/json";
 import { sleep } from "@/shared-logic/sleep";
 
+const BATCH_FRAME_INTER_BEAT_DELAY_MS = 300;
+
 interface FramePromptInput {
   beat: StoryBeat;
   index: number;
@@ -222,7 +224,7 @@ export async function batchGenerateFramePrompts(
       }
 
       if (i < beats.length - 1) {
-        await sleep(300);
+        await sleep(BATCH_FRAME_INTER_BEAT_DELAY_MS);
       }
     }
 

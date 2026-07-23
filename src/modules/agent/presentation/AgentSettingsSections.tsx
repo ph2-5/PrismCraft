@@ -24,6 +24,8 @@ import type { ArchivalMemoryEntry } from "@/modules/agent-memory";
 import { formatRelativeTime } from "@/shared/utils/format";
 import { X, Check, Loader2, Search } from "lucide-react";
 
+const STATUS_DISPLAY_DURATION_MS = 2000;
+
 /** ffmpeg 配置区块（独立管理状态，用 getConfig/setConfig 持久化） */
 export function FfmpegConfigSection() {
   const [path, setPath] = useState("");
@@ -192,7 +194,7 @@ export function SearchConfigSection() {
       if (ok1 && ok2 && ok3) {
         setStatus("saved");
         if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
-        statusTimerRef.current = setTimeout(() => setStatus("idle"), 2000);
+        statusTimerRef.current = setTimeout(() => setStatus("idle"), STATUS_DISPLAY_DURATION_MS);
       } else {
         setStatus("failed");
       }

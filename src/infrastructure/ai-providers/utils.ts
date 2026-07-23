@@ -3,6 +3,7 @@ import { apiCallWithRetry } from "./core";
 import { ApiClientError } from "./errors";
 import { withCache, clearCacheByPrefix } from "@/infrastructure/ai-providers/api-cache";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { ApiError } from "@/domain/types/result";
 
 /** 上传文件大小上限：50MB（与项目其他位置一致） */
 const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
@@ -51,7 +52,7 @@ export async function uploadFile(file: File): Promise<UploadFileResult> {
     });
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new ApiError(extractErrorMessage(error));
   }
 }
 

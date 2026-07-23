@@ -4,6 +4,7 @@ import type { StoryElement, ElementType } from "@/domain/schemas";
 import { getElement } from "./queries";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { NotFoundError } from "@/domain/types/result";
 
 export async function createElement(
   type: ElementType,
@@ -48,7 +49,7 @@ export async function updateElement(
   version?: number,
 ): Promise<StoryElement> {
   const element = await getElement(elementId);
-  if (!element) throw new Error(`Element ${elementId} not found`);
+  if (!element) throw new NotFoundError("Element", elementId);
 
   if (version !== undefined) {
     const existing = await safeQuery<{ id: string; version: number }>(
@@ -98,7 +99,7 @@ export async function updateElement(
       [elementId],
     );
     if (existing.length === 0) {
-      throw new Error(`Element not found for update: id="${elementId}"`);
+      throw new NotFoundError("Element", elementId);
     }
     if (version !== undefined && existing[0]!.version !== version) {
       throw new VersionConflictError("elements", elementId, version);

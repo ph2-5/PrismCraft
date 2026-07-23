@@ -13,7 +13,7 @@
  *
  * 匹配策略（两层）：
  * 1. 关键词匹配（快速，当前实现）
- * 2. LLM fallback（TODO：当关键词都不匹配时，调用小型 LLM 做意图分类）
+ * 2. LLM fallback（未来增强：当关键词都不匹配时，调用小型 LLM 做意图分类；跟踪：GitHub issue）
  */
 
 // === 意图类型定义 ===
@@ -172,7 +172,8 @@ const INTENT_TO_TOOL_SET: Record<IntentType, string[] | undefined> = {
  * 1. 遍历 KEYWORD_MATCHERS（顺序决定优先级：troubleshoot > novel > interview > ...）
  * 2. 无命中时返回 default 意图
  *
- * TODO（未来增强）：当关键词都不匹配时，可调用小型 LLM 做意图分类，
+ * 未来增强：当关键词都不匹配时，可调用小型 LLM 做意图分类，
+ * 跟踪：GitHub issue（如未创建则保留此注释）
  * 当前版本仅用关键词匹配，足以覆盖 80%+ 常见场景。
  *
  * @param userMessage 用户输入的消息

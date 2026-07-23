@@ -1,6 +1,7 @@
 import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 import { parseRecordWithTable, toSqlValue, trackChange } from "./core";
 import { errorLogger } from "@/shared/error-logger";
+import { NotFoundError } from "@/domain/types/result";
 import type { StoryboardAsset } from "@/domain/schemas";
 
 function safeParseStringArray(value: unknown): string[] {
@@ -154,7 +155,7 @@ export const storyboardStorage = {
         [id],
       );
       if (existing.length === 0) {
-        throw new Error(`StoryboardAsset not found for update: id="${id}"`);
+        throw new NotFoundError("StoryboardAsset", id);
       }
     }
     try {

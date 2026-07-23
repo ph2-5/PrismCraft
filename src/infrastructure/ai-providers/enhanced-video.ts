@@ -5,6 +5,7 @@ import type { ApiResponse, EnhancedVideoGenerationParams, VideoGenerationResult 
 import { generateVideo } from "./video-service";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { GenerationError } from "@/domain/types/result";
 
 const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
 
@@ -171,7 +172,7 @@ export async function generateEnhancedVideo(
     return result;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "video");
   }
 }
 

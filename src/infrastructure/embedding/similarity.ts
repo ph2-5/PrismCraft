@@ -9,6 +9,8 @@
  * 归一化后的向量（transformers.js normalize=true）余弦相似度等于点积。
  */
 
+import { ValidationError } from "@/domain/types/result";
+
 /**
  * 计算两个向量的余弦相似度
  *
@@ -18,7 +20,7 @@
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
-    throw new Error(`Vector dimension mismatch: ${a.length} vs ${b.length}`);
+    throw new ValidationError(`Vector dimension mismatch: ${a.length} vs ${b.length}`);
   }
   if (a.length === 0) return 0;
 

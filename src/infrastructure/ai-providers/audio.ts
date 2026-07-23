@@ -15,6 +15,7 @@ import { apiCallWithRetry } from "./core";
 import { ApiClientError } from "./errors";
 import { resolveCapability } from "./config";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { GenerationError } from "@/domain/types/result";
 
 interface TtsRequestBody {
   text: string;
@@ -103,7 +104,7 @@ export async function synthesizeSpeech(
     };
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }
 
@@ -164,6 +165,6 @@ export async function transcribeAudio(
     };
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }

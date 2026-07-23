@@ -4,6 +4,7 @@ import type { Scene } from "@/domain/schemas";
 import type { FieldTarget } from "./core";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { NotFoundError } from "@/domain/types/result";
 import {
   parseAppearanceContainer as parseAppearance,
   parseAtmosphereContainer as parseAtmosphere,
@@ -225,7 +226,7 @@ export const sceneStorage = {
       [id],
     );
     if (existing.length === 0) {
-      throw new Error(`Scene not found for update: id="${id}"`);
+      throw new NotFoundError("Scene", id);
     }
     if (version !== undefined && existing[0]!.version !== version) {
       throw new VersionConflictError("scenes", id, version);

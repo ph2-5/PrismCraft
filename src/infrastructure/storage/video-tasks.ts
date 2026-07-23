@@ -3,6 +3,7 @@ import { trackChange, buildInsert } from "./core";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { NotFoundError } from "@/domain/types/result";
 import {
   toStorageTimestamp,
   parseVideoTask,
@@ -134,7 +135,7 @@ export const videoTaskStorage = {
         [taskId],
       );
       if (existing.length === 0) {
-        throw new Error(`VideoTask not found for update: taskId="${taskId}"`);
+        throw new NotFoundError("VideoTask", taskId);
       }
       if (version !== undefined && existing[0]!.version !== version) {
         throw new VersionConflictError("video_tasks", taskId, version);

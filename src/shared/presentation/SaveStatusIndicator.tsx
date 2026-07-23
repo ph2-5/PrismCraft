@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Check, Loader2, AlertCircle, Save } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 
+const SAVE_INDICATOR_HIDE_DELAY_MS = 5000;
+
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "unsaved";
 
 interface SaveStatusIndicatorProps {
@@ -65,7 +67,7 @@ export function SaveStatusIndicator({
 
     if (status === "saved") {
       const showTimer = setTimeout(() => setShowSaved(true), 0);
-      hideTimerRef.current = setTimeout(() => setShowSaved(false), 5000);
+      hideTimerRef.current = setTimeout(() => setShowSaved(false), SAVE_INDICATOR_HIDE_DELAY_MS);
       return () => {
         clearTimeout(showTimer);
         clearHideTimer();

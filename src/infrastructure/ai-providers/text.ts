@@ -6,6 +6,7 @@ import { ApiClientError } from "./errors";
 import { resolveCapability, safeTruncatePrompt } from "./config";
 import type { TextGenerationRequestBody, ChatCompletionRequestBody } from "./types";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { GenerationError, ValidationError } from "@/domain/types/result";
 
 export async function generateText(
   prompt: string,
@@ -46,7 +47,7 @@ export async function generateText(
     return result;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }
 
@@ -72,7 +73,7 @@ export async function generateTextStream(
 ): Promise<ApiResponse<{ text: string }>> {
   try {
     if (!options?.onChunk) {
-      throw new Error("options.onChunk is required for generateTextStream");
+      throw new ValidationError("options.onChunk is required for generateTextStream");
     }
     const { onChunk } = options;
 
@@ -111,7 +112,7 @@ export async function generateTextStream(
     );
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }
 
@@ -193,6 +194,6 @@ export async function generateChat(
     );
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }

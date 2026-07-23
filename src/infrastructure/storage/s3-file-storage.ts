@@ -6,6 +6,7 @@ import type {
   CopyFileParams,
   WriteFileAtomicParams,
 } from "@/domain/ports/file-storage-port";
+import { StorageError } from "@/domain/types/result";
 import { errorLogger } from "@/shared/error-logger";
 
 /**
@@ -281,7 +282,7 @@ export class S3FileStorage implements IFileStorage {
 
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
-      throw new Error(`S3 PUT failed: ${response.status} ${errText}`);
+      throw new StorageError(`S3 PUT failed: ${response.status} ${errText}`);
     }
 
     return { key: finalKey };
@@ -293,7 +294,7 @@ export class S3FileStorage implements IFileStorage {
       const response = await this.makeRequest("GET", objectKey);
       if (response.status === 404) return null;
       if (!response.ok) {
-        throw new Error(`S3 GET failed: ${response.status}`);
+        throw new StorageError(`S3 GET failed: ${response.status}`);
       }
       const arrayBuffer = await response.arrayBuffer();
       return Buffer.from(arrayBuffer);
@@ -338,7 +339,7 @@ export class S3FileStorage implements IFileStorage {
 
     const sourceBuffer = await this.readFile(sourceKey);
     if (!sourceBuffer) {
-      throw new Error(`Source file not found: ${sourceKey}`);
+      throw new StorageError(`Source file not found: ${sourceKey}`);
     }
 
     const sourceExt = sourceKey.split(".").pop() || "";
@@ -365,7 +366,7 @@ export class S3FileStorage implements IFileStorage {
       });
 
       if (!response.ok) {
-        throw new Error(`S3 ListObjectsV2 failed: ${response.status}`);
+        throw new StorageError(`S3 ListObjectsV2 failed: ${response.status}`);
       }
 
       const xml = await response.text();

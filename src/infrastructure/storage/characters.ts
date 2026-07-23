@@ -11,6 +11,7 @@ import {
 import { parseCharacterWithOutfits, parseCharactersWithOutfits } from "./characters/parser";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { NotFoundError } from "@/domain/types/result";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
 
 const CHARACTER_FIELD_TARGETS: Record<string, FieldTarget> = {
@@ -114,7 +115,7 @@ export const characterStorage = {
       [id],
     );
     if (existing.length === 0) {
-      throw new Error(`Character not found for update: id="${id}"`);
+      throw new NotFoundError("Character", id);
     }
     if (version !== undefined && existing[0]!.version !== version) {
       throw new VersionConflictError("characters", id, version);

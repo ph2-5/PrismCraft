@@ -10,6 +10,7 @@ import type {
   CopyFileParams,
   WriteFileAtomicParams,
 } from "@/domain/ports/file-storage-port";
+import { StorageError } from "@/domain/types/result";
 import { errorLogger } from "@/shared/error-logger";
 
 function resolveUserDataRoot(): string {
@@ -113,17 +114,17 @@ export class LocalFileStorage implements IFileStorage {
     // 兼容旧物理路径（绝对路径或含路径分隔符）
     if (path.isAbsolute(key) || key.includes("/") || key.includes("\\")) {
       if (!(await this.isPathAllowed(key))) {
-        throw new Error(`Path not allowed: ${key}`);
+        throw new StorageError(`Path not allowed: ${key}`);
       }
       return key;
     }
 
     if (!isFilenameSafe(key)) {
-      throw new Error(`Invalid key: ${key}`);
+      throw new StorageError(`Invalid key: ${key}`);
     }
 
     if (!category) {
-      throw new Error("Category is required for key-based path resolution");
+      throw new StorageError("Category is required for key-based path resolution");
     }
     return path.join(CATEGORY_DIRS[category], key);
   }
@@ -268,12 +269,12 @@ export class LocalFileStorage implements IFileStorage {
 
     const sourcePath = await this.resolvePath(sourceKey);
     if (!(await this.isPathAllowed(sourcePath))) {
-      throw new Error(`Source path not allowed: ${sourceKey}`);
+      throw new StorageError(`Source path not allowed: ${sourceKey}`);
     }
     try {
       await fsp.access(sourcePath);
     } catch {
-      throw new Error(`Source file not found: ${sourceKey}`);
+      throw new StorageError(`Source file not found: ${sourceKey}`);
     }
 
     const sourceExt = path.extname(sourcePath);
@@ -376,7 +377,7 @@ export class LocalFileStorage implements IFileStorage {
 
     const filePath = await this.resolvePath(key, category);
     if (!(await this.isPathAllowed(filePath))) {
-      throw new Error(`Path not allowed: ${key}`);
+      throw new StorageError(`Path not allowed: ${key}`);
     }
 
     const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;

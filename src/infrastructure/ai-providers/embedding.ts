@@ -14,6 +14,7 @@ import { apiCallWithRetry } from "./core";
 import { ApiClientError } from "./errors";
 import { resolveCapability } from "./config";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { GenerationError } from "@/domain/types/result";
 
 /** 单批最大文本数（OpenAI 限制 2048，保守取 64 避免超时） */
 const MAX_BATCH_SIZE = 64;
@@ -74,7 +75,7 @@ export async function generateEmbedding(
     return { success: true, data: { embedding } };
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }
 
@@ -145,6 +146,6 @@ export async function generateEmbeddings(
     return { success: true, data: { embeddings: allEmbeddings } };
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
-    throw new Error(extractErrorMessage(error));
+    throw new GenerationError(extractErrorMessage(error), "text");
   }
 }

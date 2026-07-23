@@ -19,6 +19,8 @@ import { makeInitialState } from "./pipeline-helpers";
 import { useNovelQuickGenerate } from "./use-novel-quick-generate";
 import type { UsePipelineStateResult } from "./use-pipeline-state";
 
+const PROCESSING_RESET_DELAY_MS = 500;
+
 export interface UseNovelModeHandlersOptions {
   state: UsePipelineStateResult["state"];
   setState: UsePipelineStateResult["setState"];
@@ -73,7 +75,7 @@ export function useNovelModeHandlers({
         gates: getAutoGates({ ...prev.config, mode: "auto" }),
       },
     }));
-    window.setTimeout(() => setIsProcessing(false), 500);
+    window.setTimeout(() => setIsProcessing(false), PROCESSING_RESET_DELAY_MS);
   }, [isProcessing, setIsProcessing, setState]);
 
   const setCurrentSegmentIndex = useCallback((index: number) => {

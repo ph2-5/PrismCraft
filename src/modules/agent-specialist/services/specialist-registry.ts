@@ -14,6 +14,7 @@
 
 import type { SpecialistAgent } from "../domain/specialist-types";
 import { BUILTIN_SPECIALISTS } from "../domain/specialist-types";
+import { t } from "@/shared/constants/messages";
 
 class SpecialistRegistry {
   private specialists = new Map<string, SpecialistAgent>();
@@ -22,7 +23,7 @@ class SpecialistRegistry {
   /** 注册 Specialist（重名抛错） */
   register(specialist: SpecialistAgent): void {
     if (this.specialists.has(specialist.id)) {
-      throw new Error(`Specialist "${specialist.id}" already registered — 命名冲突`);
+      throw new Error(t("error.specialistAlreadyRegistered", { id: specialist.id }));
     }
     this.specialists.set(specialist.id, specialist);
   }

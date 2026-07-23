@@ -4,6 +4,7 @@ import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { t, BATCH_OPERATION_INTERVAL_MS } from "@/shared/constants";
+import { sleep } from "@/shared-logic/sleep";
 
 export type BatchStrategy = "all_serial" | "skip_completed" | "parallel_batch";
 export type GenerationLevel = "keyframe" | "framepair" | "video";
@@ -84,17 +85,13 @@ async function executeBeatWithRetry<T>(
       return { result, failed: false };
     } catch (err) {
       if (retry < maxRetry) {
-        await new Promise((r) => setTimeout(r, retryDelayBase * (retry + 1)));
+        await sleep(retryDelayBase * (retry + 1));
         continue;
       }
       throw err;
     }
   }
   return { result: undefined, failed: true };
-}
-
-async function waitForDelay(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildKeyframeBatchConfig(
@@ -327,7 +324,7 @@ async function runBatchOperation<T>(
     const result = await processBeat(cfg, args, beat, i, targetBeats, chainMode, opts, counts);
     if (result.shouldBreak) break;
     if (!result.shouldSkipDelay && i < targetBeats.length - 1) {
-      await waitForDelay(delayMs);
+      await sleep(delayMs);
     }
   }
 

@@ -19,6 +19,7 @@
 import { getCacheDirectory, readFile, writeFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
 import { truncate } from "@/shared/utils/format";
+import { t } from "@/shared/constants/messages";
 import {
   getRelevantBuiltinFewShots,
   BUILTIN_FEWSHOT_EXAMPLES,
@@ -80,7 +81,7 @@ async function getFilePath(): Promise<string> {
   if (cachedFilePath) return cachedFilePath;
   const result = await getCacheDirectory();
   if (!result.success || !result.path) {
-    throw new Error("无法获取缓存目录");
+    throw new Error(t("error.cacheDirUnavailable"));
   }
   // 规范化路径分隔符
   const base = result.path.replace(/[\\\/]+$/, "");

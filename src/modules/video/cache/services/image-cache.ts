@@ -12,6 +12,7 @@ import {
   fileExists as httpFileExists,
   deleteFile as httpDeleteFile,
 } from "@/shared/file-http";
+import { sleep } from "@/shared-logic/sleep";
 
 const CACHE_RETRY_COUNT = 2;
 const MAX_IMAGE_CACHE_SIZE = 500;
@@ -77,7 +78,7 @@ async function assertDownloadComplete(
   const fileInfo = await httpGetFileInfo(filePath);
   if (fileInfo && fileInfo.success && fileInfo.size !== expectedBytes) {
     await httpDeleteFile(filePath);
-    throw new Error(`下载不完整: ${fileInfo.size}/${expectedBytes} bytes`);
+    throw new Error(t("error.downloadIncomplete", { actual: fileInfo.size ?? 0, expected: expectedBytes }));
   }
 }
 
@@ -174,7 +175,7 @@ export async function cacheImageBlob(
       } catch (error) {
         if (isHttpExpiredError(error) && attempt === 0) {
           errorLogger.warn("[ImageCache] URL过期，重试中...", error);
-          await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
+          await sleep(CACHE_RETRY_INTERVAL_MS);
           continue;
         }
 
@@ -183,12 +184,12 @@ export async function cacheImageBlob(
           error,
         );
         if (attempt < CACHE_RETRY_COUNT - 1) {
-          await new Promise((r) => setTimeout(r, CACHE_BACKOFF_BASE_MS * (attempt + 1)));
+          await sleep(CACHE_BACKOFF_BASE_MS * (attempt + 1));
         }
       }
     }
 
-    throw new Error(`缓存图片失败: ${sourceUrl}`);
+    throw new Error(t("error.cacheImageFailed", { url: sourceUrl }));
   });
 }
 

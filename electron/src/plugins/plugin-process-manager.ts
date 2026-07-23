@@ -156,7 +156,7 @@ export class PluginProcessManager {
     if (this.crashTimestamps.length >= MAX_CRASH_COUNT) {
       const recentCrashes = this.crashTimestamps.filter((t) => Date.now() - t < CRASH_WINDOW_MS);
       if (recentCrashes.length >= MAX_CRASH_COUNT) {
-        throw new Error(`插件进程在 ${CRASH_WINDOW_MS / 1000}s 内崩溃 ${MAX_CRASH_COUNT} 次，已禁用自动重启`);
+        throw new Error(`PLUGIN_CRASH_LOOP_DISABLED (crashed ${MAX_CRASH_COUNT} times in ${CRASH_WINDOW_MS / 1000}s)`);
       }
       this.crashTimestamps = recentCrashes;
     }
@@ -196,7 +196,7 @@ export class PluginProcessManager {
 
   async call<T = unknown>(method: string, args: unknown[]): Promise<T> {
     if (!this.alive) {
-      throw new Error(`插件进程未运行 (plugin: ${this.pluginId})`);
+      throw new Error(`PLUGIN_NOT_RUNNING (plugin: ${this.pluginId})`);
     }
 
     if (!this.isReady && this.readyPromise) {

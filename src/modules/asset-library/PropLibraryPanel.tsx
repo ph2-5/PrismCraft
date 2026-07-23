@@ -12,7 +12,7 @@
  *
  * 依赖方向：@/modules/asset/props（hooks + services）+ @/shared/* + @/domain/schemas
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Package,
   Plus,
@@ -168,9 +168,19 @@ function PropEditDialog({ open, editingProp, defaultType, onClose, onSubmit }: P
     const file = e.target.files?.[0];
     if (!file) return;
     // 简化：用 URL.createObjectURL 作为预览，实际保存由调用方处理
-    const url = URL.createObjectURL(file);
-    setReferenceImage(url);
+    // 内存泄漏修复：替换前 revoke 旧的 blob URL
+    setReferenceImage((prev) => {
+      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
   }, []);
+
+  // 内存泄漏修复：组件卸载或 referenceImage 变更时 revoke 旧的 blob URL
+  useEffect(() => {
+    return () => {
+      if (referenceImage.startsWith("blob:")) URL.revokeObjectURL(referenceImage);
+    };
+  }, [referenceImage]);
 
   const handleSubmit = useCallback(async () => {
     if (!name.trim()) {

@@ -9,6 +9,7 @@ import type { StyleOption } from "@/modules/character";
 import { Modal } from "@/shared/presentation/Modal";
 import { VariantGenerator } from "./VariantGenerator";
 import { BatchProgressDialog } from "./BatchProgressDialog";
+import { sleep } from "@/shared-logic/sleep";
 
 interface BatchOperationsProps {
   type: "character" | "scene";
@@ -248,7 +249,7 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
         setOverallProgress(Math.round((completedCount / initialTasks.length) * 100));
 
         if (i + CONCURRENCY_CONFIG.maxConcurrent < initialTasks.length) {
-          await new Promise((resolve) => setTimeout(resolve, CONCURRENCY_CONFIG.delayBetweenBatches));
+          await sleep(CONCURRENCY_CONFIG.delayBetweenBatches);
         }
       }
 

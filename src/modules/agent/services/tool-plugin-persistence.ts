@@ -22,6 +22,7 @@ import type {
   ToolPluginsConfig,
 } from "../domain/tool-plugin-types";
 import { getCacheDirectory, readFile, writeFile, deleteFile, getConfig, setConfig } from "@/shared/file-http";
+import { errorLogger } from "@/shared/error-logger";
 import { validateConfig } from "./tool-plugin-validator";
 
 // ============= 常量 =============
@@ -92,7 +93,7 @@ async function updatePluginIndex(pluginId: string, entry: PluginIndexEntry): Pro
     filtered.push(entry);
     await setConfig(TOOL_PLUGINS_INDEX_KEY, filtered);
   } catch (e) {
-    console.warn(`[ToolPlugin] 更新索引失败:`, e);
+    errorLogger.warn(`[ToolPlugin] 更新索引失败:`, e);
   }
 }
 
@@ -103,7 +104,7 @@ async function removePluginFromIndex(pluginId: string): Promise<void> {
     const filtered = index.filter((e) => e.id !== pluginId);
     await setConfig(TOOL_PLUGINS_INDEX_KEY, filtered);
   } catch (e) {
-    console.warn(`[ToolPlugin] 移除索引失败:`, e);
+    errorLogger.warn(`[ToolPlugin] 移除索引失败:`, e);
   }
 }
 
@@ -188,12 +189,12 @@ export async function listToolPluginFiles(): Promise<ToolPluginConfig[]> {
       const parsed = JSON.parse(text) as unknown;
       const validation = validateConfig(parsed);
       if (!validation.ok) {
-        console.warn(`[ToolPlugin] 插件 ${entry.id} 配置校验失败:`, validation.errors);
+        errorLogger.warn(`[ToolPlugin] 插件 ${entry.id} 配置校验失败:`, validation.errors);
         continue;
       }
       configs.push(parsed as ToolPluginConfig);
     } catch (e) {
-      console.warn(`[ToolPlugin] 读取插件文件 ${entry.fileName} 失败:`, e);
+      errorLogger.warn(`[ToolPlugin] 读取插件文件 ${entry.fileName} 失败:`, e);
     }
   }
   return configs;

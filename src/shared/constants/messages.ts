@@ -4597,6 +4597,14 @@ const messages: Record<MessageKey, string> = {
   "novel.source.beatLabel": "分镜{sequence}",
   "novel.source.noBeats": "暂无分镜",
   "novel.source.clickHint": "点击分镜查看对应原文",
+  "error.toolAlreadyRegistered": "工具 \"{name}\" 已注册 — 命名冲突",
+  "error.specialistAlreadyRegistered": "专家 \"{id}\" 已注册 — 命名冲突",
+  "error.cacheDirUnavailable": "无法获取缓存目录",
+  "error.downloadIncomplete": "下载不完整: {actual}/{expected} bytes",
+  "error.cacheImageFailed": "缓存图片失败: {url}",
+  "error.invalidPhase": "无效阶段",
+  "error.cannotRetryPhase": "无法重试阶段",
+  "error.downloadImageFailed": "下载图片失败: {status}",
 };
 
 export type Messages = typeof messages;

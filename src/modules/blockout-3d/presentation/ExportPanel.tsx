@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { Download, FileBox, Film, Image as ImageIcon, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { t } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 import type { BlockoutScene } from "../domain/scene-schema";
 import {
   exportSceneAsGlb,
@@ -181,7 +182,7 @@ export function ExportPanel({ scene, modelId, modelSupports3D, onExportComplete 
       const validation = validateForFallback(scene);
       if (validation.warnings.length > 0) {
         // 仅警告，继续生成
-        console.warn("Fallback 警告：", validation.warnings);
+        errorLogger.warn("Fallback 警告：", validation.warnings);
       }
 
       // 调用适配器获取 5 个时间点的相机位姿

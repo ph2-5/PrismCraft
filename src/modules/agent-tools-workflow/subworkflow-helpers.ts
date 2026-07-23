@@ -13,6 +13,7 @@ import type { ToolResult, ToolContext } from "@/domain/types/agent-tools";
 import type { ToolCall } from "@/domain/ports/ai-provider-port";
 import { container } from "@/infrastructure/di";
 import { extractJsonObject, extractJsonArray } from "@/shared-logic/json";
+import { sleep } from "@/shared-logic/sleep";
 
 /** 小说转分镜时文本最大字符数（避免 token 超限） */
 export const NOVEL_TEXT_MAX_CHARS = 8000;
@@ -111,7 +112,7 @@ export async function pollVideoTask(
     } catch {
       // 查询异常不中断轮询
     }
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    await sleep(pollInterval);
   }
 
   return {

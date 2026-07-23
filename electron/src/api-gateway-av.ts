@@ -13,7 +13,9 @@ import {
   type ApiResult,
   resolveApiConfig,
   getAuthHeaders,
+  validateUrlForRequest,
 } from "./api-gateway-utils";
+import { getAllUserDataDirs, isPathUnderAnyRoot } from "./app-paths";
 
 /**
  * 文字转语音（TTS）
@@ -80,6 +82,15 @@ export async function generateAudio(body: Record<string, unknown>): Promise<ApiR
     };
 
     // 直接发起请求，获取二进制响应
+    // SSRF 防护：校验 requestUrl 不指向内网/元数据端点（与 api-gateway.ts makeRequest 对齐）
+    const ssrfCheck = await validateUrlForRequest(requestUrl);
+    if (!ssrfCheck.safe) {
+      return {
+        success: false,
+        error: `url_blocked_by_ssrf_guard`,
+        httpStatus: 400,
+      };
+    }
     const response = await fetch(requestUrl, {
       method: "POST",
       headers: requestHeaders,
@@ -158,25 +169,58 @@ export async function transcribeAudio(body: Record<string, unknown>): Promise<Ap
     }
 
     // 下载音频文件
+    // 安全修复（SSRF + 路径穿越）：
+    // - http(s):// 走 validateUrlForRequest SSRF 校验 + 25MB 大小上限
+    // - local:// 与裸路径走 isPathUnderAnyRoot 白名单校验（仅允许用户数据目录子树）
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     let audioBuffer: Buffer;
     let filename: string;
+    const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB 上限，防止恶意大文件触发 OOM
+    const allowedRoots = getAllUserDataDirs();
 
     if (audioUrl.startsWith("local://")) {
       const localPath = audioUrl.slice("local://".length);
+      // 路径穿越防护：仅允许读取用户数据目录子树下的文件
+      if (!(await isPathUnderAnyRoot(path.resolve(localPath), allowedRoots))) {
+        return { success: false, error: "local_path_not_allowed", httpStatus: 400 };
+      }
+      const stat = await fs.stat(localPath);
+      if (stat.size > MAX_AUDIO_SIZE) {
+        return { success: false, error: "audio_too_large", httpStatus: 413 };
+      }
       audioBuffer = await fs.readFile(localPath);
       filename = path.basename(localPath);
     } else if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://")) {
+      // SSRF 防护：校验 audioUrl 不指向内网/元数据端点
+      const ssrfCheck = await validateUrlForRequest(audioUrl);
+      if (!ssrfCheck.safe) {
+        return { success: false, error: "audio_url_blocked_by_ssrf_guard", httpStatus: 400 };
+      }
       const dlResponse = await fetch(audioUrl);
       if (!dlResponse.ok) {
         return { success: false, error: `download_failed: ${dlResponse.status}`, httpStatus: dlResponse.status };
       }
-      audioBuffer = Buffer.from(await dlResponse.arrayBuffer());
+      const contentLength = Number(dlResponse.headers.get("content-length") || 0);
+      if (contentLength > MAX_AUDIO_SIZE) {
+        return { success: false, error: "audio_too_large", httpStatus: 413 };
+      }
+      const arrayBuffer = await dlResponse.arrayBuffer();
+      if (arrayBuffer.byteLength > MAX_AUDIO_SIZE) {
+        return { success: false, error: "audio_too_large", httpStatus: 413 };
+      }
+      audioBuffer = Buffer.from(arrayBuffer);
       filename = audioUrl.split("/").pop() || "audio.mp3";
     } else {
-      // 尝试作为本地路径
+      // 尝试作为本地路径（同样需路径白名单校验）
+      if (!(await isPathUnderAnyRoot(path.resolve(audioUrl), allowedRoots))) {
+        return { success: false, error: "local_path_not_allowed", httpStatus: 400 };
+      }
       try {
+        const stat = await fs.stat(audioUrl);
+        if (stat.size > MAX_AUDIO_SIZE) {
+          return { success: false, error: "audio_too_large", httpStatus: 413 };
+        }
         audioBuffer = await fs.readFile(audioUrl);
         filename = path.basename(audioUrl);
       } catch {
@@ -199,6 +243,15 @@ export async function transcribeAudio(body: Record<string, unknown>): Promise<Ap
       ...await getAuthHeaders(plugin, effectiveApiKey, "/audio/transcriptions"),
     };
 
+    // SSRF 防护：校验 requestUrl 不指向内网/元数据端点（与 generateAudio 对齐）
+    const sttSsrfCheck = await validateUrlForRequest(requestUrl);
+    if (!sttSsrfCheck.safe) {
+      return {
+        success: false,
+        error: `url_blocked_by_ssrf_guard`,
+        httpStatus: 400,
+      };
+    }
     const response = await fetch(requestUrl, {
       method: "POST",
       headers: requestHeaders,

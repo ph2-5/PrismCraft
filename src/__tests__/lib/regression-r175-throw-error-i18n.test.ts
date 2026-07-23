@@ -25,14 +25,6 @@ const ALLOWED_PATTERNS = [
   /Database not initialized/, // 测试 mock 内部错误
   /delete_failed/, // 错误码常量
   /some error|async error|handler1 error|DB error/, // 测试用例错误
-  /下载图片失败/, // infrastructure image-normalization 内部错误（上层捕获）
-  /下载不完整/, // infrastructure cache 内部错误（上层捕获）
-  /缓存图片失败/, // infrastructure cache 内部错误（上层捕获）
-  /无法获取缓存目录/, // agent audit-storage / tool-fewshot-cache 内部错误（上层捕获）
-  // pipeline-machine.ts 的状态机断言：开发者错误（违反状态机不变量，正常使用不会触发）
-  /无效状态转换/,
-  /无效阶段/,
-  /无法重试阶段/,
 ];
 
 async function globTsFiles(dir: string, results: string[] = []): Promise<string[]> {

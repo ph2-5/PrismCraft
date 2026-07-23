@@ -20,7 +20,7 @@ const MigrationInitializer = lazy(() =>
   import("./MigrationInitializer").then((m) => ({ default: m.MigrationInitializer }))
 );
 const VideoTaskManagerInitializer = lazy(() =>
-  import("@/modules/video/task-management/presentation/VideoTaskManagerInitializer").then((m) => ({
+  import("@/modules/video/task-management").then((m) => ({
     default: m.VideoTaskManagerInitializer,
   }))
 );

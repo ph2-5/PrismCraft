@@ -381,7 +381,8 @@ const IMAGE_CACHE_DIR = path.join(USER_DATA_ROOT, "Cache", "Images");
 const USER_CONFIGURED_HOSTS = new Set<string>();
 
 /** Loopback 主机名/IP 集合（用户配置的本地服务直接放行） */
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+// 安全修复：0.0.0.0 表示"任意接口"而非 loopback，不应被放行绕过 SSRF 校验
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function isLoopbackHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();

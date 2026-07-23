@@ -32,6 +32,7 @@
 import { getCacheDirectory, readFile, writeFile, deleteFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
 import { truncate } from "@/shared/utils/format";
+import { t } from "@/shared/constants/messages";
 
 /** 审计日志条目 */
 export interface AuditEntry {
@@ -114,7 +115,7 @@ async function getBaseDir(): Promise<string> {
   if (cachedBaseDir) return cachedBaseDir;
   const result = await getCacheDirectory();
   if (!result.success || !result.path) {
-    throw new Error("无法获取缓存目录");
+    throw new Error(t("error.cacheDirUnavailable"));
   }
   cachedBaseDir = result.path.replace(/[\\\/]+$/, "") + "/" + AUDIT_DIR_REL;
   return cachedBaseDir;

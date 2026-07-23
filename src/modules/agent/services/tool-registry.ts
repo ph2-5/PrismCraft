@@ -12,6 +12,7 @@
 import type { ToolDef } from "@/domain/ports/ai-provider-port";
 import type { ToolImpl, ToolDomain } from "../domain/types";
 import type { IToolRegistry } from "../domain/ports";
+import { t } from "@/shared/constants/messages";
 
 class ToolRegistry implements IToolRegistry {
   private tools = new Map<string, ToolImpl>();
@@ -20,7 +21,7 @@ class ToolRegistry implements IToolRegistry {
   register(tool: ToolImpl): void {
     const name = tool.def.function.name;
     if (this.tools.has(name)) {
-      throw new Error(`Tool "${name}" already registered — 命名冲突`);
+      throw new Error(t("error.toolAlreadyRegistered", { name }));
     }
     this.tools.set(name, tool);
   }

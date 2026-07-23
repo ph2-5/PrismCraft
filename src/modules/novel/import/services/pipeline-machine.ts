@@ -18,6 +18,7 @@
  */
 
 import type { PipelineStage, PipelineState, PipelineConfig } from "../../domain/types";
+import { t } from "@/shared/constants/messages";
 
 // ============================================================================
 // 1. 阶段顺序 & 合法转换
@@ -75,7 +76,7 @@ export function canTransition(from: PipelineStage, to: PipelineStage): boolean {
  */
 export function transition(state: PipelineState, to: PipelineStage): PipelineState {
   if (!canTransition(state.stage, to)) {
-    throw new Error(`无效状态转换: ${state.stage} → ${to}`);
+    throw new Error(t("error.invalidStateTransition", { from: state.stage, to }));
   }
   return { ...state, stage: to, step: 1 };
 }
@@ -161,10 +162,10 @@ export function retryStage(state: PipelineState, stage: PipelineStage): Pipeline
   const currentIndex = STAGE_ORDER.indexOf(state.stage);
   const retryIndex = STAGE_ORDER.indexOf(stage);
   if (retryIndex < 0) {
-    throw new Error(`无效阶段: ${stage}`);
+    throw new Error(t("error.invalidPhase"));
   }
   if (retryIndex > currentIndex) {
-    throw new Error(`无法重试阶段 ${stage}：当前阶段为 ${state.stage}（不能向前重试）`);
+    throw new Error(t("error.cannotRetryPhase"));
   }
   return {
     ...state,

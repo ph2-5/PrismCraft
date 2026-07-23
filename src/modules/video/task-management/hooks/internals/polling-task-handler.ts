@@ -9,6 +9,7 @@ import { t } from "@/shared/constants";
 import { withTransitionGuard } from "./transition-guard";
 import { MAX_POLL_FAILURES, MAX_POLL_DURATION } from "./polling-constants";
 import { DomainEvents } from "@/shared/event-types";
+import { sleep } from "@/shared-logic/sleep";
 
 export interface PollResult {
   taskUpdates: Map<string, Partial<VideoTask>>;
@@ -398,7 +399,7 @@ async function cacheSingleVideo(
     errorLogger.warn("[VideoTaskManager] Failed to cache video blob (initial)", firstError);
     for (let retry = 0; retry < CACHE_RETRY_DELAYS.length; retry++) {
       if (signal.aborted) return false;
-      await new Promise((r) => setTimeout(r, CACHE_RETRY_DELAYS[retry]));
+      await sleep(CACHE_RETRY_DELAYS[retry]!);
       if (signal.aborted) return false;
       try {
         await cacheVideoBlob(taskId, videoUrl);

@@ -34,6 +34,7 @@
  */
 
 import type { ToolPluginLoadResult } from "../domain/tool-plugin-types";
+import { errorLogger } from "@/shared/error-logger";
 import { validateConfig } from "./tool-plugin-validator";
 import {
   loadToolPlugin,
@@ -127,12 +128,12 @@ export async function ensureToolPluginsLoaded(): Promise<void> {
     const totalSkipped = results.reduce((sum, r) => sum + r.skipped.length, 0);
     const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0);
     if (totalRegistered > 0 || totalSkipped > 0 || totalErrors > 0) {
-      console.info(
+      errorLogger.info(
         `[ToolPlugin] 加载完成: ${results.length} 个插件, ${totalRegistered} 个工具注册成功, ${totalSkipped} 跳过, ${totalErrors} 错误`,
       );
     }
   } catch (e) {
-    console.warn(`[ToolPlugin] 加载用户插件失败:`, e);
+    errorLogger.warn(`[ToolPlugin] 加载用户插件失败:`, e);
   }
 }
 

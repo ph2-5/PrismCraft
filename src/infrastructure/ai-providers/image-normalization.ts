@@ -64,7 +64,7 @@ export async function imageToBase64(imageUrl: string): Promise<string> {
   try {
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      throw new Error(`下载图片失败: ${response.status}`);
+      throw new Error(t("error.downloadImageFailed", { status: response.status }));
     }
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");

@@ -6,6 +6,7 @@ import { getBeatCharacterIds, resolveShotInstruction, SHOT_SIZE_OPTIONS, CAMERA_
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { extractJsonObject } from "@/shared-logic/json";
+import { sleep } from "@/shared-logic/sleep";
 
 interface FramePromptInput {
   beat: StoryBeat;
@@ -221,7 +222,7 @@ export async function batchGenerateFramePrompts(
       }
 
       if (i < beats.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await sleep(300);
       }
     }
 

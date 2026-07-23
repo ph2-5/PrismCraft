@@ -15,6 +15,7 @@ import {
   deleteFile as httpDeleteFile,
   httpDownloadToFile,
 } from "@/shared/file-http";
+import { sleep } from "@/shared-logic/sleep";
 
 type RecoveryFn = (taskId: string) => Promise<Result<{ videoUrl?: string; message: string; status?: string }>>;
 
@@ -104,7 +105,7 @@ export async function cacheVideoBlob(
           continue;
         }
         if (attempt >= CACHE_RETRY_COUNT - 1) break;
-        await new Promise((r) => setTimeout(r, CACHE_BACKOFF_BASE_MS * (attempt + 1)));
+        await sleep(CACHE_BACKOFF_BASE_MS * (attempt + 1));
       }
     }
     return false;
@@ -227,7 +228,7 @@ async function verifyFileIntegrity(filePath: string, expectedBytes: number): Pro
   if (!fileInfo || !fileInfo.success || fileInfo.size === expectedBytes) return;
 
   await httpDeleteFile(filePath);
-  throw new Error(`下载不完整: ${fileInfo.size}/${expectedBytes} bytes`);
+  throw new Error(t("error.downloadIncomplete", { actual: fileInfo.size ?? 0, expected: expectedBytes }));
 }
 
 async function cacheVideoRecord(
@@ -297,7 +298,7 @@ async function handleDownloadError(
         new AppError("CACHE_VIDEO_ERROR", `URL过期，已刷新重试 (attempt ${attempt + 1})`, error),
         "VideoCache",
       );
-      await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
+      await sleep(CACHE_RETRY_INTERVAL_MS);
       return { recovered: true, newUrl: recoveryResult.value.videoUrl };
     }
   } catch (recoveryError) {

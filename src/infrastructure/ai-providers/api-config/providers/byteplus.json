@@ -57,7 +57,9 @@
       "defaultParams": {
         "duration": 5
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0 系列，建议升级"
     },
     {
       "id": "seedance-1-0-lite-i2v-250428",
@@ -68,7 +70,9 @@
       "defaultParams": {
         "duration": 5
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0 系列，建议升级"
     },
     {
       "id": "seedance-1-0-pro-250528",
@@ -79,7 +83,9 @@
       "defaultParams": {
         "duration": 8
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0 系列，建议升级"
     },
     {
       "id": "seedance-1-5-pro-251215",

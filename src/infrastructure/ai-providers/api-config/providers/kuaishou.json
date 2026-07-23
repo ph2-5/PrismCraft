@@ -44,7 +44,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 V2/V2.5/V3 系列，建议升级"
     },
     {
       "id": "kling-v1-5",
@@ -81,7 +83,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 V2/V2.5/V3 系列，建议升级"
     },
     {
       "id": "kling-v1-6",
@@ -118,7 +122,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 V2/V2.5/V3 系列，建议升级"
     },
     {
       "id": "kling-v2-master",

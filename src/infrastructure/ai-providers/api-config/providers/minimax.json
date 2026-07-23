@@ -63,7 +63,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 Hailuo 02/2.3 系列，建议升级"
     },
     {
       "id": "I2V-01-Director",
@@ -88,7 +90,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 Hailuo 02/2.3 系列，建议升级"
     },
     {
       "id": "I2V-01-live",

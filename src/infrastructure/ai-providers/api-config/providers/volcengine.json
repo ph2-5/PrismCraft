@@ -38,7 +38,9 @@
         "maxTokens": 256000,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.8 系列，建议升级"
     },
     {
       "id": "doubao-seed-1-6-vision-251015",
@@ -51,7 +53,9 @@
         "maxTokens": 256000,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "1.8 系列自带 vision，建议升级"
     },
     {
       "id": "doubao-seed-1-5-250828",
@@ -63,7 +67,9 @@
         "maxTokens": 128000,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.6/1.8 系列，建议升级"
     },
     {
       "id": "ark-code-latest",
@@ -99,7 +105,9 @@
         "maxTokens": 128000,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 2.0 Code，建议升级"
     },
     {
       "id": "kimi-k2-5",
@@ -138,7 +146,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "DeepSeek V3.2 即将停用，建议迁移到 DeepSeek V4 系列"
     },
     {
       "id": "ecom-imagegen",
@@ -184,7 +194,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 4.5 和 5.0 系列，建议升级"
     },
     {
       "id": "doubao-seedream-4-5-251128",
@@ -265,7 +277,9 @@
       "defaultParams": {
         "duration": 5
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "旧版 endpoint ID，建议使用 Seedance 系列模型"
     },
     {
       "id": "doubao-seedance-1-0-lite-t2v-250428",
@@ -292,7 +306,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0/2.5 系列，建议升级"
     },
     {
       "id": "doubao-seedance-1-0-lite-i2v-250428",
@@ -317,7 +333,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0/2.5 系列，建议升级"
     },
     {
       "id": "doubao-seedance-1-0-pro-250528",
@@ -354,7 +372,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0/2.5 系列，建议升级"
     },
     {
       "id": "doubao-seedance-1-0-pro-fast-251015",
@@ -391,7 +411,9 @@
           }
         ]
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已有 1.5/2.0/2.5 系列，建议升级"
     },
     {
       "id": "doubao-seedance-1-5-pro-251215",

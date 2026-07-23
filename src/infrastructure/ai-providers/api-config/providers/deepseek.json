@@ -16,6 +16,32 @@
   },
   "models": [
     {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
+    },
+    {
       "id": "deepseek-chat",
       "name": "DeepSeek Chat",
       "capabilities": [

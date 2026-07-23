@@ -11,6 +11,68 @@
 
 - 暂无
 
+## [1.4.0] - 2026-07-23
+
+### Added
+
+- **双协议授权**：项目协议从 CC-BY-NC-4.0 改为 AGPL-3.0-only 开源协议 + 商业许可证双协议模式，新增 `COMMERCIAL_LICENSE.md`
+- **小说导入管道**（Task 2A.1-2A.19）：完整实现从小说导入到分镜生成的自动化管道，包含 10 阶段状态机、三档模式（手动/半自动/全自动）、节奏规划引擎、连续性账本、故事结构分析层
+- **时间线维度建模**（Q3-1 到 Q3-10）：场景变体子系统、Beat 层关联变体、状态推演引擎、级联更新与脏标记、多时间线支持、滑动窗口与重点标注
+- **Compositor 全局编译器**：接入真实多参考图合成，三栏布局 + AI 图像合成
+- **ONNX face-embedding**：接入 ONNX 本地推理，实现跨分镜角色面部一致性检查
+- **VLM 多图比对**：参考图传入视觉模型进行一致性比对
+- **模型清单保鲜**：批量补全 `verifiedAt` 保鲜元数据，UI 显示模型验证日期 + 废弃警示，标记过时模型为 deprecated，新增 DeepSeek V4 / Seedance 2.5 模型
+- **全局搜索模块**（Task 4.6）：跨角色/场景/故事/素材统一搜索
+- **视频片段合成**（Task 4.3）：视频片段拼接导出
+- **视频局部重绘**（Task 2A.22）：视频局部区域重绘编辑
+- **3D 白盒预览**（Task 2A.21）：3D 白盒场景预览编辑器
+- **道具库模块**（Task 2A.8）：道具 CRUD + 服装数据迁移
+- **Agent 意图路由 + QC 集成**：意图驱动的工具集限制，consistency-qc 接入 AI Agent
+- **跨分镜一致性自动修复**（Task 4.8）：检测并修复跨分镜一致性问题
+- **IP 安全改写**（Task 4.12）：生产级 IP 安全改写 + 误报修复 + 跨分镜 IP 一致性
+- **Storybook + Stryker**：Storybook 组件展示 + Stryker 变异测试配置
+- **TEST-CHECKLIST.md**：覆盖 16 类 100+ 项的手动测试清单
+- **集成测试补全**：新增 47 个关键路径集成测试
+
+### Fixed
+
+- **安全加固**：plugin-worker vm 沙箱加固、SSRF guard 增加 dns.lookup fallback、local-embedding 替换 new Function、memory-service 写超时保护、migrations 类型白名单校验
+- **33 项全面问题修复**（P0 7 + P1 11 + P2/P3 15）：包含竞态条件、类型安全、静默 catch、内存泄漏等
+- **CI 配置修复**：coverage 上传、并发设置、路径过滤、Playwright 缓存、artifact 保留策略
+- **e2e 测试修复**：sync dialog 定位、plugin-management tab 切换、sync-workflow flaky 风险
+- **generateBeatImagePrompt 重构 bug**：增强模式角色描述丢失
+- **vite 7+ 动态 import 报错**：改用 `new Function` 构造器绕过静态分析
+
+### Changed
+
+- **性能优化**：
+  - Zustand selector 修复（use-beat-detail.ts / use-story-state.ts）：避免 `.find()` 在 selector 中返回新引用触发重渲染
+  - 消息列表虚拟化（AgentPage.tsx）：使用 @tanstack/react-virtual，仅渲染可见区域
+  - 列表项 memo 化（AuditLogPanel / BatchProgressDialog / PropLibraryPanel）：减少不必要的重渲染
+  - useVideoTaskQueries 单次遍历优化：3 个 filter() 合并为 1 次 for...of
+- **代码质量**：
+  - 统一 console 到 logger（plugin-worker / code-plugin-loader / ffmpeg-handler）
+  - AppError 迁移：标准化错误码为 UPPER_SNAKE_CASE
+  - 主进程错误处理统一
+  - 清理死代码：删除误导性 performConsistencyCheck + 修复文档过时
+  - 清理未使用 export：12 个函数评估，2 个误判恢复，10 个保留并加注释
+- **函数复杂度降低**：AgentLoop.run (46→≤15)、generateVideoWithMultiAPI (35→≤15)、parseCharacter (33→≤15) 等 12 个函数
+- **lint warnings 全量收敛**：272 → 0
+- **agent 大文件拆分**：拆分为 audit-log / vector-search / ffmpeg-runner / agent-memory / agent-fewshot / agent-session / agent-specialist 等独立模块
+
+### Documentation
+
+- 更新版本号 1.3.0 → 1.4.0（package.json / package-lock.json / docs/）
+- 归档 5 个历史文档 + 新建 6 个 P0 文档 + 重写 3 个过时文档 + 更新 15 个文档
+- 49 个 MODULE.md 状态标记全部为 ✅
+- 新增代码清理决策规范（code-cleanup.md）+ dead-code-cleanup skill
+
+### Tests
+
+- 单元测试：6021 → 8647（+2626，421 files）
+- Electron 测试：1524 passed, 19 skipped（70 files）
+- typecheck / typecheck:electron / typecheck:test / lint:arch 全部通过
+
 ## [1.3.0] - 2026-07-14
 
 ### Added

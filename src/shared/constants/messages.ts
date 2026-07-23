@@ -2709,6 +2709,8 @@ const messages: Record<MessageKey, string> = {
 
   "dialog.boundTo": "绑定: {name}",
   "dialog.noImagesInLibrary": "素材库中暂无图片",
+  "dialog.searchAssetsPlaceholder": "搜索素材名称...",
+  "dialog.noMatchingAssets": "没有匹配的素材",
 
   "onboarding.welcomeTitle": "欢迎使用 AI 动画工作室",
   "onboarding.welcomeDesc": "这是一个强大的动画生成工具，让我们快速了解一下主要功能。",

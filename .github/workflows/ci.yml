@@ -3,7 +3,21 @@ name: CI
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".ai/**"
+      - ".trae/rules/**"
+      - "LICENSE"
+      - "COMMERCIAL_LICENSE.md"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".ai/**"
+      - ".trae/rules/**"
+      - "LICENSE"
+      - "COMMERCIAL_LICENSE.md"
   workflow_dispatch:
 
 permissions:
@@ -243,6 +257,14 @@ jobs:
       - name: Setup shared-logic symlink
         run: node scripts/setup-shared-logic-symlink.mjs
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-chromium-
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -270,6 +292,7 @@ jobs:
   build-electron-win:
     runs-on: windows-latest
     needs: unit-tests
+    timeout-minutes: 45
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
       - name: Checkout code
@@ -340,9 +363,11 @@ jobs:
 
       - name: Upload Electron artifacts
         uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: electron-build-win
           path: release/
+          retention-days: 14
 
   build-electron-mac:
     runs-on: macos-latest
@@ -421,6 +446,7 @@ jobs:
   dependency-review:
     runs-on: ubuntu-latest
     needs: security-scan
+    timeout-minutes: 10
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code

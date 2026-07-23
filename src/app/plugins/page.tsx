@@ -50,7 +50,7 @@ const codeOptionalFields = [
 const declarativeExample = `{
   "id": "my-provider",
   "version": "1.0.0",
-  "displayName": "我的提供商",
+  "displayName": "My Provider",
   "match": {
     "apiUrlPatterns": ["api.my-provider.com"]
   },
@@ -95,7 +95,7 @@ const declarativeExample = `{
 
 const codeExample = `module.exports = {
   id: "my-code-provider",
-  displayName: "我的代码插件",
+  displayName: "My Code Plugin",
 
   match: (apiUrl, model) => {
     return apiUrl.includes("my-api.example.com");
@@ -158,8 +158,8 @@ const codeExample = `module.exports = {
     },
     parameters: {
       durations: [
-        { value: 5, label: "5秒" },
-        { value: 10, label: "10秒" },
+        { value: 5, label: "5s" },
+        { value: 10, label: "10s" },
       ],
     },
   }),

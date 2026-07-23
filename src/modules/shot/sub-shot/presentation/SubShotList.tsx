@@ -5,9 +5,10 @@
  * 功能：添加/删除/排序/编辑子镜头
  */
 import { memo, useState } from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Film } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Film, Check } from "lucide-react";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { SkeletonList } from "@/shared/presentation/Skeleton";
 import type { SubShot } from "@/domain/schemas";
 import { useSubShots } from "../hooks/use-sub-shots";
 
@@ -59,7 +60,7 @@ export const SubShotList = memo(function SubShotList({ beatId }: SubShotListProp
         </button>
       </div>
 
-      {loading && <div className="text-muted text-xs">...</div>}
+      {loading && <SkeletonList count={2} className="flex flex-col gap-1" itemClassName="h-12 w-full" />}
 
       {!loading && subShots.length === 0 && (
         <EmptyState compact icon={Film} title={t("subShot.empty")} />
@@ -141,8 +142,10 @@ export const SubShotList = memo(function SubShotList({ beatId }: SubShotListProp
               <button
                 className="btn btn-sm btn-ghost"
                 onClick={() => setEditingId(null)}
+                aria-label={t("common.confirm")}
+                title={t("common.confirm")}
               >
-                ✓
+                <Check size={14} />
               </button>
             </div>
           ) : (

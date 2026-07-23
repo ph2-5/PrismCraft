@@ -1,0 +1,31 @@
+name: Setup Node.js and install dependencies
+description: Override .npmrc for CI, setup Node.js with npm cache, and install dependencies with retry
+
+runs:
+  using: composite
+  steps:
+    - name: Override .npmrc for CI (use official sources)
+      shell: bash
+      run: echo 'registry=https://registry.npmjs.org/' > .npmrc
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: "22"
+        cache: "npm"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        for i in 1 2 3; do
+          if npm ci --ignore-scripts --legacy-peer-deps; then
+            echo "Dependencies installed successfully"
+            break
+          elif [ $i -lt 3 ]; then
+            echo "Attempt $i failed, retrying in 30 seconds..."
+            sleep 30
+          else
+            echo "All 3 attempts failed"
+            exit 1
+          fi
+        done

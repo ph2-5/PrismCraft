@@ -26,6 +26,7 @@ import { POSE_PRESETS } from "../domain/mannequin-types";
 import { getMannequinGeometry } from "../services/mannequin-service";
 import { getCameraPoseAtTime, type CameraPose } from "../services/camera-animator";
 import { isWebGLAvailable } from "../services/render-service";
+import { t } from "@/shared/constants/messages";
 
 // ─── 公共类型 ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ export function Blockout3DCanvas({
   selectedPropId,
   onMannequinClick,
   onPropClick,
-  fallbackMessage = "WebGL 不可用，无法显示 3D 白模",
+  fallbackMessage = t("blockout.webglUnavailable"),
 }: Blockout3DCanvasProps) {
   const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null);
 
@@ -84,8 +85,8 @@ export function Blockout3DCanvas({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "var(--muted, #f5f5f5)",
-          color: "var(--muted-fg, #888)",
+          background: "var(--muted)",
+          color: "var(--muted-fg)",
           fontSize: 12,
           textAlign: "center",
           padding: 20,

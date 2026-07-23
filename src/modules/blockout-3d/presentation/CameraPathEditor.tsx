@@ -74,10 +74,7 @@ export function CameraPathEditor({
   };
 
   const handleDeleteKeyframe = (index: number) => {
-    if (keyframes.length <= 2) {
-      alert(t("blockout.minKeyframesWarning"));
-      return;
-    }
+    if (keyframes.length <= 2) return;
     const filtered = keyframes.filter((_, i) => i !== index);
     onUpdateKeyframes(filtered);
   };
@@ -147,6 +144,7 @@ export function CameraPathEditor({
             onSelect={() => onSelectKeyframe?.(i)}
             onUpdate={(updates) => handleUpdateKeyframe(i, updates)}
             onDelete={() => handleDeleteKeyframe(i)}
+            deleteDisabled={keyframes.length <= 2}
           />
         ))}
         {keyframes.length === 0 && (
@@ -183,9 +181,10 @@ interface KeyframeRowProps {
   onSelect: () => void;
   onUpdate: (updates: Partial<CameraKeyframe>) => void;
   onDelete: () => void;
+  deleteDisabled?: boolean;
 }
 
-function KeyframeRow({ index, keyframe, isSelected, onSelect, onUpdate, onDelete }: KeyframeRowProps) {
+function KeyframeRow({ index, keyframe, isSelected, onSelect, onUpdate, onDelete, deleteDisabled }: KeyframeRowProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -211,9 +210,10 @@ function KeyframeRow({ index, keyframe, isSelected, onSelect, onUpdate, onDelete
         </button>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--danger)" }}
-          title={t("common.delete")}
+          onClick={(e) => { e.stopPropagation(); if (!deleteDisabled) onDelete(); }}
+          style={{ background: "none", border: "none", cursor: deleteDisabled ? "not-allowed" : "pointer", padding: 2, color: "var(--danger)", opacity: deleteDisabled ? 0.4 : 1 }}
+          title={deleteDisabled ? t("blockout.minKeyframesWarning") : t("common.delete")}
+          disabled={deleteDisabled}
         >
           <Trash2 size={11} />
         </button>

@@ -486,7 +486,7 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
           {entry.toolName}
         </span>
         <span className={`shrink-0 font-mono ${statusColor}`}>
-          {entry.success ? "✓" : "✗"} {entry.status}
+          <span aria-hidden="true">{entry.success ? "✓" : "✗"}</span> {entry.status}
         </span>
       </div>
       <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
@@ -511,24 +511,24 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
       {expanded && (
         <div className="mt-1.5 space-y-1 border-t border-border pt-1.5">
           <div>
-            <span className="text-muted-foreground">Session: </span>
+            <span className="text-muted-foreground">{t("agent.audit.session")}: </span>
             <span className="font-mono break-all">{entry.sessionId}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Args: </span>
+            <span className="text-muted-foreground">{t("agent.audit.args")}: </span>
             <pre className="mt-0.5 max-h-32 overflow-auto rounded bg-muted/40 p-1 font-mono text-[10px] whitespace-pre-wrap break-all">
               {entry.argsJson}
             </pre>
           </div>
           {entry.error && (
             <div>
-              <span className="text-destructive">Error: </span>
+              <span className="text-destructive">{t("agent.audit.error")}: </span>
               <span className="break-all text-destructive">{entry.error}</span>
             </div>
           )}
           {entry.resultPreview && (
             <div>
-              <span className="text-muted-foreground">Result: </span>
+              <span className="text-muted-foreground">{t("agent.audit.result")}: </span>
               <span className="break-all text-muted-foreground">{entry.resultPreview}</span>
             </div>
           )}

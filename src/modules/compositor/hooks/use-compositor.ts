@@ -241,7 +241,7 @@ export function useCompositor(): UseCompositorResult {
 
   const generate = useCallback(async () => {
     if (!characterLayer) {
-      setError("请先选择角色");
+      setError(t("compositor.errorSelectCharacter"));
       setStatus("error");
       return;
     }

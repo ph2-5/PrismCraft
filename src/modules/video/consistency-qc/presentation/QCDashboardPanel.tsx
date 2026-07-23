@@ -38,23 +38,23 @@ function getVerdictStyle(verdict: Verdict): {
   switch (verdict) {
     case "pass":
       return {
-        color: "#34d399",
-        bg: "rgba(16,185,129,0.12)",
-        border: "rgba(16,185,129,0.2)",
+        color: "var(--success)",
+        bg: "rgba(var(--success-rgb), 0.12)",
+        border: "rgba(var(--success-rgb), 0.2)",
         label: t("video.qcVerdictPass"),
       };
     case "drift_warning":
       return {
-        color: "#fbbf24",
-        bg: "rgba(245,158,11,0.12)",
-        border: "rgba(245,158,11,0.2)",
+        color: "var(--warning)",
+        bg: "rgba(var(--warning-rgb), 0.12)",
+        border: "rgba(var(--warning-rgb), 0.2)",
         label: t("video.qcVerdictWarning"),
       };
     case "drift_critical":
       return {
-        color: "#f87171",
-        bg: "rgba(239,68,68,0.12)",
-        border: "rgba(239,68,68,0.2)",
+        color: "var(--destructive)",
+        bg: "rgba(var(--destructive-rgb), 0.12)",
+        border: "rgba(var(--destructive-rgb), 0.2)",
         label: t("video.qcVerdictCritical"),
       };
   }
@@ -130,11 +130,11 @@ function FrameSimilarityChart({
         y1={warningY}
         x2={padding.left + chartWidth}
         y2={warningY}
-        stroke="rgba(245,158,11,0.4)"
+        stroke="rgba(var(--warning-rgb), 0.4)"
         strokeWidth={1}
         strokeDasharray="4 2"
       />
-      <text x={padding.left + chartWidth + 4} y={warningY + 3} fontSize={9} fill="#fbbf24">
+      <text x={padding.left + chartWidth + 4} y={warningY + 3} fontSize={9} fill="var(--warning)">
         {t("video.qcThresholdWarning")} {warningThreshold.toFixed(2)}
       </text>
 
@@ -144,11 +144,11 @@ function FrameSimilarityChart({
         y1={criticalY}
         x2={padding.left + chartWidth}
         y2={criticalY}
-        stroke="rgba(239,68,68,0.4)"
+        stroke="rgba(var(--destructive-rgb), 0.4)"
         strokeWidth={1}
         strokeDasharray="4 2"
       />
-      <text x={padding.left + chartWidth + 4} y={criticalY + 3} fontSize={9} fill="#f87171">
+      <text x={padding.left + chartWidth + 4} y={criticalY + 3} fontSize={9} fill="var(--destructive)">
         {t("video.qcThresholdCritical")} {criticalThreshold.toFixed(2)}
       </text>
 
@@ -162,10 +162,10 @@ function FrameSimilarityChart({
       {/* 帧点（按 score 染色） */}
       {points.map((p) => {
         const color = p.score >= warningThreshold
-          ? "#10b981"
+          ? "var(--success)"
           : p.score >= criticalThreshold
-            ? "#f59e0b"
-            : "#ef4444";
+            ? "var(--warning)"
+            : "var(--destructive)";
         return (
           <circle
             key={p.frameIndex}

@@ -137,10 +137,10 @@ interface QuickActionsProps {
 /** 输入框上方的意图快捷按钮 */
 function QuickActions({ disabled, onPick }: QuickActionsProps) {
   const actions: Array<{ icon: React.ComponentType<{ className?: string }>; text: string; label: string }> = [
-    { icon: Wrench, text: "API 怎么配置", label: t("agent.quickActionApiConfig") },
-    { icon: BookOpen, text: "把这段小说变成视频", label: t("agent.quickActionImportNovel") },
-    { icon: Search, text: "搜索素材", label: t("agent.quickActionSearchAssets") },
-    { icon: Stethoscope, text: "生成失败了，请帮诊断", label: t("agent.quickActionDiagnose") },
+    { icon: Wrench, text: t("agent.quickActionApiConfigPrompt"), label: t("agent.quickActionApiConfig") },
+    { icon: BookOpen, text: t("agent.quickActionImportNovelPrompt"), label: t("agent.quickActionImportNovel") },
+    { icon: Search, text: t("agent.quickActionSearchAssetsPrompt"), label: t("agent.quickActionSearchAssets") },
+    { icon: Stethoscope, text: t("agent.quickActionDiagnosePrompt"), label: t("agent.quickActionDiagnose") },
   ];
   return (
     <div className="mx-auto mb-2 flex max-w-3xl gap-2">

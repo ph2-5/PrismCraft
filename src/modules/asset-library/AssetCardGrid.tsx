@@ -1,3 +1,4 @@
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Users,
   Image as ImageIcon,
@@ -47,6 +48,7 @@ interface AssetCardGridProps {
 }
 
 const GRID_CLASS = "grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5";
+const VIRTUAL_PAGE_SIZE = 60;
 
 function LoadingState() {
   return (
@@ -70,13 +72,39 @@ interface CardGridSectionProps {
   emptyIcon: typeof Users;
   emptyTitle: string;
   emptyDesc: string;
-  children: React.ReactNode;
+  itemCount: number;
+  children: ReactNode;
 }
 
-function CardGridSection({ isLoading, isEmpty, emptyIcon, emptyTitle, emptyDesc, children }: CardGridSectionProps) {
+function CardGridSection({ isLoading, isEmpty, emptyIcon, emptyTitle, emptyDesc, itemCount, children }: CardGridSectionProps) {
+  const [visibleCount, setVisibleCount] = useState(VIRTUAL_PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(VIRTUAL_PAGE_SIZE);
+  }, [itemCount]);
+
   if (isLoading) return <LoadingState />;
   if (isEmpty) return <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDesc} />;
-  return <div className={GRID_CLASS}>{children}</div>;
+
+  const childrenArray = Array.isArray(children) ? children : [children];
+  const hasMore = childrenArray.length > visibleCount;
+
+  return (
+    <div>
+      <div className={GRID_CLASS}>{childrenArray.slice(0, visibleCount)}</div>
+      {hasMore && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setVisibleCount((c) => c + VIRTUAL_PAGE_SIZE)}
+          >
+            {t("common.loadMore")} ({childrenArray.length - visibleCount})
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface CharactersTabProps {
@@ -96,6 +124,7 @@ function CharactersTab({ isLoading, filteredCharacters, selectedIds, onToggleSel
       emptyIcon={Users}
       emptyTitle={t("asset.characterLibraryEmpty")}
       emptyDesc={t("asset.characterLibraryEmptyDesc")}
+      itemCount={filteredCharacters.length}
     >
       {filteredCharacters.map((char) => (
         <CharacterCard
@@ -128,6 +157,7 @@ function ScenesTab({ isLoading, filteredScenes, selectedIds, onToggleSelect, onE
       emptyIcon={ImageIcon}
       emptyTitle={t("asset.sceneLibraryEmpty")}
       emptyDesc={t("asset.sceneLibraryEmptyDesc")}
+      itemCount={filteredScenes.length}
     >
       {filteredScenes.map((scene) => (
         <SceneCard
@@ -160,6 +190,7 @@ function StoryboardsTab({ isLoading, filteredStoryboards, selectedIds, onToggleS
       emptyIcon={Film}
       emptyTitle={t("asset.storyboardLibraryEmpty")}
       emptyDesc={t("asset.storyboardLibraryEmptyDesc")}
+      itemCount={filteredStoryboards.length}
     >
       {filteredStoryboards.map((sb) => (
         <StoryboardCard
@@ -213,6 +244,7 @@ function CollectionsTab({
         emptyIcon={FolderOpen}
         emptyTitle={t("asset.noCollections")}
         emptyDesc={t("asset.noCollectionsDesc")}
+        itemCount={collections.length}
       >
         {collections.map((col) => (
           <CollectionCard
@@ -238,11 +270,32 @@ interface AllTabSectionProps {
 }
 
 function AllTabSection({ title, count, children }: AllTabSectionProps) {
+  const [visibleCount, setVisibleCount] = useState(VIRTUAL_PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(VIRTUAL_PAGE_SIZE);
+  }, [count]);
+
   if (count === 0) return null;
+
+  const childrenArray = Array.isArray(children) ? children : [children];
+  const hasMore = childrenArray.length > visibleCount;
+
   return (
     <div>
       <div className="section-label mb-2">{title} ({count})</div>
-      <div className={GRID_CLASS}>{children}</div>
+      <div className={GRID_CLASS}>{childrenArray.slice(0, visibleCount)}</div>
+      {hasMore && (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setVisibleCount((c) => c + VIRTUAL_PAGE_SIZE)}
+          >
+            {t("common.loadMore")} ({childrenArray.length - visibleCount})
+          </button>
+        </div>
+      )}
     </div>
   );
 }

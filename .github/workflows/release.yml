@@ -64,10 +64,15 @@ jobs:
 
       - name: Upload macOS assets to GitHub Release
         run: |
-          # 通过 gh CLI 上传到现有 release（支持 tag 触发和 workflow_dispatch）
+          # 通过 gh CLI 上传到 release（支持 tag 触发和 workflow_dispatch）
           TAG="${GITHUB_REF#refs/tags/}"
           if [ -z "$TAG" ] || [ "$TAG" = "$GITHUB_REF" ]; then
             TAG="v$(node -p "require('./package.json').version")"
+          fi
+          # 如果 Release 不存在则先创建（tag push 不会自动创建 Release 记录）
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Creating release $TAG"
+            gh release create "$TAG" --title "$TAG" --generate-notes
           fi
           echo "Uploading macOS assets to release $TAG"
           gh release upload "$TAG" release/PrismCraft-*.dmg release/PrismCraft-*.dmg.blockmap release/PrismCraft-*.zip release/PrismCraft-*.zip.blockmap release/latest-mac.yml --clobber
@@ -147,10 +152,15 @@ jobs:
       - name: Upload Windows assets to GitHub Release
         shell: pwsh
         run: |
-          # 通过 gh CLI 上传到现有 release（支持 tag 触发和 workflow_dispatch）
+          # 通过 gh CLI 上传到 release（支持 tag 触发和 workflow_dispatch）
           $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
           if (-not $tag -or $tag -eq $env:GITHUB_REF) {
             $tag = "v$(node -p "require('./package.json').version")"
+          }
+          # 如果 Release 不存在则先创建（tag push 不会自动创建 Release 记录）
+          if (-not (gh release view $tag)) {
+            Write-Host "Creating release $tag"
+            gh release create $tag --title $tag --generate-notes
           }
           Write-Host "Uploading Windows assets to release $tag"
           gh release upload $tag release/PrismCraft-Setup.exe release/PrismCraft-Setup.exe.blockmap release/latest.yml --clobber

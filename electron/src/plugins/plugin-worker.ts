@@ -31,6 +31,11 @@ import vm from "vm";
 import fs from "fs";
 import path from "path";
 import { CODE_PLUGINS_DIR } from "./code-plugin-loader";
+import { getLogger, ConsoleTransport, loggerRegistry } from "../logging";
+
+// fork 子进程不经过主进程初始化流程，需自行初始化日志 transports
+loggerRegistry.setDefaultTransports([new ConsoleTransport({ minLevel: "info" })]);
+const logger = getLogger("plugin-worker");
 
 interface WorkerMessage {
   type: "load" | "call" | "ping" | "shutdown" | "setConfig";
@@ -484,8 +489,8 @@ const MEMORY_THRESHOLD_MB = 150;
 const memoryCheckTimer = setInterval(() => {
   const heapUsedMB = process.memoryUsage().heapUsed / (1024 * 1024);
   if (heapUsedMB > MEMORY_THRESHOLD_MB) {
-    console.warn(
-      `[plugin-worker] 堆内存 ${heapUsedMB.toFixed(1)}MB 超过阈值 ${MEMORY_THRESHOLD_MB}MB，主动退出以释放内存`,
+    logger.warn(
+      `堆内存 ${heapUsedMB.toFixed(1)}MB 超过阈值 ${MEMORY_THRESHOLD_MB}MB，主动退出以释放内存`,
     );
     send({
       type: "error",

@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { getUserDataSubDir } from "../app-paths";
+import { getLogger } from "../logging";
+
+const logger = getLogger("code-plugin-loader");
 
 export const CODE_PLUGINS_DIR = getUserDataSubDir("CodePlugins");
 
@@ -230,7 +233,7 @@ export function scanCodePluginFile(filePath: string): { valid: boolean; errors: 
             );
         }
       } catch (err) {
-        console.warn("[CodePluginLoader] matchPatterns 解析失败", err);
+        logger.warn("matchPatterns 解析失败", { error: err instanceof Error ? err.message : String(err) });
       }
     }
 

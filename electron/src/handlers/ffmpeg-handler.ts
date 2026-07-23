@@ -299,7 +299,7 @@ async function ensureOutputDir(args: string[]): Promise<void> {
           const dir = dirname(args[yIdx + 1]!);
           await mkdir(dir, { recursive: true });
         } catch (err) {
-          console.warn("[FFmpegHandler] 创建输出目录失败", err);
+          logger.warn("创建输出目录失败", { error: err instanceof Error ? err.message : String(err) });
         }
       }
     }

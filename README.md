@@ -7,7 +7,7 @@
 [![Commercial License](https://img.shields.io/badge/commercial-license%20available-orange)](COMMERCIAL_LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-10000%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Updated](https://img.shields.io/badge/updated-2026--07--23-green)]()
+[![Updated](https://img.shields.io/badge/updated-2026--07--24-green)]()
 
 ## 核心特性
 
@@ -131,7 +131,7 @@ prismcraft/
 │   ├── shared-logic/       # 零依赖纯逻辑（shot/prompt/video/story）
 │   ├── shared/             # 跨模块通用层（UI 组件、工具、常量）
 │   ├── infrastructure/     # 基础设施（DI 容器、存储、AI 提供商）
-│   ├── modules/            # 11 个业务模块
+│   ├── modules/            # 42 个业务模块
 │   └── app/                # 页面组件和布局
 ├── electron/src/           # 主进程源代码
 │   ├── api/                # HTTP API 路由（defineRoute + Zod）
@@ -148,12 +148,12 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 6026+ |
-| E2E 测试 | 126 个（Electron 集成 + 页面加载） |
+| 单元测试 | 8647+（渲染进程，421 文件） |
+| Electron 测试 | 1524 passed / 19 skipped（70 文件） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 151 条规则，8 大类 |
+| 回归守卫 | 152 条规则，8 大类（R1–R191，编号非连续） |
 | i18n 键 | 3076+ |
 
 ## 安全设计

@@ -1,9 +1,12 @@
 # PrismCraft - Code Wiki
 
-> **注意**: 本文档与 docs/CODE_CATALOG.md 内容重叠。建议以 CODE_CATALOG.md 为准。
-> 版本号和路径可能已过时，请参考 .ai/symbol-index.md 获取最新结构。
+> ⚠️ **DEPRECATED**: 本文档已过时（停留在 v0.12.0），不再维护。
+> 请参阅以下文档获取最新信息：
+> - [docs/CODE_CATALOG.md](docs/CODE_CATALOG.md) — 代码目录
+> - [docs/MODULES.md](docs/MODULES.md) — 模块清单
+> - [docs/TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md) — 技术参考
 
-> 版本: 0.12.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
+> 版本: 0.12.0（已过时） | 更新日期: 2026-06-21 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
 
 ---
 

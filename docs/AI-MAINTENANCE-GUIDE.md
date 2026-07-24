@@ -11,7 +11,7 @@
 2. docs/MODULES.md               → 42 个模块全景图（定位目标模块、子域、依赖）
 3. src/modules/{target}/MODULE.md → 目标模块公共 API、不变量、依赖
 4. src/modules/{target}/{subdomain}/contract.json → 子域合约、invariants
-5. `.trae/rules/regression-guards.md` → 151 条回归守则
+5. `.trae/rules/regression/` → 152 条回归守则（R1–R191，编号非连续）
 6. 本文档                         → 修改流程、验证步骤
 ```
 

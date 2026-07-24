@@ -1,6 +1,6 @@
 # PrismCraft 部署与运维指南
 
-> 版本：1.3.0 | 更新日期：2026-07-14
+> 版本：1.4.0 | 更新日期：2026-07-24
 
 ## 1. 环境要求
 
@@ -190,7 +190,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/PrismCraft Setup 1.3.0.exe`）
+产物：NSIS 安装程序（`release/PrismCraft-Setup.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录
@@ -406,7 +406,7 @@ powershell -ExecutionPolicy Bypass -File build-electron.ps1
 **解决**：
 
 ```bash
-xattr -cr /Applications/AI\ Animation\ Studio.app
+xattr -cr /Applications/PrismCraft.app
 ```
 
 或在系统偏好设置 → 安全性与隐私 → 点击"仍要打开"

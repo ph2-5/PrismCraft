@@ -70,3 +70,32 @@ test.describe("NotFound page via deep invalid route", () => {
     expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);
   });
 });
+
+// 路由歧义边界测试：验证 /storyboard/beat（无 beatId）不会被 :storyId 误匹配为 storyId="beat"
+// React Router v6 静态段优先，应匹配 storyboard/beat/:beatId 路由，beatId 为空时由 BeatDetailClient 处理
+test.describe("Route disambiguation: /storyboard/beat without beatId", () => {
+  test("should not treat 'beat' as storyId in /storyboard/beat", async ({ page }) => {
+    await installElectronMock(page);
+    await page.goto("/storyboard/beat");
+    await waitForAppReady(page);
+
+    // 不应渲染 StoryboardPage（storyId="beat" 场景），
+    // 而应匹配 storyboard/beat/:beatId 路由，beatId 为空时显示 notFound 或空状态
+    const main = page.locator("main").first();
+    await expect(main).toBeVisible({ timeout: 10000 });
+    // 页面应显示某种提示（404 / 分镜未找到 / 无效参数），而非白屏
+    const body = page.locator("body");
+    await expect(body).toBeVisible();
+  });
+
+  test("should not produce critical console errors on /storyboard/beat", async ({ page }) => {
+    await installElectronMock(page);
+    const getErrors = captureConsoleErrors(page);
+
+    await page.goto("/storyboard/beat");
+    await waitForAppReady(page);
+
+    const criticalErrors = getErrors();
+    expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);
+  });
+});

@@ -6,11 +6,17 @@ import { captureConsoleErrors } from "../helpers/console-errors";
 // 完整故事编辑器在 /storyboard 路由（src/modules/storyboard/page.tsx）。
 const MAIN_PAGES = [
   { path: "/story", name: "Story" },
+  { path: "/storyboard", name: "Storyboard" },
   { path: "/characters", name: "Characters" },
   { path: "/scenes", name: "Scenes" },
   { path: "/asset-library", name: "Asset Library" },
   { path: "/video-tasks", name: "Video Tasks" },
   { path: "/quick-generate", name: "Quick Generate" },
+  { path: "/stories", name: "Stories" },
+  { path: "/agent", name: "Agent" },
+  { path: "/composer", name: "Composer" },
+  { path: "/compositor", name: "Compositor" },
+  { path: "/plugins", name: "Plugins" },
   { path: "/settings", name: "Settings" },
 ];
 
@@ -212,7 +218,7 @@ test.describe("404 Handling", () => {
 });
 
 test.describe("JavaScript Error Detection", () => {
-  const ALL_PAGES = ["/", "/characters", "/scenes", "/story", "/video-tasks", "/quick-generate", "/settings"];
+  const ALL_PAGES = MAIN_PAGES.map((p) => p.path);
 
   test("should have no uncaught JavaScript errors across all pages", async ({ page }) => {
     const getErrors = captureConsoleErrors(page);

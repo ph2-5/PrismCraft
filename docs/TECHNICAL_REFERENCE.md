@@ -35,7 +35,7 @@
 | 属性 | 值 |
 |------|------|
 | 项目名称 | PrismCraft |
-| 版本 | 1.3.0 |
+| 版本 | 1.4.0 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
 | 语言 | TypeScript (strict mode) |

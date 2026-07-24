@@ -4,11 +4,17 @@ import { captureConsoleErrors } from "./helpers/console-errors";
 const MAIN_PAGES = [
   { path: "/", name: "Home" },
   { path: "/story", name: "Story" },
+  { path: "/storyboard", name: "Storyboard" },
   { path: "/characters", name: "Characters" },
   { path: "/scenes", name: "Scenes" },
   { path: "/asset-library", name: "Asset Library" },
   { path: "/video-tasks", name: "Video Tasks" },
   { path: "/quick-generate", name: "Quick Generate" },
+  { path: "/stories", name: "Stories" },
+  { path: "/agent", name: "Agent" },
+  { path: "/composer", name: "Composer" },
+  { path: "/compositor", name: "Compositor" },
+  { path: "/plugins", name: "Plugins" },
   { path: "/settings", name: "Settings" },
 ];
 

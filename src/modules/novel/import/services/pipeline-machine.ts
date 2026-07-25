@@ -198,3 +198,102 @@ export function getRetryableStages(currentStage: PipelineStage): PipelineStage[]
   // 包含当前阶段和之前所有阶段，但排除 done（已完成不需要重试）
   return STAGE_ORDER.slice(0, currentIndex + 1).filter((s) => s !== "done");
 }
+
+// ============================================================================
+// 6. 阶段回退（v5.2 放宽流程限制）
+// ============================================================================
+
+/**
+ * 判断当前阶段是否可以回退到 target 阶段。
+ *
+ * 语义：回退 ≠ 重试。回退保留所有已生成数据（characters/scenes/shots 等），
+ * 仅切换 stage 让用户查看或微调之前的步骤。重试会清空 stepData。
+ *
+ * 规则：target 必须在 STAGE_ORDER 中且 index < currentStage index（不允许向后跳）。
+ * 允许跨多阶段回退（如 character_manage → content_import）。
+ *
+ * @param currentStage 当前阶段
+ * @param target 目标阶段
+ * @returns 是否允许回退
+ */
+export function canGoBackTo(currentStage: PipelineStage, target: PipelineStage): boolean {
+  const currentIndex = STAGE_ORDER.indexOf(currentStage);
+  const targetIndex = STAGE_ORDER.indexOf(target);
+  if (currentIndex < 0 || targetIndex < 0) return false;
+  // 仅允许向回退（targetIndex < currentIndex），不允许向前跳过
+  // project_init 是初始阶段，不允许回退到它之前；done 不允许回退
+  if (currentStage === "done") return false;
+  return targetIndex < currentIndex;
+}
+
+/**
+ * 执行阶段回退（不清空数据）。
+ *
+ * 与 transition() 不同：
+ * - transition() 严格按 VALID_TRANSITIONS 单步前进
+ * - goBackTo() 允许跨阶段回退，保留所有 stepData
+ *
+ * @throws Error 如果不允许回退到目标阶段
+ */
+export function goBackTo(state: PipelineState, target: PipelineStage): PipelineState {
+  if (!canGoBackTo(state.stage, target)) {
+    throw new Error(t("error.invalidStateTransition", { from: state.stage, to: target }));
+  }
+  // 保留所有 stepData，仅切换 stage
+  return { ...state, stage: target, step: 1 };
+}
+
+/**
+ * 获取当前阶段的上一个阶段（用于"上一步"按钮）。
+ * 返回 null 表示没有上一阶段（如 project_init）。
+ */
+export function getPreviousStage(currentStage: PipelineStage): PipelineStage | null {
+  const currentIndex = STAGE_ORDER.indexOf(currentStage);
+  if (currentIndex <= 0) return null;
+  return STAGE_ORDER[currentIndex - 1] ?? null;
+}
+
+// ============================================================================
+// 7. 阶段自由跳转（v5.2 放宽流程限制 — 用户要求"想换到哪个页面就换到哪个页面"）
+// ============================================================================
+
+/**
+ * 判断是否允许从 currentStage 跳转到 targetStage。
+ *
+ * v5.2：用户要求完全自由切换 stage，因此允许任意方向跳转：
+ * - 向前跳（targetIndex > currentIndex）：允许，但保留已生成数据
+ * - 向后跳（targetIndex < currentIndex）：允许，等同回退
+ * - 同阶段跳转：禁止（无意义）
+ *
+ * 仅禁止：currentStage 或 target 不在 STAGE_ORDER 中。
+ *
+ * @param currentStage 当前阶段
+ * @param target 目标阶段
+ * @returns 是否允许跳转
+ */
+export function canJumpTo(currentStage: PipelineStage, target: PipelineStage): boolean {
+  const currentIndex = STAGE_ORDER.indexOf(currentStage);
+  const targetIndex = STAGE_ORDER.indexOf(target);
+  if (currentIndex < 0 || targetIndex < 0) return false;
+  return currentStage !== target;
+}
+
+/**
+ * 执行阶段跳转（保留所有数据，仅切换 stage）。
+ *
+ * 与 transition()/goBackTo() 的区别：
+ * - transition()：严格按 VALID_TRANSITIONS 单步前进
+ * - goBackTo()：仅允许回退
+ * - jumpTo()：允许任意方向跳转，保留所有 stepData
+ *
+ * 调用方需自行处理"跳到未处理阶段"的 UI 状态（如显示空数据 + 提示按钮）。
+ *
+ * @throws Error 如果不允许跳转到目标阶段
+ */
+export function jumpTo(state: PipelineState, target: PipelineStage): PipelineState {
+  if (!canJumpTo(state.stage, target)) {
+    throw new Error(t("error.invalidStateTransition", { from: state.stage, to: target }));
+  }
+  // 保留所有 stepData，仅切换 stage
+  return { ...state, stage: target, step: 1 };
+}

@@ -124,7 +124,14 @@ export async function extractAndMatchEntities(
   ) {
     const data = charResult.value.data as { characters: ExtractedCharacter[] };
     if (Array.isArray(data.characters)) {
-      extractedCharacters.push(...data.characters);
+      // 内部去重保险：AI 仍可能返回重复名称，按 name 精确去重（保留首次）
+      const seen = new Set<string>();
+      for (const c of data.characters) {
+        const name = (c.name ?? "").trim();
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        extractedCharacters.push(c);
+      }
     }
   }
   if (
@@ -134,7 +141,13 @@ export async function extractAndMatchEntities(
   ) {
     const data = sceneResult.value.data as { scenes: ExtractedScene[] };
     if (Array.isArray(data.scenes)) {
-      extractedScenes.push(...data.scenes);
+      const seen = new Set<string>();
+      for (const s of data.scenes) {
+        const name = (s.name ?? "").trim();
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        extractedScenes.push(s);
+      }
     }
   }
 

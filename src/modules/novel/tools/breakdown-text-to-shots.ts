@@ -131,7 +131,7 @@ ${text}
 
 请只返回 JSON 数组，每个分镜一个对象。`;
 
-    const raw = await generateJsonArrayWithAI(prompt, 4000);
+    const raw = await generateJsonArrayWithAI(prompt, 8192);
     if (!raw) {
       return { success: false, error: "AI 分镜拆解失败或返回格式解析失败" };
     }

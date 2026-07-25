@@ -101,6 +101,14 @@ Phase 2A (69.5-81.5天): 一键成片管道（三档渐进式流水线：quick 3
 Phase 2B (20-28天): 四栏分镜编辑器 + 元素绑定扩展 + 任务管理重构（与 2A 并行）
 
 Phase 3 (10-14天): Storybook + Stryker + 覆盖率 + 模型能力自适应优化（Task 3.2: 能力系统统一 + 过滤下沉 + 保守默认值 + 一致性测试）
+                    <!-- 进度（2026-07-25）：Task 3.1 配置层全部完成 —
+                         ✓ .storybook/ + stryker.config.json + vitest.config.stryker.ts 已建
+                         ✓ 5 个 Story 就绪（3 旧 + 2 新：SegmentList/EntityReviewPanel）— 浏览器验证渲染正常
+                         ✓ typecheck / typecheck:electron / typecheck:test / lint:arch 全过
+                         ✓ check-native-modules 通过；8647 测试全过
+                         ✓ 渐进式覆盖率阈值已设（branches 55/functions 63/lines 65/statements 63，基线 60/68/70/69，目标 80%）
+                         ✓ stryker run 首跑验证：配置可用（dry run 7s，955 mutants 生成，mutants 正常测试），但 model-capabilities-utils.ts 全部 mutants survived（测试覆盖不足，归入 Task 3.2/3.3 覆盖率攻坚）
+                         剩余：覆盖率逐步上调至 80% / 扩展 mutate 范围至其他纯逻辑模块 -->
 Phase 4  (37-47天):  Agent 完整版(26工具 = Phase 1 基础 8 + Phase 4 生成类 10 + Phase 4 素材类 8) + 后处理工具链（字幕+配音+转场+导出）+ 视频合成（✅ 已完成，v1.3.0，Task 4.1-4.12 全部交付）
                     <!-- v5.3 增强：Task 4.7 增强（Prompt 配方库升级为完整 Skill 体系）+ 新增 Task 4.12（IP 安全改写 + 误报修复） -->
 

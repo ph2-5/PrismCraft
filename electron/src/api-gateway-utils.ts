@@ -51,6 +51,10 @@ export function isAsyncPlugin(plugin: AIProviderPlugin): plugin is AIProviderPlu
  * 替代多处复制的 `((((response.choices as ...)[0] as ...).message as ...).content as string) || ""` 表达式。
  * 使用类型守卫逐层安全访问，避免不安全断言；provider 协议异常时返回空字符串。
  *
+ * 兼容推理模型（DeepSeek V4 Pro/Flash、OpenAI o1、Anthropic Claude w/ thinking 等）：
+ * 若 message.content 为空，回退到 message.reasoning_content（部分推理模型在 max_tokens 不足时
+ * 仅产出 reasoning_content，content 字段为空）。
+ *
  * @param response makeRequest 返回的未知响应数据
  * @param plugin 若实现了 extractTextContent，优先委托给插件
  * @returns 提取到的文本内容，失败返回空字符串
@@ -80,7 +84,12 @@ export function extractTextFromResponse(
   if (!message || typeof message !== "object") return "";
 
   const content = message.content;
-  return typeof content === "string" ? content : "";
+  if (typeof content === "string" && content.length > 0) return content;
+
+  // 推理模型兼容：content 为空时回退到 reasoning_content
+  // （DeepSeek V4 Pro/Flash 在 max_tokens 不足时仅产出 reasoning_content）
+  const reasoningContent = message.reasoning_content;
+  return typeof reasoningContent === "string" ? reasoningContent : "";
 }
 
 export async function buildVideoRequest(plugin: AIProviderPlugin, ctx: Parameters<AIProviderPlugin["buildVideoRequest"]>[0]) {

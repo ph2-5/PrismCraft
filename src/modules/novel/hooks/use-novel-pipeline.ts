@@ -32,6 +32,7 @@ import { usePipelineDerivedFlags } from "./use-pipeline-derived-flags";
 import { useNovelTools } from "./use-novel-tools";
 import { useNovelStageTransitions } from "./use-novel-stage-transitions";
 import { usePipelinePersistence } from "./use-pipeline-persistence";
+import { useProgressiveExtraction } from "./use-progressive-extraction";
 
 export interface UseNovelPipelineOptions {
   onComplete: () => void;
@@ -129,6 +130,33 @@ export interface UseNovelPipelineResult {
   workflowMode: WorkflowMode;
   /** 切换工作流模式（立即应用，不丢失已生成内容；联动 config.mode 与 gates） */
   handleWorkflowModeChange: (mode: WorkflowMode) => void;
+  // v5.2 放宽流程限制：允许回退到之前的阶段（不清空数据）
+  /** 回退到指定阶段（保留所有已生成数据，仅切换 stage） */
+  handleGoBackTo: (target: import("../domain/types").PipelineStage) => void;
+  /** 回退到上一阶段（"上一步"按钮使用） */
+  handleBack: () => void;
+  /** v5.2：自由跳转到任意阶段（保留数据，由 PhaseIndicator 使用） */
+  handleJumpTo: (target: import("../domain/types").PipelineStage) => void;
+  // v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+  /** 提取处理中状态 */
+  isExtracting: boolean;
+  /** 提取进度提示 */
+  progressHint: string;
+  /** DB 角色名列表（用于 UI 判断角色是否已在库中） */
+  dbCharacterNames: string[];
+  /** 手动预填：创建一个新角色到 DB */
+  handleManualAdd: (input: {
+    name: string;
+    gender: string;
+    age?: number;
+    description: string;
+  }) => Promise<void>;
+  /** 渐进式提取：对选中片段循环 AI 提取 + 创建到 DB */
+  handleProgressiveExtract: (selectedSegmentIds: string[]) => Promise<void>;
+  /** 全文提取：AI 提取全文 + 创建到 DB */
+  handleFullExtract: () => Promise<void>;
+  /** 单个 ExtractedCharacter 添加到 DB 角色库（CharacterExtractCard 用） */
+  handleAddToLibrary: (c: ExtractedCharacter) => Promise<void>;
 }
 
 /**
@@ -185,7 +213,7 @@ export function useNovelPipeline({
   });
 
   // 4. 阶段转换 handler（handleNext 及 5 个 stage 调度函数）
-  const { handleNext } = useNovelStageTransitions({
+  const { handleNext, handleGoBackTo, handleBack, handleJumpTo } = useNovelStageTransitions({
     state, setState, selectedSegmentIds, setIsProcessing,
     storyStructure, setStoryStructure, setTreatment, setShotContracts,
     setShots, setPacingConfig, isMountedRef, canProceed,
@@ -200,6 +228,16 @@ export function useNovelPipeline({
     isImporting, setIsImporting, shots,
     setStoryStructure, setTreatment, setShotContracts, setPacingConfig,
     debounceRef, hasRecoveredRef, isMountedRef,
+  });
+
+  // 6. v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+  const {
+    isExtracting, progressHint, dbCharacterNames,
+    handleManualAdd, handleProgressiveExtract, handleFullExtract,
+    handleAddToLibrary,
+  } = useProgressiveExtraction({
+    segments: state.segments,
+    rawText: state.rawText,
   });
 
   return {
@@ -217,5 +255,13 @@ export function useNovelPipeline({
     recoverProject, dismissRecovery, deletePendingProject,
     handleSelectMode, handleLoadSampleProject, handleQuickGenerate, setRawText,
     workflowMode, handleWorkflowModeChange,
+    // v5.2 放宽流程限制：允许回退到之前的阶段（不清空数据）
+    handleGoBackTo, handleBack,
+    // v5.2：自由跳转到任意阶段（保留数据，由 PhaseIndicator 使用）
+    handleJumpTo,
+    // v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+    isExtracting, progressHint, dbCharacterNames,
+    handleManualAdd, handleProgressiveExtract, handleFullExtract,
+    handleAddToLibrary,
   };
 }

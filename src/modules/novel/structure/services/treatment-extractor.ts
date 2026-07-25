@@ -192,7 +192,7 @@ export async function extractTreatment(
 
   // 1. 构建提示词并调用 AI
   const prompt = buildTreatmentExtractionPrompt(segments, characters);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 2048, temperature: 0.5 });
+  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.5 });
 
   if (!aiResult.success || !aiResult.data?.text) {
     return {

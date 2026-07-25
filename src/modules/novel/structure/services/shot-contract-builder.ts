@@ -268,7 +268,7 @@ export async function buildShotContractsForBeat(
 ): Promise<{ success: true; data: ShotContract[] } | { success: false; error: string }> {
   // 1. 构建提示词并调用 AI
   const prompt = buildShotContractPrompt(beat, segments, treatment);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 2048, temperature: 0.6 });
+  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.6 });
 
   let rawContracts: Omit<ShotContract, "id" | "beatId" | "shotNumber">[];
 

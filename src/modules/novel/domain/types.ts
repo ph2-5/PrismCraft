@@ -68,6 +68,11 @@ export interface NovelSegment {
 /**
  * 从小说文本中提取的角色（未持久化）。
  * 通过 match-entities 工具与现有 Character 库匹配后，status 流转为 matched/conflict。
+ *
+ * v5.2.2 Phase 2：新增来源与外观标签字段（全部 optional，旧数据兼容）：
+ * - sourceSegmentIds：角色出现在哪些 segment 中
+ * - chapterIndices：角色出现在哪些章节（1-based）
+ * - appearanceTags：外观变化标签（如"少年期"、"变装后"、"战斗形态"）
  */
 export interface ExtractedCharacter {
   tempId: string;
@@ -82,6 +87,13 @@ export interface ExtractedCharacter {
   matchConfidence?: number;
   status: "new" | "matched" | "conflict";
   confirmed: boolean;
+  // === v5.2.2 Phase 2: 来源与外观标签（全部 optional，旧数据无此字段时按 undefined 处理） ===
+  /** 角色出现的 segment ID 列表（用于按片段筛选） */
+  sourceSegmentIds?: string[];
+  /** 角色出现的章节序号列表（1-based，用于按章节筛选） */
+  chapterIndices?: number[];
+  /** 外观变化标签（如"少年期"、"变装后"、"战斗形态"，用于外观跟踪） */
+  appearanceTags?: string[];
 }
 
 /**

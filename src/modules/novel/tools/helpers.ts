@@ -12,12 +12,12 @@ import { extractJsonArray, extractJsonObject } from "@/shared-logic/json";
  * 调用 textProvider 生成文本，从中提取 JSON 数组并解析。
  *
  * @param prompt AI 提示词
- * @param maxTokens 最大 token 数（默认 4096）
+ * @param maxTokens 最大 token 数（默认 8192，兼容 DeepSeek V4 Pro 等推理模型）
  * @returns 成功返回 unknown[]，失败返回 null
  */
 export async function generateJsonArrayWithAI(
   prompt: string,
-  maxTokens = 4096,
+  maxTokens = 8192,
 ): Promise<unknown[] | null> {
   const result = await container.textProvider.generateText(prompt, {
     maxTokens,
@@ -38,12 +38,12 @@ export async function generateJsonArrayWithAI(
  * 调用 textProvider 生成文本，从中提取 JSON 对象并解析。
  *
  * @param prompt AI 提示词
- * @param maxTokens 最大 token 数（默认 2048）
+ * @param maxTokens 最大 token 数（默认 8192，兼容 DeepSeek V4 Pro 等推理模型）
  * @returns 成功返回 Record<string, unknown>，失败返回 null
  */
 export async function generateJsonObjectWithAI(
   prompt: string,
-  maxTokens = 2048,
+  maxTokens = 8192,
 ): Promise<Record<string, unknown> | null> {
   const result = await container.textProvider.generateText(prompt, {
     maxTokens,

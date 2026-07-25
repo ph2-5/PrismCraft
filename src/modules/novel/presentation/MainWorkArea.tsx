@@ -68,6 +68,28 @@ export interface MainWorkAreaProps {
   onResetPacing: () => void;
   // 派生渲染标志：pacing_planning 阶段
   showPacingPlanning: boolean;
+  // v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+  /** 提取处理中状态 */
+  isExtracting: boolean;
+  /** 提取进度提示 */
+  progressHint: string;
+  /** DB 角色名列表（用于 UI 判断角色是否已在库中） */
+  dbCharacterNames: string[];
+  /** DB 角色总数（用于显示角色库计数） */
+  dbCharacterCount: number;
+  /** 手动预填 */
+  onManualAdd: (input: {
+    name: string;
+    gender: string;
+    age?: number;
+    description: string;
+  }) => Promise<void>;
+  /** 渐进式提取 */
+  onProgressiveExtract: (selectedSegmentIds: string[]) => Promise<void>;
+  /** 全文提取 */
+  onFullExtract: () => Promise<void>;
+  /** 单个 ExtractedCharacter 添加到 DB 角色库 */
+  onAddToLibrary: (c: ExtractedCharacter) => Promise<void>;
 }
 
 export function MainWorkArea({
@@ -104,6 +126,15 @@ export function MainWorkArea({
   onApplyPacing,
   onResetPacing,
   showPacingPlanning,
+  // v5.2.1 角色管理重构
+  isExtracting,
+  progressHint,
+  dbCharacterNames,
+  dbCharacterCount,
+  onManualAdd,
+  onProgressiveExtract,
+  onFullExtract,
+  onAddToLibrary,
 }: MainWorkAreaProps) {
   return (
     <main className="flex-1 min-w-0 overflow-y-auto p-6 bg-background" aria-label={t("novel.shell.mainWorkArea")}>
@@ -150,12 +181,23 @@ export function MainWorkArea({
         <EntityReviewPanel
           characters={state.characters}
           scenes={state.scenes}
+          segments={state.segments}
+          rawText={state.rawText}
           onConfirmCharacter={onConfirmCharacter}
           onConfirmScene={onConfirmScene}
           onEditCharacter={onEditCharacter}
           onEditScene={onEditScene}
           onMatchCharacter={onMatchCharacter}
           isProcessing={isProcessing}
+          // v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+          isExtracting={isExtracting}
+          progressHint={progressHint}
+          dbCharacterNames={dbCharacterNames}
+          dbCharacterCount={dbCharacterCount}
+          onManualAdd={onManualAdd}
+          onProgressiveExtract={onProgressiveExtract}
+          onFullExtract={onFullExtract}
+          onAddToLibrary={onAddToLibrary}
         />
       ) : showShotBreakdown ? (
         <ShotBreakdownList

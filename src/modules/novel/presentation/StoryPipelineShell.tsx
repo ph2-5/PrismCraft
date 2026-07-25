@@ -22,11 +22,12 @@
  */
 
 import { useState } from "react";
-import { Loader2, ArrowRight, Zap, Save, BarChart3, Settings } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Zap, Save, BarChart3, Settings } from "lucide-react";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { usePreference } from "@/shared/utils/preferences";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { getPreviousStage } from "../import/services/pipeline-machine";
 import type { PipelineConfig, PipelineStage } from "../domain/types";
 import { useNovelPipeline } from "../hooks/use-novel-pipeline";
 import { PhaseIndicator } from "./PhaseIndicator";
@@ -81,11 +82,15 @@ interface UseShellStateResult {
   nextDisabled: boolean;
   showAutoRun: boolean;
   progressStep: number;
+  /** 当前阶段是否可回退（用于"上一步"按钮显隐） */
+  canGoBack: boolean;
   handleStageClick: (stage: PipelineStage) => void;
   handleModeSelect: (level: AiAssistLevel) => void;
   handleSwitchMode: () => void;
   handleSampleLoad: (project: SampleProject) => void;
   handleOnboardingComplete: () => void;
+  /** 回退到上一阶段（"上一步"按钮使用） */
+  handleBack: () => void;
 }
 
 function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult {
@@ -98,6 +103,8 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
     isLoadingRecovery,
     handleSelectMode,
     handleLoadSampleProject,
+    handleBack,
+    handleJumpTo,
   } = pipeline;
 
   const [overviewMode, setOverviewMode] = useState(false);
@@ -130,10 +137,22 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
   const currentStageIdx = stagesForMode.indexOf(state.stage);
   const progressStep = currentStageIdx >= 0 ? currentStageIdx + 1 : 1;
 
-  // PhaseIndicator 点击：仅显示当前阶段信息，不切换 stage（不支持回退）
-  const handleStageClick = (_stage: PipelineStage) => {
-    const currentStageLabel = t(`novel.stages.${state.stage}` as Parameters<typeof t>[0]);
-    emitToast("info", currentStageLabel);
+  // v5.2：当前阶段是否有上一阶段（用于"上一步"按钮显隐）
+  const canGoBack = getPreviousStage(state.stage) !== null && !isProcessing;
+
+  // v5.2 放宽流程限制：PhaseIndicator 点击 → 自由跳转到任意阶段（保留数据）
+  // - 用户要求"想换到哪个页面就换到哪个页面"
+  // - 允许向前跳（如从 project_init 直接跳到 generation 查看生成阶段）
+  // - 允许向后跳（回退到之前的阶段）
+  // - 处理中（isProcessing）禁止切换，避免破坏 AI 调用
+  // - 数据保留：已生成的 characters/scenes/shots 不清空，由各阶段面板自行处理空状态
+  const handleStageClick = (stage: PipelineStage) => {
+    if (isProcessing) {
+      emitToast("info", t("novel.controls.processing"));
+      return;
+    }
+    if (stage === state.stage) return;
+    handleJumpTo(stage);
   };
 
   // Task 2A.16：模式选择回调
@@ -172,8 +191,8 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
     overviewMode, setOverviewMode, modeSelected, setModeSelected,
     showSampleLoader, setShowSampleLoader, showOnboarding, setShowOnboarding,
     showRecoveryDialog, nextLabel, nextDisabled, showAutoRun, progressStep,
-    handleStageClick, handleModeSelect, handleSwitchMode,
-    handleSampleLoad, handleOnboardingComplete,
+    canGoBack, handleStageClick, handleModeSelect, handleSwitchMode,
+    handleSampleLoad, handleOnboardingComplete, handleBack,
   };
 }
 
@@ -273,12 +292,17 @@ interface StatusBarProps {
   nextDisabled: boolean;
   showAutoRun: boolean;
   progressStep: number;
+  /** 是否允许回退到上一阶段 */
+  canGoBack: boolean;
+  /** 回退到上一阶段 */
+  onBack: () => void;
 }
 
-/** 底部状态栏：进度 + 保存状态 + 概览切换 + 模式切换 + 自动执行 + 下一步。 */
+/** 底部状态栏：进度 + 保存状态 + 概览切换 + 模式切换 + 自动执行 + 上一步/下一步。 */
 function StatusBar({
   pipeline, overviewMode, onToggleOverview, onSwitchMode,
   nextLabel, nextDisabled, showAutoRun, progressStep,
+  canGoBack, onBack,
 }: StatusBarProps) {
   const {
     state, stagesForMode, isProcessing, isImporting, canProceed,
@@ -355,6 +379,19 @@ function StatusBar({
             {t("novel.controls.autoRun")}
           </button>
         )}
+        {/* v5.2：上一步按钮 — 允许回退到之前的阶段（不清空数据） */}
+        {canGoBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={isProcessing || isImporting}
+            className="btn btn-ghost text-[12px] px-3 py-1.5 flex items-center gap-1.5"
+            aria-label={t("novel.controls.prev")}
+          >
+            <ArrowLeft size={12} />
+            {t("novel.controls.prev")}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleNext}
@@ -391,14 +428,18 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     handleGeneratePrompts, handleFinalizeImport, setCurrentSegmentIndex,
     handleBeatsChange, handleShotContractsChange,
     handlePacingConfigChange, handleApplyPacing, handleResetPacing,
+    // v5.2.1 角色管理重构
+    isExtracting, progressHint, dbCharacterNames,
+    handleManualAdd, handleProgressiveExtract, handleFullExtract,
+    handleAddToLibrary,
   } = pipeline;
 
   const {
     overviewMode, setOverviewMode, modeSelected, setModeSelected,
     showSampleLoader, setShowSampleLoader, showOnboarding, setShowOnboarding,
     showRecoveryDialog, nextLabel, nextDisabled, showAutoRun, progressStep,
-    handleStageClick, handleModeSelect, handleSwitchMode,
-    handleSampleLoad, handleOnboardingComplete,
+    canGoBack, handleStageClick, handleModeSelect, handleSwitchMode,
+    handleSampleLoad, handleOnboardingComplete, handleBack,
   } = useShellState({ pipeline });
 
   // 1. 模式未选择 → 显示 ModeSelector（或 SampleProjectLoader）
@@ -489,6 +530,15 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
               onApplyPacing={handleApplyPacing}
               onResetPacing={handleResetPacing}
               showPacingPlanning={showPacingPlanning}
+              // v5.2.1 角色管理重构：三种提取模式 + 单个添加到库
+              isExtracting={isExtracting}
+              progressHint={progressHint}
+              dbCharacterNames={dbCharacterNames}
+              dbCharacterCount={dbCharacterNames.length}
+              onManualAdd={handleManualAdd}
+              onProgressiveExtract={handleProgressiveExtract}
+              onFullExtract={handleFullExtract}
+              onAddToLibrary={handleAddToLibrary}
             />
             <ContextPanel state={state} shotCount={shots.length} />
           </>
@@ -505,6 +555,8 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
         nextDisabled={nextDisabled}
         showAutoRun={showAutoRun}
         progressStep={progressStep}
+        canGoBack={canGoBack}
+        onBack={handleBack}
       />
 
       {/* Task 2A.7: 未完成项目恢复弹窗 */}

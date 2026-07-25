@@ -65,24 +65,34 @@ export const extractScenesFromTextTool: ToolImpl = {
 
 要求：
 1. 每个场景包含：name(场景名称), type(类型：室内/室外/虚拟等), description(场景描述30-80字), atmosphere(氛围), timeOfDay(时间：白天/黄昏/夜晚等), location(具体位置)
-2. 合并相同场景的不同描述（同一地点的多次出场合并为一个场景）
-${existingPlaces.length > 0 ? `3. 已提取的场景：${existingPlaces.join(", ")}。如果发现同一场景，请在 name 后加 "(已存在)" 标记` : ""}
+2. **严格合并**：同一地点的多次出场合并为一个场景（如"指挥室"在多章出现只返回一次），description 综合多次描写
+3. 名称规范化：使用文本中最常见的称呼（如"曙光号"而非"曙光号指挥室"+"曙光号会议室"分两次返回，应合并为"曙光号"或按显著不同地点分别返回）
+${existingPlaces.length > 0 ? `4. 以下场景已提取过，**不要再次返回**：${existingPlaces.join(", ")}。即使文本中再次出现这些场景，也跳过不提取` : ""}
 
 小说文本：
 ${text}
 
-请只返回 JSON 数组，每个场景一个对象。`;
+请只返回 JSON 数组，每个场景一个对象。已存在的场景不要出现在结果中。`;
 
-    const raw = await generateJsonArrayWithAI(prompt, 3000);
+    const raw = await generateJsonArrayWithAI(prompt, 8192);
     if (!raw) {
       return { success: false, error: "AI 提取场景失败或返回格式解析失败" };
     }
 
-    const scenes: ExtractedScene[] = raw.map((item) => {
+    // 双重去重：与 extract-characters 一致
+    const seenPlaces = new Set(existingPlaces.map((n) => n.trim()));
+    const scenes: ExtractedScene[] = [];
+    for (const item of raw) {
       const s = (item ?? {}) as Record<string, unknown>;
-      return {
+      const rawName = asString(s.name) || "未知场景";
+      const name = rawName.replace(/\s*\(已存在\)\s*$/i, "").trim();
+      if (seenPlaces.has(name)) {
+        continue;
+      }
+      seenPlaces.add(name);
+      scenes.push({
         tempId: crypto.randomUUID(),
-        name: asString(s.name) || "未知场景",
+        name,
         type: asString(s.type),
         description: asString(s.description),
         atmosphere: asString(s.atmosphere),
@@ -90,8 +100,8 @@ ${text}
         location: asString(s.location),
         status: "new" as const,
         confirmed: false,
-      };
-    });
+      });
+    }
 
     return { success: true, data: { scenes } };
   },

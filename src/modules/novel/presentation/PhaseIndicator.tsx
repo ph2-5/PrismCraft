@@ -4,10 +4,11 @@
  * 显示当前 PipelineStage 在 7 个核心阶段中的位置：
  * ①项目初始化 → ②内容导入 → ③角色 → ④场景 → ⑤检查 → ⑥剧本化 → ⑦生成
  *
- * 交互：
- * - 已完成阶段（index < currentIndex）可点击回退查看
+ * v5.2 交互（用户要求"想换到哪个页面就换到哪个页面"）：
+ * - 所有阶段都可点击，无解锁限制
  * - 当前阶段高亮
- * - 未解锁阶段（index > currentIndex）灰色不可点
+ * - 已完成阶段（index < currentIndex）显示对勾
+ * - 未到达阶段（index > currentIndex）灰色但仍可点击
  *
  * 注：此组件展示 7 个"用户可见"阶段（合并了 structure_analysis/pacing_planning
  * 到 content_import 中，done 阶段不显示）。完整 10 阶段状态由 pipeline-machine 维护。
@@ -31,28 +32,13 @@ const VISIBLE_PHASES: PipelineStage[] = [
 export interface PhaseIndicatorProps {
   /** 当前 stage */
   stage: PipelineStage;
-  /** 点击阶段回调（仅对已解锁阶段触发） */
+  /** 点击阶段回调（v5.2：所有阶段都可触发） */
   onStageClick?: (stage: PipelineStage) => void;
 }
 
 /** 将 PipelineStage 映射为 i18n key */
 function stageLabel(stage: PipelineStage): string {
   return t(`novel.stages.${stage}` as Parameters<typeof t>[0]);
-}
-
-/**
- * 判断目标阶段是否已解锁（即 currentIndex 之前或当前）。
- * 使用 VISIBLE_PHASES 中的索引比较。
- */
-function isStageUnlocked(currentStage: PipelineStage, targetStage: PipelineStage): boolean {
-  const currentIdx = VISIBLE_PHASES.indexOf(currentStage);
-  const targetIdx = VISIBLE_PHASES.indexOf(targetStage);
-  if (currentIdx === -1 || targetIdx === -1) {
-    // 当前阶段不在 VISIBLE_PHASES 中（如 structure_analysis/pacing_planning/done）
-    // 则按"已完成"处理（允许回退查看）
-    return true;
-  }
-  return targetIdx <= currentIdx;
 }
 
 export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
@@ -72,8 +58,8 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
           const isCompleted = i < currentIndex;
           const isCurrent = i === currentIndex;
           const isLast = i === VISIBLE_PHASES.length - 1;
-          const unlocked = isStageUnlocked(displayStage, s);
-          const clickable = unlocked && onStageClick !== undefined && !isCurrent;
+          // v5.2：所有阶段都可点击（包括未到达的），由父组件决定是否切换
+          const clickable = onStageClick !== undefined && !isCurrent;
 
           return (
             <div key={s} className="flex items-center shrink-0">
@@ -83,7 +69,7 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
                 disabled={!clickable}
                 className={[
                   "flex items-center gap-2 py-1 px-1 rounded-md transition-colors",
-                  "cursor-default",
+                  clickable ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
                 ].join(" ")}
                 aria-current={isCurrent ? "step" : undefined}
                 aria-label={stageLabel(s)}
@@ -95,7 +81,7 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
                       ? "bg-[var(--primary)] text-primary-foreground"
                       : isCurrent
                         ? "bg-[var(--primary)] text-primary-foreground ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-background"
-                        : "bg-muted text-muted-foreground",
+                        : "bg-muted text-muted-foreground hover:bg-muted/80",
                   ].join(" ")}
                 >
                   {isCompleted ? <Check size={12} /> : i + 1}
@@ -107,7 +93,7 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
                       ? "font-bold text-foreground"
                       : isCompleted
                         ? "text-muted-foreground"
-                        : "text-muted-foreground/60",
+                        : "text-muted-foreground/80 hover:text-foreground",
                   ].join(" ")}
                 >
                   {stageLabel(s)}

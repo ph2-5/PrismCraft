@@ -117,14 +117,18 @@ const imageUrlResponseSchema = z
   })
   .passthrough();
 
-/** Shape for `{ choices?: [{ message?: { content? } }] }`. */
+/** Shape for `{ choices?: [{ message?: { content?, reasoning_content? } }] }`.
+ * 推理模型兼容：reasoning_content 为可选字段，当 content 为空时作为回退。 */
 const textContentResponseSchema = z
   .object({
     choices: z
       .array(
         z
           .object({
-            message: optionalObject({ content: optionalString }),
+            message: optionalObject({
+              content: optionalString,
+              reasoning_content: optionalString,
+            }),
           })
           .passthrough(),
       )
@@ -157,9 +161,11 @@ const textStreamToolCallSchema = optionalObject({
   function: textStreamFunctionSchema,
 });
 
-/** Shape for a single OpenAI SSE delta. */
+/** Shape for a single OpenAI SSE delta.
+ * 推理模型兼容：reasoning_content 字段，当 content 为空时作为增量回退。 */
 const textStreamDeltaSchema = optionalObject({
   content: optionalString,
+  reasoning_content: optionalString,
   tool_calls: z.array(textStreamToolCallSchema).optional().catch(undefined),
 });
 
@@ -368,7 +374,9 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     const choice = parsed.choices[0];
     if (!choice) return undefined;
     const delta = choice.delta;
-    const deltaText = delta?.content ?? "";
+    // 推理模型兼容：content 优先，为空时使用 reasoning_content 增量
+    // （DeepSeek V4 Pro/Flash 流式响应在 reasoning 阶段 content 为空）
+    const deltaText = delta?.content || delta?.reasoning_content || "";
 
     // 提取增量 tool_calls（OpenAI 流式格式：每个 chunk 可能只含 index + 部分 arguments）
     let toolCalls: TextStreamToolCall[] | undefined;
@@ -503,8 +511,10 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     const choices = parsed.choices;
     if (!choices || choices.length === 0) return "";
     const message = choices[0]?.message;
-    if (!message?.content) return "";
-    return message.content;
+    if (!message) return "";
+    // 推理模型兼容：content 优先，为空时回退到 reasoning_content
+    // （DeepSeek V4 Pro/Flash 在 max_tokens 不足时仅产出 reasoning_content）
+    return message.content || message.reasoning_content || "";
   }
 
   extractStatus(response: Record<string, unknown>): {

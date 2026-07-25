@@ -73,11 +73,15 @@ export default defineConfig({
         "src/shared/video-utils/provider-codecs.ts",
         "src/config/constants.ts",
       ],
+      // Task 3.1: 渐进式覆盖率阈值
+      // 基线（2026-07-25）：Statements 68.73 | Branches 60.06 | Functions 68.19 | Lines 69.95
+      // 策略：阈值设在基线以下约 5%，阻止大幅倒退的同时为偶发波动留出缓冲。
+      // 后续计划：随测试补齐逐步上调，目标阈值 80%（与 stryker.config.json high 一致）。
       thresholds: {
-        branches: 0,
-        functions: 0,
-        lines: 0,
-        statements: 0,
+        branches: 55,
+        functions: 63,
+        lines: 65,
+        statements: 63,
         perFile: false,
       },
     },

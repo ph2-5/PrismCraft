@@ -80,23 +80,39 @@ export const extractCharactersFromTextTool: ToolImpl = {
 要求：
 1. 每个角色包含：name, gender(male/female/other/unknown), age(数字或null), description(外貌特征30-80字), appearance(对象：hairColor/hairStyle/eyeColor/height/build/clothing), personality(性格特征数组), firstAppearance(首次出场上下文20字)
 2. 只提取有意义的角色（有名有姓或功能明确），路人/群众角色不提取
-${existingNames.length > 0 ? `3. 已提取的角色：${existingNames.join(", ")}。如果发现同一角色，请在 name 后加 "(已存在)" 标记` : ""}
+3. **严格去重**：同一角色在文本中多次出现时，只返回一次（以首次出场为准），合并后续出场的外貌/性格信息
+4. 名称规范化：使用文本中最完整的称呼（如"林晚"而非"林晚小姐"或"林通讯官"），避免别名导致重复
+${existingNames.length > 0 ? `5. 以下角色已提取过，**不要再次返回**：${existingNames.join(", ")}。即使文本中再次出现这些角色，也跳过不提取` : ""}
 
 小说文本：
 ${text}
 
-请只返回 JSON 数组，每个角色一个对象。`;
+请只返回 JSON 数组，每个角色一个对象。已存在的角色不要出现在结果中。`;
 
-    const raw = await generateJsonArrayWithAI(prompt, 3000);
+    const raw = await generateJsonArrayWithAI(prompt, 8192);
     if (!raw) {
       return { success: false, error: "AI 提取角色失败或返回格式解析失败" };
     }
 
-    const characters: ExtractedCharacter[] = raw.map((item) => {
+    // 双重去重：AI 可能仍返回重复项，这里再做一次保障
+    // 1. 清理 name 中的 "(已存在)" 标记（旧 prompt 的兼容）
+    // 2. 按名称精确去重（保留首次出现）
+    // 3. 与 existingNames 求差集
+    const seenNames = new Set(existingNames.map((n) => n.trim()));
+    const characters: ExtractedCharacter[] = [];
+    for (const item of raw) {
       const c = (item ?? {}) as Record<string, unknown>;
-      return {
+      const rawName = asString(c.name) || "未知角色";
+      // 清理可能存在的 "(已存在)" / "(已存在)" 后缀
+      const name = rawName.replace(/\s*\(已存在\)\s*$/i, "").trim();
+      if (seenNames.has(name)) {
+        // 已存在（无论是 existingNames 还是本轮已加入），跳过
+        continue;
+      }
+      seenNames.add(name);
+      characters.push({
         tempId: crypto.randomUUID(),
-        name: asString(c.name) || "未知角色",
+        name,
         gender: asString(c.gender, "unknown"),
         age: typeof c.age === "number" ? c.age : undefined,
         description: asString(c.description),
@@ -105,8 +121,8 @@ ${text}
         firstAppearance: asString(c.firstAppearance),
         status: "new" as const,
         confirmed: false,
-      };
-    });
+      });
+    }
 
     return { success: true, data: { characters } };
   },

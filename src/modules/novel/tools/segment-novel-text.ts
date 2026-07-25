@@ -64,7 +64,7 @@ ${text}
 
 请只返回 JSON 数组，不要加任何解释。`;
 
-    const raw = await generateJsonArrayWithAI(prompt, 4000);
+    const raw = await generateJsonArrayWithAI(prompt, 8192);
     if (!raw) {
       return { success: false, error: "AI 分段失败或返回格式解析失败" };
     }

@@ -11,10 +11,11 @@
  */
 
 import { useCallback } from "react";
-import { canTransition, transition } from "../import/services/pipeline-machine";
+import { canTransition, transition, canGoBackTo, goBackTo, getPreviousStage, canJumpTo, jumpTo } from "../import/services/pipeline-machine";
 import { breakdownShotsForSegments } from "./pipeline-helpers";
 import { useNovelStructureStageTransitions } from "./use-novel-structure-stage-transitions";
 import type { UsePipelineStateResult } from "./use-pipeline-state";
+import type { PipelineStage } from "../domain/types";
 
 export interface UseNovelStageTransitionsOptions {
   state: UsePipelineStateResult["state"];
@@ -33,6 +34,12 @@ export interface UseNovelStageTransitionsOptions {
 
 export interface UseNovelStageTransitionsResult {
   handleNext: () => Promise<void>;
+  /** 回退到指定阶段（不清空数据，仅切换 stage） */
+  handleGoBackTo: (target: PipelineStage) => void;
+  /** 回退到上一阶段（"上一步"按钮使用） */
+  handleBack: () => void;
+  /** v5.2：自由跳转到任意阶段（保留数据，由 PhaseIndicator 使用） */
+  handleJumpTo: (target: PipelineStage) => void;
 }
 
 /**
@@ -173,5 +180,30 @@ export function useNovelStageTransitions({
     runGenericNext,
   ]);
 
-  return { handleNext };
+  /** 回退到指定阶段（不清空数据，仅切换 stage） */
+  const handleGoBackTo = useCallback(
+    (target: PipelineStage) => {
+      if (!canGoBackTo(state.stage, target)) return;
+      setState((prev) => goBackTo(prev, target));
+    },
+    [state.stage, setState],
+  );
+
+  /** 回退到上一阶段（"上一步"按钮使用） */
+  const handleBack = useCallback(() => {
+    const prev = getPreviousStage(state.stage);
+    if (!prev) return;
+    handleGoBackTo(prev);
+  }, [state.stage, handleGoBackTo]);
+
+  /** v5.2：自由跳转到任意阶段（保留数据，由 PhaseIndicator 使用） */
+  const handleJumpTo = useCallback(
+    (target: PipelineStage) => {
+      if (!canJumpTo(state.stage, target)) return;
+      setState((prev) => jumpTo(prev, target));
+    },
+    [state.stage, setState],
+  );
+
+  return { handleNext, handleGoBackTo, handleBack, handleJumpTo };
 }

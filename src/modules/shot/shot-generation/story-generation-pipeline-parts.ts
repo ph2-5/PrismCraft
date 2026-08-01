@@ -131,6 +131,7 @@ export async function callTextProvider(
     await container.textProvider.generateText(promptToSend, {
       maxTokens: retryParams.maxTokens,
       temperature: retryParams.temperature,
+      taskType: "story_planning",
     });
   if (!result.success || !result.data?.text) {
     return { error: result.error || "AI 未返回有效文本" };

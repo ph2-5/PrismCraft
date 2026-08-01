@@ -35,6 +35,7 @@ import {
 export type GenerateTextFn = (prompt: string, options?: {
   maxTokens?: number;
   temperature?: number;
+  taskType?: "structure_analysis" | "treatment_extraction" | "shot_contract" | "story_planning" | "frame_prompt";
 }) => Promise<{ success: boolean; data?: { text: string }; error?: string }>;
 
 /**
@@ -208,7 +209,7 @@ export async function analyzeStoryStructure(
 
   // 1. 构建提示词并调用 AI
   const prompt = buildStructureAnalysisPrompt(segments);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.6 });
+  const aiResult = await generateTextFn(prompt, { taskType: "structure_analysis" });
 
   if (!aiResult.success || !aiResult.data?.text) {
     return {

@@ -168,6 +168,7 @@ export async function generateFramePrompts(
       temperature: 0.7,
       providerId,
       modelId,
+      taskType: "frame_prompt",
     });
 
     if (!result.success || !result.data?.text) {

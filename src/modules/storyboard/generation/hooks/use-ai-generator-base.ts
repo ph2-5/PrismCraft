@@ -141,14 +141,25 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
         } catch (err) {
           if (controller.signal.aborted) return;
           showError(errorTitle, getErrorMessage(err));
-        } finally {
-          if (activeControllersRef.current.get(beatId) === controller) {
-            activeControllersRef.current.delete(beatId);
-          }
-          pendingPromisesRef.current.delete(beatId);
-          setGenerating(null);
         }
       })();
+
+      // 在 promise 创建后附加清理逻辑，避免 IIFE 闭包内引用未赋值变量。
+      promise.finally(() => {
+        // 仅当当前 controller/promise 仍属于本调用时清理，防止旧 finally
+        // 在重入场景下覆盖新启动的生成状态。
+        const isCurrentController = activeControllersRef.current.get(beatId) === controller;
+        const isCurrentPromise = pendingPromisesRef.current.get(beatId) === promise;
+        if (isCurrentController) {
+          activeControllersRef.current.delete(beatId);
+        }
+        if (isCurrentPromise) {
+          pendingPromisesRef.current.delete(beatId);
+        }
+        if (isCurrentController) {
+          setGenerating(null);
+        }
+      });
 
       pendingPromisesRef.current.set(beatId, promise);
       return promise;

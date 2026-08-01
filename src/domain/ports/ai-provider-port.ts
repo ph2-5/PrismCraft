@@ -180,6 +180,7 @@ export interface ITextProvider {
       temperature?: number;
       providerId?: string;
       modelId?: string;
+      taskType?: "story_planning" | "shot_contract" | "frame_prompt" | "character_extraction" | "scene_extraction" | "treatment_extraction" | "structure_analysis" | "chat" | "code";
     },
   ): Promise<ApiResponse<{ text: string }>>;
 
@@ -195,6 +196,7 @@ export interface ITextProvider {
       temperature?: number;
       providerId?: string;
       modelId?: string;
+      taskType?: "story_planning" | "shot_contract" | "frame_prompt" | "character_extraction" | "scene_extraction" | "treatment_extraction" | "structure_analysis" | "chat" | "code";
       tools?: ToolDef[];
       onChunk: (chunk: StreamChunk) => void;
       /** P1-1 修复：支持外部 abort，让用户取消按钮在 LLM 推理期间生效 */
@@ -220,6 +222,7 @@ export interface ITextProvider {
       temperature?: number;
       providerId?: string;
       modelId?: string;
+      taskType?: "story_planning" | "shot_contract" | "frame_prompt" | "character_extraction" | "scene_extraction" | "treatment_extraction" | "structure_analysis" | "chat" | "code";
       tools?: ToolDef[];
       onChunk?: (chunk: StreamChunk) => void;
       signal?: AbortSignal;

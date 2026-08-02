@@ -41,9 +41,11 @@ export const mediaAssetService = {
   },
 
   async batchRemove(ids: string[]): Promise<void> {
-    for (const id of ids) {
-      const result = await container.mediaAssetRepository.delete(id);
-      if (!result.ok) throw result.error;
-    }
+    // P1.1 修复 N+1：并行删除，任一失败则抛出首个错误
+    const results = await Promise.all(
+      ids.map((id) => container.mediaAssetRepository.delete(id)),
+    );
+    const firstFailure = results.find((r) => !r.ok);
+    if (firstFailure && !firstFailure.ok) throw firstFailure.error;
   },
 };

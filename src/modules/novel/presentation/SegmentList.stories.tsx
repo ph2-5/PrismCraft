@@ -55,8 +55,8 @@ export const Default: Story = {
   args: {
     segments: baseSegments,
     selectedIds: ["seg-2"],
-    onToggle: (id) => console.log("toggle", id),
-    onSelectAll: () => console.log("select all"),
+    onToggle: (id) => console.debug("toggle", id),
+    onSelectAll: () => console.debug("select all"),
   },
 };
 
@@ -64,8 +64,8 @@ export const AllSelected: Story = {
   args: {
     segments: baseSegments,
     selectedIds: ["seg-1", "seg-2", "seg-3"],
-    onToggle: (id) => console.log("toggle", id),
-    onSelectAll: () => console.log("select all"),
+    onToggle: (id) => console.debug("toggle", id),
+    onSelectAll: () => console.debug("select all"),
   },
 };
 
@@ -73,8 +73,8 @@ export const NoneSelected: Story = {
   args: {
     segments: baseSegments,
     selectedIds: [],
-    onToggle: (id) => console.log("toggle", id),
-    onSelectAll: () => console.log("select all"),
+    onToggle: (id) => console.debug("toggle", id),
+    onSelectAll: () => console.debug("select all"),
   },
 };
 

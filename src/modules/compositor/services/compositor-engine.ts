@@ -151,15 +151,18 @@ async function loadScene(sceneId?: string): Promise<Scene | null> {
 /** 加载道具列表（可选）。缺失道具跳过并记录告警。 */
 async function loadProps(propIds?: string[] | null): Promise<Prop[]> {
   if (!propIds || propIds.length === 0) return [];
+  // P1.1 修复 N+1：并行查询所有道具，再按结果过滤并告警
+  const results = await Promise.all(
+    propIds.map((id) => container.propStorage.getPropById(id)),
+  );
   const props: Prop[] = [];
-  for (const propId of propIds) {
-    const prop = await container.propStorage.getPropById(propId);
+  results.forEach((prop, i) => {
     if (prop) {
       props.push(prop);
     } else {
-      errorLogger.warn(`[Compositor] 道具不存在: ${propId}，跳过`);
+      errorLogger.warn(`[Compositor] 道具不存在: ${propIds[i]}，跳过`);
     }
-  }
+  });
   return props;
 }
 
@@ -198,16 +201,22 @@ async function persistCompositorAsset(
 }
 
 /**
- * 执行一次合成：拼装 prompt → 调用图像模型 → 持久化结果
+ * 加载合成所需的所有资源（角色 + 变体 + 场景 + 道具）。
  *
- * @throws 当角色未找到、图像生成失败或持久化失败时抛出
+ * 提取自 composeImage，降低主函数圈复杂度（P2.3）。
+ * 每步加载后检查 abort 信号，取消时抛出 errorCancelled。
+ *
+ * @throws 当角色未找到或操作被取消时抛出
  */
-export async function composeImage(
+async function loadCompositorResources(
   input: CompositorInput,
-  options: ComposeOptions = {},
-): Promise<CompositorResult> {
-  const { signal } = options;
-
+  signal: AbortSignal | undefined,
+): Promise<{
+  character: Character;
+  variant: CharacterVariant | null;
+  scene: Scene | null;
+  props: Prop[];
+}> {
   // 1. 加载角色（必填）
   const character = await container.characterStorage.getCharacterById(input.characterId);
   if (!character) {
@@ -226,6 +235,23 @@ export async function composeImage(
   // 4. 加载道具列表（可选）
   const props = await loadProps(input.propIds);
   if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
+
+  return { character, variant, scene, props };
+}
+
+/**
+ * 执行一次合成：拼装 prompt → 调用图像模型 → 持久化结果
+ *
+ * @throws 当角色未找到、图像生成失败或持久化失败时抛出
+ */
+export async function composeImage(
+  input: CompositorInput,
+  options: ComposeOptions = {},
+): Promise<CompositorResult> {
+  const { signal } = options;
+
+  // 1-4. 加载角色/变体/场景/道具（含 abort 检查）
+  const { character, variant, scene, props } = await loadCompositorResources(input, signal);
 
   // 5. 拼装 prompt（Task 2A.10: 如果有变体，使用变体的 promptFragment + 参考图覆盖角色基础设定）
   const prompt = generateCompositorPrompt({

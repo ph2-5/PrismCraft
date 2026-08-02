@@ -13,8 +13,6 @@ import { isElectron } from "@/shared/utils/platform";
 import { sanitizeIdentifier } from "@/shared/sql-safety";
 import { getConfig as fileHttpGetConfig, setConfig as fileHttpSetConfig } from "@/shared/file-http";
 
-const DEVICE_ID_STORAGE_KEY = "sync_device_id";
-
 let _cachedDeviceId: string | null = null;
 
 async function getDeviceId(): Promise<string> {
@@ -22,25 +20,16 @@ async function getDeviceId(): Promise<string> {
   if (_cachedDeviceId) return _cachedDeviceId;
 
   try {
-    let deviceId: string | null = null;
-    try {
-      deviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
-    } catch (e) { errorLogger.warn("[SyncChangelog] localStorage.getItem failed", e); }
-
     // 通过 @/shared/file-http 统一层读取（HTTP 优先，IPC 回退）
-    if (!deviceId) {
-      const value = await fileHttpGetConfig("sync_device_id");
-      if (typeof value === "string" && value) {
-        deviceId = value;
-      }
+    let deviceId: string | null = null;
+    const value = await fileHttpGetConfig("sync_device_id");
+    if (typeof value === "string" && value) {
+      deviceId = value;
     }
 
     if (!deviceId) {
       deviceId = `dev_${crypto.randomUUID()}`;
     }
-    try {
-      localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
-    } catch (e) { errorLogger.warn("[SyncChangelog] localStorage.setItem failed", e); }
 
     // 通过 @/shared/file-http 统一层持久化（HTTP 优先，IPC 回退）
     await fileHttpSetConfig("sync_device_id", deviceId);

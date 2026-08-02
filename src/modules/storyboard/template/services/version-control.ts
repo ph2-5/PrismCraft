@@ -7,6 +7,15 @@ import { t, MINUTE_MS, HOUR_MS, DAY_MS } from "@/shared/constants";
 
 const MAX_VERSIONS_PER_STORY = 20;
 
+/** 结构化比较两个 string[]（替代 JSON.stringify 深比较，避免属性顺序敏感和性能问题） */
+function stringArraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 function getStableStoryId(story: Story): string {
   if (story.id) return story.id;
   return `new_${crypto.randomUUID()}`;
@@ -175,9 +184,8 @@ export function compareVersions(
     beatsRemoved: Math.max(0, -beatsAdded),
     beatsModified,
     durationChanged: v2Duration - v1Duration,
-    charactersChanged:
-      JSON.stringify(v1.characters) !== JSON.stringify(v2.characters),
-    scenesChanged: JSON.stringify(v1.scenes) !== JSON.stringify(v2.scenes),
+    charactersChanged: !stringArraysEqual(v1.characters, v2.characters),
+    scenesChanged: !stringArraysEqual(v1.scenes, v2.scenes),
   };
 }
 

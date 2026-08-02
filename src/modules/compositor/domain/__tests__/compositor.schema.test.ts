@@ -216,35 +216,35 @@ describe("compositorResultSchema", () => {
 
   it("反向：id 缺失时拒绝", () => {
     expect(() => {
-      const { id, ...rest } = validResult;
+      const { id: _id, ...rest } = validResult;
       compositorResultSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：characterId 缺失时拒绝", () => {
     expect(() => {
-      const { characterId, ...rest } = validResult;
+      const { characterId: _characterId, ...rest } = validResult;
       compositorResultSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：imageUrl 缺失时拒绝", () => {
     expect(() => {
-      const { imageUrl, ...rest } = validResult;
+      const { imageUrl: _imageUrl, ...rest } = validResult;
       compositorResultSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：prompt 缺失时拒绝", () => {
     expect(() => {
-      const { prompt, ...rest } = validResult;
+      const { prompt: _prompt, ...rest } = validResult;
       compositorResultSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：createdAt 缺失时拒绝", () => {
     expect(() => {
-      const { createdAt, ...rest } = validResult;
+      const { createdAt: _createdAt, ...rest } = validResult;
       compositorResultSchema.parse(rest);
     }).toThrow();
   });
@@ -287,35 +287,35 @@ describe("compositorPresetSchema", () => {
 
   it("反向：id 缺失时拒绝", () => {
     expect(() => {
-      const { id, ...rest } = validPreset;
+      const { id: _id, ...rest } = validPreset;
       compositorPresetSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：name 缺失时拒绝", () => {
     expect(() => {
-      const { name, ...rest } = validPreset;
+      const { name: _name, ...rest } = validPreset;
       compositorPresetSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：characterId 缺失时拒绝", () => {
     expect(() => {
-      const { characterId, ...rest } = validPreset;
+      const { characterId: _characterId, ...rest } = validPreset;
       compositorPresetSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：createdAt 缺失时拒绝", () => {
     expect(() => {
-      const { createdAt, ...rest } = validPreset;
+      const { createdAt: _createdAt, ...rest } = validPreset;
       compositorPresetSchema.parse(rest);
     }).toThrow();
   });
 
   it("反向：updatedAt 缺失时拒绝", () => {
     expect(() => {
-      const { updatedAt, ...rest } = validPreset;
+      const { updatedAt: _updatedAt, ...rest } = validPreset;
       compositorPresetSchema.parse(rest);
     }).toThrow();
   });

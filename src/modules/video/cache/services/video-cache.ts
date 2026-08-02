@@ -314,14 +314,17 @@ async function handleDownloadError(
 export async function recoverUncachedVideos(): Promise<Result<number>> {
   return fromAsyncThrowable(async () => {
     const tasks = await container.videoTaskStorage.getVideoTasksByStatus("completed");
+    const tasksWithUrl = tasks.filter((t) => t.videoUrl);
+    // P1.1 修复 N+1：并行检查缓存状态，避免顺序查询
+    const cacheChecks = await Promise.all(
+      tasksWithUrl.map((t) => container.videoCacheStorage.getCachedVideoFile(t.taskId)),
+    );
+    // 未命中缓存的串行下载，避免并行下载冲击 API 限流
     let recovered = 0;
-    for (const task of tasks) {
-      if (!task.videoUrl) continue;
-      const cached = await container.videoCacheStorage.getCachedVideoFile(task.taskId);
-      if (!cached) {
-        const result = await cacheVideoBlob(task.taskId, task.videoUrl);
-        if (result.ok && result.value) recovered++;
-      }
+    for (let i = 0; i < tasksWithUrl.length; i++) {
+      if (cacheChecks[i]) continue;
+      const result = await cacheVideoBlob(tasksWithUrl[i]!.taskId, tasksWithUrl[i]!.videoUrl!);
+      if (result.ok && result.value) recovered++;
     }
     return recovered;
   });

@@ -177,7 +177,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
 
       <select
         className="select w-24 h-8 text-xs"
-        aria-label="题材"
+        aria-label={t("aria.genre")}
         value={story.currentStory.genre ?? ""}
         onChange={(e) =>
           story.setCurrentStory((prev) => ({

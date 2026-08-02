@@ -107,7 +107,14 @@ describe("generateFramePrompts", () => {
 
     expect(mockTextProvider.generateText).toHaveBeenCalledTimes(1);
     const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    expect(callArgs[1]!).toEqual({ maxTokens: 600, temperature: 0.7 });
+    // 远程分支 P1.3：frame-prompt-service 接入 taskType="frame_prompt" + providerId + modelId
+    expect(callArgs[1]!).toEqual({
+      maxTokens: 600,
+      temperature: 0.7,
+      providerId: undefined,
+      modelId: undefined,
+      taskType: "frame_prompt",
+    });
     expect(callArgs[0]!).toContain("第3镜头");
   });
 

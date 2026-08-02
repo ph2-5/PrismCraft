@@ -2,6 +2,7 @@ import type { IFileStorage } from "@/domain/ports/file-storage-port";
 import { S3FileStorage, type S3StorageConfig } from "./s3-file-storage";
 import { LocalFileStorage } from "./local-file-storage";
 import { errorLogger } from "@/shared/error-logger";
+import { getConfig as fileHttpGetConfig, setConfig as fileHttpSetConfig } from "@/shared/file-http";
 
 export type FileStorageBackend = "local" | "s3";
 
@@ -10,18 +11,20 @@ export interface FileStorageConfig {
   s3?: S3StorageConfig;
 }
 
+const FILE_STORAGE_CONFIG_KEY = "fileStorageConfig";
+
 let _instance: IFileStorage | null = null;
 let _currentBackend: FileStorageBackend | null = null;
+let _cachedConfig: FileStorageConfig | null = null;
 
-function loadConfig(): FileStorageConfig {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return { backend: "local" };
-  }
+async function loadConfig(): Promise<FileStorageConfig> {
+  if (_cachedConfig) return _cachedConfig;
   try {
-    const raw = window.localStorage.getItem("fileStorageConfig");
+    const raw = await fileHttpGetConfig(FILE_STORAGE_CONFIG_KEY);
     if (!raw) return { backend: "local" };
-    const parsed = JSON.parse(raw) as FileStorageConfig;
+    const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as FileStorageConfig;
     if (parsed.backend === "s3" && parsed.s3) {
+      _cachedConfig = parsed;
       return parsed;
     }
     return { backend: "local" };
@@ -31,23 +34,23 @@ function loadConfig(): FileStorageConfig {
   }
 }
 
-export function saveFileStorageConfig(config: FileStorageConfig): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
+export async function saveFileStorageConfig(config: FileStorageConfig): Promise<void> {
   try {
-    window.localStorage.setItem("fileStorageConfig", JSON.stringify(config));
+    await fileHttpSetConfig(FILE_STORAGE_CONFIG_KEY, JSON.stringify(config));
     _instance = null;
     _currentBackend = null;
+    _cachedConfig = config;
   } catch (e) {
     errorLogger.warn("[file-storage] Failed to save config", e);
   }
 }
 
-export function getFileStorageConfig(): FileStorageConfig {
-  return loadConfig();
+export async function getFileStorageConfig(): Promise<FileStorageConfig> {
+  return await loadConfig();
 }
 
 export async function getFileStorage(): Promise<IFileStorage> {
-  const config = loadConfig();
+  const config = await loadConfig();
 
   if (_instance && _currentBackend === config.backend) {
     return _instance;
@@ -74,4 +77,5 @@ export async function getFileStorage(): Promise<IFileStorage> {
 export function resetFileStorage(): void {
   _instance = null;
   _currentBackend = null;
+  _cachedConfig = null;
 }

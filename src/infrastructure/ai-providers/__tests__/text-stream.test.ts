@@ -140,7 +140,8 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
     });
 
     const callArgs = mockApiCallStream.mock.calls[0]![1]!;
-    expect(callArgs.body).toContain('"maxTokens":300');
+    // 远程分支 P1.3：generateTextStream 接入 taskType，默认 chat 类型推荐 maxTokens=2048
+    expect(callArgs.body).toContain('"maxTokens":2048');
   });
 
   it("未提供 temperature 时应使用默认值 0.7", async () => {

@@ -24,6 +24,7 @@ import {
 import { parseResourceNodeId } from "./layout/auto-layout";
 import {
   applyConnection,
+  computeUnboundResourceIds,
   deriveEdges,
   moveBeatBefore,
   removeBindingEdges,
@@ -63,7 +64,14 @@ function StoryboardCanvasInner({
     showResourcePicker,
     setShowResourcePicker,
     toggleResourceVisibility,
-  } = useResourceVisibility();
+    showAllResources,
+    showBoundOnly,
+  } = useResourceVisibility(
+    computeUnboundResourceIds(beats, characters, scenes),
+    beats,
+    characters,
+    scenes,
+  );
   const { nodes, onNodesChange, resetPositions, fitView } = useCanvasNodes({
     beats,
     characters,
@@ -232,10 +240,13 @@ function StoryboardCanvasInner({
       {/* 资源节点选择面板（浮动在工具栏下方） */}
       {showResourcePicker && (
         <ResourcePickerOverlay
+          beats={beats}
           characters={characters}
           scenes={scenes}
           hiddenResourceIds={hiddenResourceIds}
           onToggle={toggleResourceVisibility}
+          onShowAll={showAllResources}
+          onShowBoundOnly={showBoundOnly}
           onClose={() => setShowResourcePicker(false)}
         />
       )}

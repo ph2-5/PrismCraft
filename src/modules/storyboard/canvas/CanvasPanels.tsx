@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Panel } from "@xyflow/react";
 import { Film, LayoutGrid, Map as MapIcon, MapPin, Maximize, Plus, User, Users, X } from "lucide-react";
 import { t } from "@/shared/constants";
+import { resolveMediaUrl } from "@/shared/utils/image-url";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
 import { ResourceReferencePanel } from "./ResourceReferencePanel";
 import type { ResourceKind } from "./types";
@@ -124,23 +126,42 @@ export function CanvasOverlayPanel({
 }
 
 interface ResourcePickerPanelProps {
+  beats: StoryBeat[];
   characters: Character[];
   scenes: Scene[];
   hiddenResourceIds: Set<string>;
   onToggle: (id: string, visible: boolean) => void;
+  onShowAll: () => void;
+  onShowBoundOnly: () => void;
   onClose: () => void;
+}
+
+function resolveResourceImage(kind: ResourceKind, resource: Character | Scene): string | undefined {
+  return kind === "character"
+    ? resolveMediaUrl(
+        (resource as Character).avatarPath ?? (resource as Character).thumbnailPath,
+        (resource as Character).generatedImage ?? (resource as Character).refImagePath,
+      )
+    : resolveMediaUrl(
+        (resource as Scene).scenePath ??
+          (resource as Scene).thumbnailPath ??
+          (resource as Scene).refImagePath,
+        (resource as Scene).imageUrl,
+      );
 }
 
 function ResourcePickerRow({
   id,
   name,
   visible,
+  image,
   icon,
   onToggle,
 }: {
   id: string;
   name: string;
   visible: boolean;
+  image?: string;
   icon: React.ReactNode;
   onToggle: (id: string, visible: boolean) => void;
 }) {
@@ -152,18 +173,48 @@ function ResourcePickerRow({
         gap: 8,
         fontSize: 12,
         cursor: "pointer",
-        padding: "2px 0",
+        padding: "3px 0",
       }}
     >
       <input
         type="checkbox"
         checked={visible}
         onChange={(e) => onToggle(id, e.target.checked)}
-        style={{ margin: 0, accentColor: "var(--primary)" }}
+        style={{ margin: 0, accentColor: "var(--primary)", flexShrink: 0 }}
       />
-      <span style={{ color: "var(--muted-fg)", display: "inline-flex" }}>{icon}</span>
+      {image ? (
+        <img
+          src={image}
+          alt={name}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 5,
+            objectFit: "cover",
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <span
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 5,
+            background: "var(--muted)",
+            color: "var(--muted-fg)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </span>
+      )}
       <span
         style={{
+          flex: 1,
+          minWidth: 0,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -175,34 +226,111 @@ function ResourcePickerRow({
   );
 }
 
+/** 资源是否被任一 beat 绑定（引用） */
+function isBound(beats: StoryBeat[], kind: ResourceKind, resourceId: string): boolean {
+  return beats.some((beat) =>
+    kind === "character"
+      ? (beat.characterIds ?? []).includes(resourceId)
+      : beat.sceneId === resourceId,
+  );
+}
+
+interface ResourceGroupProps {
+  title: string;
+  items: { id: string; name: string; image?: string; kind: ResourceKind }[];
+  hiddenResourceIds: Set<string>;
+  onToggle: (id: string, visible: boolean) => void;
+}
+
+function ResourceGroup({ title, items, hiddenResourceIds, onToggle }: ResourceGroupProps) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-fg)", marginTop: 4 }}>
+        {title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        {items.map((item) => (
+          <ResourcePickerRow
+            key={item.id}
+            id={item.id}
+            name={item.name}
+            visible={!hiddenResourceIds.has(item.id)}
+            image={item.image}
+            icon={
+              item.kind === "character" ? (
+                <User style={{ width: 12, height: 12 }} aria-hidden="true" />
+              ) : (
+                <MapPin style={{ width: 12, height: 12 }} aria-hidden="true" />
+              )
+            }
+            onToggle={onToggle}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
 /**
- * 资源节点选择面板：勾选要在画布上显示的已有角色/场景（"添加角色/场景"入口）。
- * 数据即 story.characters / story.scenes，勾选状态仅影响画布显示，不改变绑定关系。
+ * 资源节点选择面板（"添加角色/场景"入口）。
+ *
+ * 面向大量角色/场景的策略：
+ * - 搜索框按名称过滤
+ * - 「显示全部 / 仅显示已绑定」一键切换
+ * - 按"已绑定 / 未绑定"分组展示（含缩略图），默认只显示已绑定资源
  */
 export function ResourcePickerPanel({
+  beats,
   characters,
   scenes,
   hiddenResourceIds,
   onToggle,
+  onShowAll,
+  onShowBoundOnly,
   onClose,
 }: ResourcePickerPanelProps) {
+  const [query, setQuery] = useState("");
+
+  const keyword = query.trim().toLowerCase();
+  const matches = (name: string) => !keyword || name.toLowerCase().includes(keyword);
+
+  const allItems = [
+    ...characters.map((c) => ({
+      id: c.id,
+      name: c.name,
+      kind: "character" as ResourceKind,
+      image: resolveResourceImage("character", c),
+      bound: isBound(beats, "character", c.id),
+    })),
+    ...scenes.map((s) => ({
+      id: s.id,
+      name: s.name,
+      kind: "scene" as ResourceKind,
+      image: resolveResourceImage("scene", s),
+      bound: isBound(beats, "scene", s.id),
+    })),
+  ].filter((item) => matches(item.name));
+
+  const boundItems = allItems.filter((item) => item.bound);
+  const unboundItems = allItems.filter((item) => !item.bound);
+
   return (
     <div
       className="card"
       role="dialog"
       aria-label={t("storyboard.canvas.resourcePickerTitle")}
       style={{
-        width: 260,
-        maxHeight: 340,
-        overflowY: "auto",
-        padding: 12,
+        width: 280,
+        maxHeight: 400,
         display: "flex",
         flexDirection: "column",
+        padding: 12,
         gap: 6,
         boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>
           {t("storyboard.canvas.resourcePickerTitle")}
         </span>
@@ -215,45 +343,55 @@ export function ResourcePickerPanel({
         </button>
       </div>
 
-      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-fg)", marginTop: 2 }}>
-        {t("storyboard.canvas.characterSection")}
+      {/* 搜索 */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <input
+          className="input"
+          style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
+          placeholder={t("storyboard.canvas.searchResources")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label={t("storyboard.canvas.searchResources")}
+        />
+        <button
+          className="btn btn-outline btn-xs"
+          onClick={onShowAll}
+          title={t("storyboard.canvas.showAll")}
+        >
+          {t("storyboard.canvas.showAll")}
+        </button>
+        <button
+          className="btn btn-outline btn-xs"
+          onClick={onShowBoundOnly}
+          title={t("storyboard.canvas.showBoundOnly")}
+        >
+          {t("storyboard.canvas.showBoundOnly")}
+        </button>
       </div>
-      {characters.length === 0 ? (
-        <div style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-          {t("element.noAvailableCharacters")}
-        </div>
-      ) : (
-        characters.map((character) => (
-          <ResourcePickerRow
-            key={character.id}
-            id={character.id}
-            name={character.name}
-            visible={!hiddenResourceIds.has(character.id)}
-            icon={<User style={{ width: 12, height: 12 }} aria-hidden="true" />}
-            onToggle={onToggle}
-          />
-        ))
-      )}
 
-      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-fg)", marginTop: 4 }}>
-        {t("storyboard.canvas.sceneSection")}
+      {/* 分组列表 */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+        {allItems.length === 0 ? (
+          <div style={{ fontSize: 11, color: "var(--muted-fg)", textAlign: "center", padding: "16px 0" }}>
+            {t("storyboard.canvas.noMatch")}
+          </div>
+        ) : (
+          <>
+            <ResourceGroup
+              title={t("storyboard.canvas.boundSection", { count: boundItems.length })}
+              items={boundItems}
+              hiddenResourceIds={hiddenResourceIds}
+              onToggle={onToggle}
+            />
+            <ResourceGroup
+              title={t("storyboard.canvas.unboundSection", { count: unboundItems.length })}
+              items={unboundItems}
+              hiddenResourceIds={hiddenResourceIds}
+              onToggle={onToggle}
+            />
+          </>
+        )}
       </div>
-      {scenes.length === 0 ? (
-        <div style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-          {t("storyboard.canvas.noScenes")}
-        </div>
-      ) : (
-        scenes.map((scene) => (
-          <ResourcePickerRow
-            key={scene.id}
-            id={scene.id}
-            name={scene.name}
-            visible={!hiddenResourceIds.has(scene.id)}
-            icon={<MapPin style={{ width: 12, height: 12 }} aria-hidden="true" />}
-            onToggle={onToggle}
-          />
-        ))
-      )}
     </div>
   );
 }

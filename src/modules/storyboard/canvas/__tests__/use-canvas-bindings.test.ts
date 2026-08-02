@@ -8,11 +8,14 @@ import {
   moveBeatBefore,
   buildInitialNodes,
   reconcileNodes,
+  computeUnboundResourceIds,
 } from "../hooks/use-canvas-bindings";
 import {
   beatNodeId,
   characterNodeId,
   sceneNodeId,
+  computeAutoLayout,
+  MAX_RESOURCE_STACK,
 } from "../layout/auto-layout";
 
 function makeBeat(id: string, overrides: Partial<StoryBeat> = {}): StoryBeat {
@@ -327,5 +330,54 @@ describe("节点构建 / 调和", () => {
     expect(beat1?.data.isSelected).toBe(true);
     const sceneNode = withSelection.find((n) => n.id === sceneNodeId("s1"));
     expect(sceneNode).toBe(initial.find((n) => n.id === sceneNodeId("s1")));
+  });
+});
+
+describe("computeAutoLayout（大量资源不堆叠）", () => {
+  it("多个角色绑定同一分镜时不重叠（同列最多 MAX_RESOURCE_STACK 个，超出向右延伸）", () => {
+    const beats = [makeBeat("b1", { characterIds: ["c1", "c2", "c3", "c4", "c5"] })];
+    const chars = ["c1", "c2", "c3", "c4", "c5"].map((id) => makeChar(id));
+    const positions = computeAutoLayout(beats, chars, []);
+
+    const xs = chars.map((c) => positions.get(characterNodeId(c.id))!.x);
+    const ys = chars.map((c) => positions.get(characterNodeId(c.id))!.y);
+    // 同一锚点列最多 MAX_RESOURCE_STACK 个：全部 x 不允许相同
+    expect(new Set(xs).size).toBeGreaterThanOrEqual(Math.ceil(chars.length / MAX_RESOURCE_STACK));
+    // 相同 x 的节点 y 必须不同（不重叠）
+    for (const x of new Set(xs)) {
+      const sameX = ys.filter((_, i) => xs[i] === x);
+      expect(new Set(sameX).size).toBe(sameX.length);
+    }
+  });
+
+  it("未绑定资源锚定到最后一个分镜之后", () => {
+    const beats = [makeBeat("b1"), makeBeat("b2")];
+    const chars = [makeChar("unbound")];
+    const positions = computeAutoLayout(beats, chars, []);
+    const beat2X = positions.get(beatNodeId("b2"))!.x;
+    const unboundX = positions.get(characterNodeId("unbound"))!.x;
+    expect(unboundX).toBeGreaterThan(beat2X);
+  });
+
+  it("角色行与场景行 y 不重叠", () => {
+    const positions = computeAutoLayout([makeBeat("b1")], [makeChar("c1")], [makeScene("s1")]);
+    const charY = positions.get(characterNodeId("c1"))!.y;
+    const sceneY = positions.get(sceneNodeId("s1"))!.y;
+    expect(sceneY).toBeGreaterThan(charY);
+  });
+});
+
+describe("computeUnboundResourceIds（默认只显示已绑定策略）", () => {
+  it("返回未被任何分镜引用的角色/场景 id", () => {
+    const beats = [makeBeat("b1", { characterIds: ["c1"], sceneId: "s1" })];
+    const characters = [makeChar("c1"), makeChar("c2")];
+    const scenes = [makeScene("s1"), makeScene("s2")];
+    const unbound = computeUnboundResourceIds(beats, characters, scenes);
+    expect(unbound).toEqual(["c2", "s2"]);
+  });
+
+  it("无分镜时全部视为未绑定", () => {
+    const unbound = computeUnboundResourceIds([], [makeChar("c1")], [makeScene("s1")]);
+    expect(unbound).toEqual(["c1", "s1"]);
   });
 });

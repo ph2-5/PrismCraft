@@ -5,14 +5,26 @@ import { getBeatCharacterIds } from "@/domain/utils";
 /**
  * 分镜画布自动布局（纯函数）。
  *
- * 布局策略：分镜节点水平排成一行（镜头顺序），角色节点在下方一行、场景节点再下一行，
- * 资源节点尽量靠近第一个引用它的分镜，减少连线交叉。
+ * 策略：
+ * - 分镜节点水平排成一行（镜头顺序），y=0
+ * - 角色一行、场景一行，每个资源锚定到第一个引用它的分镜列；
+ *   同一列最多纵向堆叠 MAX_RESOURCE_STACK 个（超出后向右延伸），避免大量资源堆叠重叠
+ * - 未绑定任何分镜的资源锚定到"最后一个分镜之后"（beats.length 列）
  */
 
 export const BEAT_NODE_WIDTH = 232;
 export const BEAT_NODE_GAP_X = 48;
-export const RESOURCE_ROW_GAP_Y = 148;
-export const RESOURCE_ROW_GAP_2_Y = 296;
+export const BEAT_ROW_Y = 0;
+
+export const RESOURCE_NODE_WIDTH = 190;
+export const RESOURCE_NODE_HEIGHT = 72;
+export const RESOURCE_GAP_X = 24;
+export const RESOURCE_GAP_Y = 16;
+/** 每个锚点列最多纵向堆叠的资源数，超出后向右延伸 */
+export const MAX_RESOURCE_STACK = 2;
+/** 资源行 y（须避开分镜节点高度） */
+export const CHARACTER_ROW_Y = 224;
+export const SCENE_ROW_Y = 416;
 
 export const beatNodeId = (beatId: string) => `beat-${beatId}`;
 export const characterNodeId = (characterId: string) => `character-${characterId}`;
@@ -37,6 +49,41 @@ export function parseBeatNodeId(id: string): string | null {
   return null;
 }
 
+/** 资源锚点列：第一个引用它的分镜序号；未绑定 → 最后一个分镜之后 */
+function anchorColumn(beats: StoryBeat[], predicate: (beat: StoryBeat) => boolean): number {
+  const index = beats.findIndex(predicate);
+  return index < 0 ? beats.length : index;
+}
+
+/**
+ * 布局一行资源：按锚点列排序，同一列最多堆叠 MAX_RESOURCE_STACK 个，
+ * 超出后向右寻找空列，保证节点永不重叠。
+ */
+function layoutResourceRow(
+  entries: { id: string; anchor: number }[],
+  rowY: number,
+): Map<string, XYPosition> {
+  const positions = new Map<string, XYPosition>();
+  const columnCount = new Map<number, number>();
+  const sorted = [...entries].sort(
+    (a, b) => a.anchor - b.anchor || a.id.localeCompare(b.id),
+  );
+
+  for (const entry of sorted) {
+    let col = Math.max(entry.anchor, 0);
+    while ((columnCount.get(col) ?? 0) >= MAX_RESOURCE_STACK) {
+      col += 1;
+    }
+    const row = columnCount.get(col) ?? 0;
+    columnCount.set(col, row + 1);
+    positions.set(entry.id, {
+      x: col * (RESOURCE_NODE_WIDTH + RESOURCE_GAP_X),
+      y: rowY + row * (RESOURCE_NODE_HEIGHT + RESOURCE_GAP_Y),
+    });
+  }
+  return positions;
+}
+
 /**
  * 计算全部节点（分镜 + 角色 + 场景）的初始位置。
  * @returns nodeId → position 的映射
@@ -51,27 +98,27 @@ export function computeAutoLayout(
   beats.forEach((beat, index) => {
     positions.set(beatNodeId(beat.id), {
       x: index * (BEAT_NODE_WIDTH + BEAT_NODE_GAP_X),
-      y: 0,
+      y: BEAT_ROW_Y,
     });
   });
 
-  characters.forEach((character) => {
-    const firstIndex = beats.findIndex((b) =>
-      getBeatCharacterIds(b).includes(character.id),
-    );
-    positions.set(characterNodeId(character.id), {
-      x: Math.max(firstIndex, 0) * (BEAT_NODE_WIDTH + BEAT_NODE_GAP_X),
-      y: RESOURCE_ROW_GAP_Y,
-    });
-  });
+  const characterEntries = characters.map((character) => ({
+    id: characterNodeId(character.id),
+    anchor: anchorColumn(beats, (beat) =>
+      getBeatCharacterIds(beat).includes(character.id),
+    ),
+  }));
+  for (const [id, position] of layoutResourceRow(characterEntries, CHARACTER_ROW_Y)) {
+    positions.set(id, position);
+  }
 
-  scenes.forEach((scene) => {
-    const firstIndex = beats.findIndex((b) => b.sceneId === scene.id);
-    positions.set(sceneNodeId(scene.id), {
-      x: Math.max(firstIndex, 0) * (BEAT_NODE_WIDTH + BEAT_NODE_GAP_X),
-      y: RESOURCE_ROW_GAP_2_Y,
-    });
-  });
+  const sceneEntries = scenes.map((scene) => ({
+    id: sceneNodeId(scene.id),
+    anchor: anchorColumn(beats, (beat) => beat.sceneId === scene.id),
+  }));
+  for (const [id, position] of layoutResourceRow(sceneEntries, SCENE_ROW_Y)) {
+    positions.set(id, position);
+  }
 
   return positions;
 }

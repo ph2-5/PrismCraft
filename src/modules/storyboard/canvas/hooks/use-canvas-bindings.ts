@@ -116,6 +116,34 @@ export function resolveResourceReferences(
     .map((beat) => beat.id);
 }
 
+/** 某资源是否已被至少一个分镜引用（绑定） */
+export function isResourceBound(
+  beats: StoryBeat[],
+  kind: ResourceKind,
+  resourceId: string,
+): boolean {
+  return resolveResourceReferences(beats, kind, resourceId).length > 0;
+}
+
+/**
+ * 计算所有未绑定任何分镜的角色/场景 id。
+ * 策略依据：默认画布只显示已绑定资源，未绑定资源通过"添加角色/场景"面板按需加入。
+ */
+export function computeUnboundResourceIds(
+  beats: StoryBeat[],
+  characters: Character[],
+  scenes: Scene[],
+): string[] {
+  return [
+    ...characters
+      .filter((c) => !isResourceBound(beats, "character", c.id))
+      .map((c) => c.id),
+    ...scenes
+      .filter((s) => !isResourceBound(beats, "scene", s.id))
+      .map((s) => s.id),
+  ];
+}
+
 /* ────────────────────────────────────────────────────────────────
  * 节点构建 / 调和（纯函数）
  * ──────────────────────────────────────────────────────────────── */

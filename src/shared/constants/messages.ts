@@ -2291,6 +2291,12 @@ const messages: Record<MessageKey, string> = {
   "storyboard.canvas.characterSection": "角色",
   "storyboard.canvas.sceneSection": "场景",
   "storyboard.canvas.noScenes": "暂无场景",
+  "storyboard.canvas.searchResources": "搜索角色/场景...",
+  "storyboard.canvas.showAll": "显示全部",
+  "storyboard.canvas.showBoundOnly": "仅显示已绑定",
+  "storyboard.canvas.boundSection": "已绑定 ({count})",
+  "storyboard.canvas.unboundSection": "未绑定 ({count})",
+  "storyboard.canvas.noMatch": "无匹配结果",
 
   "element.featureAnchoringMode": "特征锚定模式",
   "element.featureAnchoringDesc": "绑定角色参考图作为特征锚点，约束角色外观一致性，不绑定任何帧、不约束动作和镜头时序。场景请在分镜编辑器的场景选择中指定。支持绑定多个角色。",

@@ -1,20 +1,13 @@
 /**
- * Task 2A.6 — PhaseIndicator 顶部 7 步指示器
+ * 故事创作页 — 流水线阶段导航（Stepper）
  *
- * 显示当前 PipelineStage 在 7 个核心阶段中的位置：
- * ①项目初始化 → ②内容导入 → ③角色 → ④场景 → ⑤检查 → ⑥剧本化 → ⑦生成
- *
- * v5.2 交互（用户要求"想换到哪个页面就换到哪个页面"）：
- * - 所有阶段都可点击，无解锁限制
- * - 当前阶段高亮
- * - 已完成阶段（index < currentIndex）显示对勾
- * - 未到达阶段（index > currentIndex）灰色但仍可点击
- *
- * 注：此组件展示 7 个"用户可见"阶段（合并了 structure_analysis/pacing_planning
- * 到 content_import 中，done 阶段不显示）。完整 10 阶段状态由 pipeline-machine 维护。
+ * 基于功能自主设计（design-preview 未覆盖此页）：
+ * - 7 个阶段节点：图标 + 阶段名，完成✓ / 当前（主色 + 脉冲点）/ 待做（灰）
+ * - 连接线：已完成段用主色渐变
+ * - v5.2：所有阶段可点击跳转
  */
 
-import { Check } from "lucide-react";
+import { Check, FolderPlus, FileUp, Users, MapPin, ClipboardCheck, Clapperboard, Sparkles } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineStage } from "../domain/types";
 
@@ -28,6 +21,17 @@ const VISIBLE_PHASES: PipelineStage[] = [
   "storyboard",
   "generation",
 ];
+
+/** 阶段 → 图标（仅 7 个可见阶段需要，其余阶段无入口） */
+const PHASE_ICONS: Partial<Record<PipelineStage, typeof Check>> = {
+  project_init: FolderPlus,
+  content_import: FileUp,
+  character_manage: Users,
+  scene_manage: MapPin,
+  review: ClipboardCheck,
+  storyboard: Clapperboard,
+  generation: Sparkles,
+};
 
 export interface PhaseIndicatorProps {
   /** 当前 stage */
@@ -52,14 +56,14 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
   const currentIndex = VISIBLE_PHASES.indexOf(displayStage);
 
   return (
-    <div className="border-b border-border bg-card/30 px-6 py-3">
-      <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="border-b border-border bg-card/40 px-5 py-2.5">
+      <div className="flex items-center overflow-x-auto">
         {VISIBLE_PHASES.map((s, i) => {
           const isCompleted = i < currentIndex;
           const isCurrent = i === currentIndex;
           const isLast = i === VISIBLE_PHASES.length - 1;
-          // v5.2：所有阶段都可点击（包括未到达的），由父组件决定是否切换
           const clickable = onStageClick !== undefined && !isCurrent;
+          const Icon = PHASE_ICONS[s] ?? Sparkles;
 
           return (
             <div key={s} className="flex items-center shrink-0">
@@ -68,23 +72,28 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
                 onClick={clickable ? () => onStageClick?.(s) : undefined}
                 disabled={!clickable}
                 className={[
-                  "flex items-center gap-2 py-1 px-1 rounded-md transition-colors",
+                  "flex items-center gap-2 py-1 px-1.5 rounded-md transition-colors",
                   clickable ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
                 ].join(" ")}
                 aria-current={isCurrent ? "step" : undefined}
                 aria-label={stageLabel(s)}
               >
-                <div
-                  className={[
-                    "flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-colors",
-                    isCompleted
-                      ? "bg-[var(--primary)] text-primary-foreground"
-                      : isCurrent
-                        ? "bg-[var(--primary)] text-primary-foreground ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-background"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80",
-                  ].join(" ")}
-                >
-                  {isCompleted ? <Check size={12} /> : i + 1}
+                <div className="relative">
+                  <div
+                    className={[
+                      "flex items-center justify-center w-7 h-7 rounded-full transition-all",
+                      isCompleted
+                        ? "bg-[var(--primary)] text-primary-foreground"
+                        : isCurrent
+                          ? "bg-[var(--primary)] text-primary-foreground ring-4 ring-[rgba(var(--primary-rgb),0.18)]"
+                          : "bg-muted text-muted-foreground",
+                    ].join(" ")}
+                  >
+                    {isCompleted ? <Check size={14} /> : <Icon size={13} />}
+                  </div>
+                  {isCurrent && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
+                  )}
                 </div>
                 <span
                   className={[
@@ -102,19 +111,15 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
               {!isLast && (
                 <div
                   className={[
-                    "mx-2 h-px w-8",
-                    i < currentIndex ? "bg-[var(--primary)]" : "bg-border",
+                    "mx-1.5 h-0.5 w-7 rounded-full",
+                    i < currentIndex
+                      ? "bg-gradient-to-r from-[var(--primary)] to-[rgba(var(--primary-rgb),0.5)]"
+                      : "bg-border",
                   ].join(" ")}
                 />
               )}
             </div>
           );
-        })}
-      </div>
-      <div className="text-[10px] text-muted-foreground mt-1.5">
-        {t("novel.progress.step", {
-          step: currentIndex + 1,
-          total: VISIBLE_PHASES.length,
         })}
       </div>
     </div>

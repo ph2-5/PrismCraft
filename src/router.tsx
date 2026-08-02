@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RootLayout } from "./app/layout";
 import { PageLoader } from "./shared/presentation/PageLoader";
 
@@ -38,7 +38,10 @@ export const router = createBrowserRouter([
       { path: "settings", element: withSuspense(SettingsPage) },
       { path: "video-tasks", element: withSuspense(VideoTasksPage) },
       { path: "story", element: withSuspense(lazy(() => import("./app/story/page"))) },
-      { path: "stories", element: withSuspense(lazy(() => import("./app/stories/page"))) },
+      // 打开已有故事 → 三栏故事创作页（StoryPipelineShell 已有故事模式）
+      { path: "story/:storyId", element: withSuspense(lazy(() => import("./app/story/StoryEditPage"))) },
+      // 故事库已并入故事创作工作台（/story），保留旧路径做重定向兼容旧入口/书签
+      { path: "stories", element: <Navigate to="/story" replace /> },
       { path: "agent", element: withSuspense(lazy(() => import("./app/agent/page"))) },
       { path: "agent/settings", element: withSuspense(lazy(() => import("./app/agent/settings/page"))) },
       { path: "composer", element: withSuspense(lazy(() => import("./modules/video-compose/page"))) },

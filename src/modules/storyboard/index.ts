@@ -60,6 +60,10 @@ export {
   ProfessionalModeEditor,
 } from "./beat-editor";
 
+// 故事编辑器上下文（/storyboard 与 /story/:storyId 共用数据加载）
+export { StoryProvider, useStory as useStoryContext } from "./StoryProvider";
+export type { StoryContextValue } from "./StoryProvider";
+
 export {
   TemplateManagerDialog,
   VersionDialog,

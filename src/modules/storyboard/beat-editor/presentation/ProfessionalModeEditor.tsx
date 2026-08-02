@@ -24,6 +24,7 @@ import type { BatchOptions, BatchResult } from "@/modules/storyboard/generation"
 import type { PromptEditorContext } from "@/modules/storyboard/prompt-editor";
 import { ShotTimeline } from "@/modules/shot";
 import { useVideoTaskStore } from "@/modules/video";
+import { StoryboardCanvas } from "../../canvas";
 import { BeatListView } from "./BeatListView";
 import { BeatDetailView } from "./BeatDetailView";
 import { BeatThumbnailCard } from "./BeatThumbnailCard";
@@ -374,6 +375,12 @@ export function ProfessionalModeEditor({
 }: ProfessionalModeEditorProps) {
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  /**
+   * 两种互斥的视觉模式（用户明确要求，不并排）：
+   * - "canvas"：全屏无限画布（空间/关系视图），点击分镜节点 → 进入编辑模式
+   * - "edit"：之前的完整编辑器（列表 + 详情 + 时间线 + AI 输入栏）
+   */
+  const [viewMode, setViewMode] = useState<"canvas" | "edit">("canvas");
   const pendingNewBeatRef = useRef<boolean>(false);
   const elements = useElementsSubscription();
 
@@ -412,6 +419,19 @@ export function ProfessionalModeEditor({
   const handleAddBeat = useCallback(() => {
     pendingNewBeatRef.current = true;
     onAddBeat("scene");
+  }, [onAddBeat]);
+
+  // 画布模式：点击分镜节点 → 进入编辑模式并打开该分镜
+  const handleCanvasBeatSelect = useCallback((beatId: string) => {
+    setEditingBeatId(beatId);
+    setViewMode("edit");
+  }, []);
+
+  // 画布模式：添加分镜后进入编辑模式编辑新分镜
+  const handleCanvasAddBeat = useCallback(() => {
+    pendingNewBeatRef.current = true;
+    onAddBeat("scene");
+    setViewMode("edit");
   }, [onAddBeat]);
 
   const handleUpdateBeat = useCallback(
@@ -491,85 +511,161 @@ export function ProfessionalModeEditor({
   const handleOpenPreview = useCallback(() => setShowPreviewModal(true), []);
   const handleClosePreview = useCallback(() => setShowPreviewModal(false), []);
 
+  const totalDuration = useMemo(
+    () => beats.reduce((sum, b) => sum + (b.duration ?? 0), 0),
+    [beats],
+  );
+
   return (
     <div className="flex flex-col h-full">
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <BeatListView
-          beats={beats}
-          characters={characters}
-          scenes={scenes}
-          editingBeatId={editingBeatId}
-          onEditClick={(beat) => setEditingBeatId(beat.id)}
-          onAddBeat={handleAddBeat}
-          onMoveBeat={onMoveBeat}
-          onDeleteBeat={onDeleteBeat}
-          onReorderBeats={onReorderBeats}
-          onPlanStoryWithAI={onPlanStoryWithAI}
-          onOpenTemplateDialog={onOpenTemplateDialog}
-          onOpenVersionDialog={onOpenVersionDialog}
-          isPlanningStory={isPlanningStory}
-          generationEnhanced={generationEnhanced}
-          onToggleGenerationEnhanced={onToggleGenerationEnhanced}
-          onBatchGenerateKeyframes={() => onBatchGenerateKeyframes?.()}
-          onBatchGenerateFramePairs={() => onBatchGenerateFramePairs?.()}
-          onBatchGenerateVideos={() => onBatchGenerateVideos?.()}
-          assetsLoading={assetsLoading}
-        />
-
-        <BeatDetailView
-          editingBeat={editingBeat}
-          editingBeatIndex={editingBeatIndex}
-          totalBeats={beats.length}
-          characters={characters}
-          scenes={scenes}
-          elements={elements}
-          assets={assets}
-          allShots={beats}
-          onClose={() => setEditingBeatId(null)}
-          onPrevBeat={handlePrevBeat}
-          onNextBeat={handleNextBeat}
-          onMoveBeat={onMoveBeat}
-          onUpdateBeat={handleUpdateBeat}
-          onDeleteBeat={handleDeleteBeat}
-          onGenerateKeyframe={handleGenerateKeyframe}
-          onGenerateFramePair={handleGenerateFramePair}
-          onGenerateVideoNew={handleGenerateVideoNew}
-          onRegenerateKeyframe={handleRegenerateKeyframe}
-          generatingKeyframe={editingBeat ? (generatingKeyframe?.has(editingBeat.id) ?? false) : false}
-          onUploadKeyframe={onUploadKeyframe}
-          onUploadFirstFrame={onUploadFirstFrame}
-          onUploadLastFrame={onUploadLastFrame}
-          onUploadVideo={onUploadVideo}
-          onPromptChange={onPromptChange && editingBeat ? (context, prompt) => onPromptChange(editingBeat.id, context, prompt) : undefined}
-          imageProviderId={imageProviderId}
-          imageModelId={imageModelId}
-        />
+      {/* 模式切换：画布模式 / 编辑模式（互斥，不并排） */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "6px 10px",
+          background: "var(--panel)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div
+          role="group"
+          aria-label={t("beat.beatList")}
+          style={{ display: "inline-flex", overflow: "hidden", borderRadius: 8, border: "1px solid var(--border)" }}
+        >
+          <button
+            type="button"
+            className={`btn btn-sm ${viewMode === "canvas" ? "btn-primary" : "btn-ghost"}`}
+            style={{ borderRadius: 0, border: "none" }}
+            onClick={() => setViewMode("canvas")}
+          >
+            {t("storyboard.canvas.viewCanvas")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${viewMode === "edit" ? "btn-primary" : "btn-ghost"}`}
+            style={{ borderRadius: 0, border: "none" }}
+            onClick={() => setViewMode("edit")}
+          >
+            {t("storyboard.canvas.viewEdit")}
+          </button>
+        </div>
+        <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+          {viewMode === "canvas"
+            ? t("storyboard.canvas.canvasHint")
+            : t("beat.shotsCountShort", { count: beats.length, duration: totalDuration })}
+        </span>
       </div>
 
-      <BeatTimelineSection
-        beats={beats}
-        characters={characters}
-        scenes={scenes}
-        editingBeatId={editingBeatId}
-        generatingKeyframe={generatingKeyframe}
-        progressByBeat={progressByBeat}
-        isPlanningStory={isPlanningStory}
-        onAddBeat={handleAddBeat}
-        onBatchGenerateVideos={handleBatchGenerateVideos}
-        onOpenPreview={handleOpenPreview}
-        onBeatClick={setEditingBeatId}
-        onDragEnd={handleDragEnd}
-      />
+      {viewMode === "canvas" || viewMode === "edit" ? (
+        <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+          {/* ── 画布模式：全屏无限画布。常驻挂载（visibility 隐藏而非卸载），
+              避免模式切换丢失用户拖拽布局；隐藏时不接收事件 ── */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              visibility: viewMode === "canvas" ? "visible" : "hidden",
+              pointerEvents: viewMode === "canvas" ? "auto" : "none",
+            }}
+          >
+            <StoryboardCanvas
+              beats={beats}
+              characters={characters}
+              scenes={scenes}
+              selectedBeatId={editingBeatId}
+              onBeatSelect={handleCanvasBeatSelect}
+              onAddBeat={handleCanvasAddBeat}
+              onReorderBeats={onReorderBeats}
+              onUpdateBeat={onUpdateBeat}
+            />
+          </div>
 
-      {/* Task 2B.11：底部 AI 输入栏（匹配 design-preview.html #bottom-bar-storyboard） */}
-      <StoryboardBottomInputBar
-        modelId={imageModelId}
-        isGenerating={isPlanningStory}
-        onGenerate={(prompt) => {
-          // 将底部输入栏收集的用户描述作为 userPrompt 传给 AI 规划管道
-          void onPlanStoryWithAI(prompt);
-        }}
-      />
+          {/* ── 编辑模式：之前的完整编辑器（列表 + 详情 + 时间线 + AI 输入栏） ── */}
+          {viewMode === "edit" && (
+            <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+              <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+                <BeatListView
+                  beats={beats}
+                  characters={characters}
+                  scenes={scenes}
+                  editingBeatId={editingBeatId}
+                  onEditClick={(beat) => setEditingBeatId(beat.id)}
+                  onAddBeat={handleAddBeat}
+                  onMoveBeat={onMoveBeat}
+                  onDeleteBeat={onDeleteBeat}
+                  onReorderBeats={onReorderBeats}
+                  onPlanStoryWithAI={onPlanStoryWithAI}
+                  onOpenTemplateDialog={onOpenTemplateDialog}
+                  onOpenVersionDialog={onOpenVersionDialog}
+                  isPlanningStory={isPlanningStory}
+                  generationEnhanced={generationEnhanced}
+                  onToggleGenerationEnhanced={onToggleGenerationEnhanced}
+                  onBatchGenerateKeyframes={() => onBatchGenerateKeyframes?.()}
+                  onBatchGenerateFramePairs={() => onBatchGenerateFramePairs?.()}
+                  onBatchGenerateVideos={() => onBatchGenerateVideos?.()}
+                  assetsLoading={assetsLoading}
+                />
+
+                <BeatDetailView
+                  editingBeat={editingBeat}
+                  editingBeatIndex={editingBeatIndex}
+                  totalBeats={beats.length}
+                  characters={characters}
+                  scenes={scenes}
+                  elements={elements}
+                  assets={assets}
+                  allShots={beats}
+                  onClose={() => setEditingBeatId(null)}
+                  onPrevBeat={handlePrevBeat}
+                  onNextBeat={handleNextBeat}
+                  onMoveBeat={onMoveBeat}
+                  onUpdateBeat={handleUpdateBeat}
+                  onDeleteBeat={handleDeleteBeat}
+                  onGenerateKeyframe={handleGenerateKeyframe}
+                  onGenerateFramePair={handleGenerateFramePair}
+                  onGenerateVideoNew={handleGenerateVideoNew}
+                  onRegenerateKeyframe={handleRegenerateKeyframe}
+                  generatingKeyframe={editingBeat ? (generatingKeyframe?.has(editingBeat.id) ?? false) : false}
+                  onUploadKeyframe={onUploadKeyframe}
+                  onUploadFirstFrame={onUploadFirstFrame}
+                  onUploadLastFrame={onUploadLastFrame}
+                  onUploadVideo={onUploadVideo}
+                  onPromptChange={onPromptChange && editingBeat ? (context, prompt) => onPromptChange(editingBeat.id, context, prompt) : undefined}
+                  imageProviderId={imageProviderId}
+                  imageModelId={imageModelId}
+                />
+              </div>
+
+              <BeatTimelineSection
+                beats={beats}
+                characters={characters}
+                scenes={scenes}
+                editingBeatId={editingBeatId}
+                generatingKeyframe={generatingKeyframe}
+                progressByBeat={progressByBeat}
+                isPlanningStory={isPlanningStory}
+                onAddBeat={handleAddBeat}
+                onBatchGenerateVideos={handleBatchGenerateVideos}
+                onOpenPreview={handleOpenPreview}
+                onBeatClick={setEditingBeatId}
+                onDragEnd={handleDragEnd}
+              />
+
+              {/* Task 2B.11：底部 AI 输入栏（匹配 design-preview.html #bottom-bar-storyboard） */}
+              <StoryboardBottomInputBar
+                modelId={imageModelId}
+                isGenerating={isPlanningStory}
+                onGenerate={(prompt) => {
+                  // 将底部输入栏收集的用户描述作为 userPrompt 传给 AI 规划管道
+                  void onPlanStoryWithAI(prompt);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Preview Modal - shows all generated videos */}
       {showPreviewModal && (

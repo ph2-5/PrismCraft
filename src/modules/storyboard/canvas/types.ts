@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import type { BlockoutScene } from "@/domain/schemas/blockout-scene";
 
 /** 资源节点类型（角色 / 场景） */
 export type ResourceKind = "character" | "scene";
@@ -28,13 +29,23 @@ export type ResourceNodeData = {
   isDimmed: boolean;
 };
 
-export type CanvasNodeData = BeatNodeData | ResourceNodeData;
+/** 3D 导演台节点数据：有 blockout3D 的分镜在画布上的 3D 构图参考节点 */
+export type BlockoutNodeData = {
+  kind: "blockout";
+  beatId: string;
+  title: string;
+  scene: BlockoutScene;
+  isSelected: boolean;
+};
+
+export type CanvasNodeData = BeatNodeData | ResourceNodeData | BlockoutNodeData;
 
 export type CanvasNode = Node<CanvasNodeData>;
 
 /** 绑定连线的数据负载：记录资源 ↔ 分镜的绑定关系，用于断开连线时回写 beat 字段 */
 export type BindingEdgeData =
   | { kind: "character"; resourceId: string; beatId: string }
-  | { kind: "scene"; resourceId: string; beatId: string };
+  | { kind: "scene"; resourceId: string; beatId: string }
+  | { kind: "frame"; resourceId: string; beatId: string };
 
 export type CanvasEdge = Edge<BindingEdgeData>;

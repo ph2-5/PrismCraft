@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "@xyflow/react";
-import { Film, LayoutGrid, Map as MapIcon, MapPin, Maximize, Plus, User, Users, X } from "lucide-react";
+import { Film, LayoutGrid, Map as MapIcon, MapPin, Maximize, Plus, User, X } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
@@ -13,20 +13,20 @@ interface CanvasToolbarProps {
   onFitView: () => void;
   showMinimap: boolean;
   onToggleMinimap: () => void;
-  /** 资源节点选择面板开关 */
-  resourcePickerActive: boolean;
-  onToggleResourcePicker: () => void;
+  /** 当前打开的资源面板类型（null = 关闭） */
+  resourcePickerKind: ResourceKind | null;
+  onOpenResourcePicker: (kind: ResourceKind) => void;
 }
 
-/** 画布工具栏（添加分镜 / 自动布局 / 适应视图 / 迷你地图 / 添加角色场景） */
+/** 画布工具栏（添加分镜 / 添加角色 / 添加场景 / 自动布局 / 适应视图 / 迷你地图） */
 export function CanvasToolbar({
   onAddBeat,
   onAutoLayout,
   onFitView,
   showMinimap,
   onToggleMinimap,
-  resourcePickerActive,
-  onToggleResourcePicker,
+  resourcePickerKind,
+  onOpenResourcePicker,
 }: CanvasToolbarProps) {
   return (
     <Panel position="top-left">
@@ -36,13 +36,22 @@ export function CanvasToolbar({
           {t("storyboard.canvas.addBeat")}
         </button>
         <button
-          className={`btn btn-sm ${resourcePickerActive ? "btn-primary" : "btn-outline"}`}
-          onClick={onToggleResourcePicker}
-          title={t("storyboard.canvas.addResource")}
-          aria-label={t("storyboard.canvas.addResource")}
+          className={`btn btn-sm ${resourcePickerKind === "character" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => onOpenResourcePicker("character")}
+          title={t("storyboard.canvas.addCharacter")}
+          aria-label={t("storyboard.canvas.addCharacter")}
         >
-          <Users style={{ width: 13, height: 13, display: "inline", verticalAlign: "middle", marginRight: 4 }} aria-hidden="true" />
-          {t("storyboard.canvas.addResource")}
+          <User style={{ width: 13, height: 13, display: "inline", verticalAlign: "middle", marginRight: 4 }} aria-hidden="true" />
+          {t("storyboard.canvas.addCharacter")}
+        </button>
+        <button
+          className={`btn btn-sm ${resourcePickerKind === "scene" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => onOpenResourcePicker("scene")}
+          title={t("storyboard.canvas.addScene")}
+          aria-label={t("storyboard.canvas.addScene")}
+        >
+          <MapPin style={{ width: 13, height: 13, display: "inline", verticalAlign: "middle", marginRight: 4 }} aria-hidden="true" />
+          {t("storyboard.canvas.addScene")}
         </button>
         <button
           className="btn btn-outline btn-sm"
@@ -130,6 +139,8 @@ interface ResourcePickerPanelProps {
   characters: Character[];
   scenes: Scene[];
   hiddenResourceIds: Set<string>;
+  /** 打开面板时预选的资源类型（null = 全部） */
+  initialKind: ResourceKind | null;
   onToggle: (id: string, visible: boolean) => void;
   onShowAll: () => void;
   onShowBoundOnly: () => void;
@@ -273,9 +284,10 @@ function ResourceGroup({ title, items, hiddenResourceIds, onToggle }: ResourceGr
 }
 
 /**
- * 资源节点选择面板（"添加角色/场景"入口）。
+ * 资源节点选择面板（"添加角色" / "添加场景" 入口）。
  *
  * 面向大量角色/场景的策略：
+ * - 从工具栏按钮进入时预筛对应类型，面板内可切换「全部 / 角色 / 场景」
  * - 搜索框按名称过滤
  * - 「显示全部 / 仅显示已绑定」一键切换
  * - 按"已绑定 / 未绑定"分组展示（含缩略图），默认只显示已绑定资源
@@ -285,12 +297,21 @@ export function ResourcePickerPanel({
   characters,
   scenes,
   hiddenResourceIds,
+  initialKind,
   onToggle,
   onShowAll,
   onShowBoundOnly,
   onClose,
 }: ResourcePickerPanelProps) {
   const [query, setQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState<"all" | ResourceKind>(
+    initialKind ?? "all",
+  );
+
+  // 工具栏按钮再次打开面板时，重置为对应类型筛选
+  useEffect(() => {
+    setKindFilter(initialKind ?? "all");
+  }, [initialKind]);
 
   const keyword = query.trim().toLowerCase();
   const matches = (name: string) => !keyword || name.toLowerCase().includes(keyword);
@@ -310,7 +331,10 @@ export function ResourcePickerPanel({
       image: resolveResourceImage("scene", s),
       bound: isBound(beats, "scene", s.id),
     })),
-  ].filter((item) => matches(item.name));
+  ].filter(
+    (item) =>
+      (kindFilter === "all" || item.kind === kindFilter) && matches(item.name),
+  );
 
   const boundItems = allItems.filter((item) => item.bound);
   const unboundItems = allItems.filter((item) => !item.bound);
@@ -341,6 +365,23 @@ export function ResourcePickerPanel({
         >
           <X size={13} aria-hidden="true" />
         </button>
+      </div>
+
+      {/* 类型筛选 */}
+      <div style={{ display: "flex", gap: 4 }}>
+        {(["all", "character", "scene"] as const).map((kind) => (
+          <button
+            key={kind}
+            className={`btn btn-xs ${kindFilter === kind ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setKindFilter(kind)}
+          >
+            {kind === "all"
+              ? t("storyboard.canvas.allKinds")
+              : kind === "character"
+                ? t("storyboard.canvas.characterSection")
+                : t("storyboard.canvas.sceneSection")}
+          </button>
+        ))}
       </div>
 
       {/* 搜索 */}

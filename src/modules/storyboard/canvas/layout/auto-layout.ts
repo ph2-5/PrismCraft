@@ -25,10 +25,13 @@ export const MAX_RESOURCE_STACK = 2;
 /** 资源行 y（须避开分镜节点高度） */
 export const CHARACTER_ROW_Y = 224;
 export const SCENE_ROW_Y = 416;
+/** 3D 导演台节点行 y（位于资源行下方） */
+export const BLOCKOUT_ROW_Y = 608;
 
 export const beatNodeId = (beatId: string) => `beat-${beatId}`;
 export const characterNodeId = (characterId: string) => `character-${characterId}`;
 export const sceneNodeId = (sceneId: string) => `scene-${sceneId}`;
+export const blockoutNodeId = (beatId: string) => `blockout-${beatId}`;
 
 /** 解析资源节点 id → 资源类型与 id；非资源节点返回 null */
 export function parseResourceNodeId(
@@ -119,6 +122,15 @@ export function computeAutoLayout(
   for (const [id, position] of layoutResourceRow(sceneEntries, SCENE_ROW_Y)) {
     positions.set(id, position);
   }
+
+  // 3D 导演台节点：每 beat 至多一个，锚定到对应分镜列
+  beats.forEach((beat, index) => {
+    if (!beat.blockout3D) return;
+    positions.set(blockoutNodeId(beat.id), {
+      x: index * (BEAT_NODE_WIDTH + BEAT_NODE_GAP_X),
+      y: BLOCKOUT_ROW_Y,
+    });
+  });
 
   return positions;
 }

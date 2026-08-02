@@ -1,6 +1,7 @@
 export { StoryboardCanvas } from "./StoryboardCanvas";
 export { BeatNode } from "./nodes/BeatNode";
 export { ResourceNode } from "./nodes/ResourceNode";
+export { Blockout3DNode } from "./nodes/Blockout3DNode";
 export { ResourceReferencePanel } from "./ResourceReferencePanel";
 export {
   CanvasEmptyState,
@@ -24,6 +25,7 @@ export { useResourceVisibility } from "./hooks/use-resource-visibility";
 export {
   computeAutoLayout,
   beatNodeId,
+  blockoutNodeId,
   characterNodeId,
   sceneNodeId,
   parseBeatNodeId,
@@ -32,8 +34,10 @@ export {
 export type {
   BeatNodeData,
   ResourceNodeData,
+  BlockoutNodeData,
   BindingEdgeData,
   CanvasEdge,
   CanvasNode,
+  CanvasNodeData,
   ResourceKind,
 } from "./types";

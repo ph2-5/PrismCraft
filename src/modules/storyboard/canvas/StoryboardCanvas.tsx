@@ -13,8 +13,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import { BeatNode } from "./nodes/BeatNode";
 import { ResourceNode } from "./nodes/ResourceNode";
+import { Blockout3DNode } from "./nodes/Blockout3DNode";
 import {
   CanvasEmptyState,
   CanvasOverlayPanel,
@@ -32,10 +35,80 @@ import {
 } from "./hooks/use-canvas-bindings";
 import { useCanvasNodes } from "./hooks/use-canvas-nodes";
 import { useResourceVisibility } from "./hooks/use-resource-visibility";
-import type { CanvasEdge, CanvasNode } from "./types";
+import type {
+  BindingEdgeData,
+  BlockoutNodeData,
+  CanvasEdge,
+  CanvasNode,
+  ResourceKind,
+} from "./types";
 
 /** 节点类型注册表必须在组件外部定义（稳定引用，避免 React Flow 告警） */
-const nodeTypes = { beat: BeatNode, character: ResourceNode, scene: ResourceNode };
+const nodeTypes = {
+  beat: BeatNode,
+  character: ResourceNode,
+  scene: ResourceNode,
+  blockout: Blockout3DNode,
+};
+
+/** 构造断开连线的确认文案：帧衔接边用帧衔接文案，资源绑定边用绑定文案；无绑定数据返回 null */
+function describePendingEdgeDeletes(
+  deleted: Edge[],
+  beats: StoryBeat[],
+  characters: Character[],
+  scenes: Scene[],
+): { title: string; message: string; count: number } | null {
+  const binding = deleted.filter((e) => e.data);
+  if (binding.length === 0) return null;
+  const data = binding[0]?.data as BindingEdgeData | undefined;
+  if (data?.kind === "frame") {
+    const beat = beats.find((b) => b.id === data.beatId);
+    return {
+      title: t("storyboard.canvas.deleteFrameLinkTitle"),
+      message: t("storyboard.canvas.deleteFrameLinkConfirm", {
+        label: beat?.title || "",
+      }),
+      count: binding.length,
+    };
+  }
+  if (data?.kind === "character" || data?.kind === "scene") {
+    const resource =
+      data.kind === "character"
+        ? characters.find((c) => c.id === data.resourceId)
+        : scenes.find((s) => s.id === data.resourceId);
+    return {
+      title: t("storyboard.canvas.deleteEdgeTitle"),
+      message: t("storyboard.canvas.deleteEdgeConfirm", {
+        label: resource?.name || data.resourceId,
+      }),
+      count: binding.length,
+    };
+  }
+  return null;
+}
+
+/** 资源节点选中时：高亮其绑定边、变暗其他边 */
+function applyResourceSelectionStyles(
+  edges: CanvasEdge[],
+  selectedResourceId: string | null,
+): CanvasEdge[] {
+  const selected = parseResourceNodeId(selectedResourceId ?? "");
+  if (!selected) return edges;
+  return edges.map((edge) => {
+    const data = edge.data;
+    if (!data) return edge;
+    const isSelectedEdge =
+      data.kind === selected.kind && data.resourceId === selected.resourceId;
+    return {
+      ...edge,
+      style: {
+        ...edge.style,
+        opacity: isSelectedEdge ? 1 : 0.15,
+        strokeWidth: isSelectedEdge ? 2.5 : undefined,
+      },
+    };
+  });
+}
 
 interface StoryboardCanvasProps {
   beats: StoryBeat[];
@@ -59,10 +132,12 @@ function StoryboardCanvasInner({
   onUpdateBeat,
 }: StoryboardCanvasProps) {
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  // 资源面板打开状态：null=关闭；"character"/"scene"=打开并预筛对应类型
+  const [resourcePickerKind, setResourcePickerKind] = useState<ResourceKind | null>(
+    null,
+  );
   const {
     hiddenResourceIds,
-    showResourcePicker,
-    setShowResourcePicker,
     toggleResourceVisibility,
     showAllResources,
     showBoundOnly,
@@ -83,26 +158,10 @@ function StoryboardCanvasInner({
   const [showMinimap, setShowMinimap] = useState(true);
 
   // 连线：完全由 beats 派生；资源节点选中时高亮其绑定边、变暗其他绑定边
-  const edges: CanvasEdge[] = useMemo(() => {
-    const base = deriveEdges(beats);
-    const selectedResource = parseResourceNodeId(selectedResourceId ?? "");
-    if (!selectedResource) return base;
-    return base.map((edge) => {
-      const data = edge.data;
-      if (!data) return edge;
-      const isSelectedEdge =
-        data.kind === selectedResource.kind &&
-        data.resourceId === selectedResource.resourceId;
-      return {
-        ...edge,
-        style: {
-          ...edge.style,
-          opacity: isSelectedEdge ? 1 : 0.15,
-          strokeWidth: isSelectedEdge ? 2.5 : undefined,
-        },
-      };
-    });
-  }, [beats, selectedResourceId]);
+  const edges: CanvasEdge[] = useMemo(
+    () => applyResourceSelectionStyles(deriveEdges(beats), selectedResourceId),
+    [beats, selectedResourceId],
+  );
 
   // 画布 → 表单：连线创建（资源→分镜=绑定；分镜→分镜=重排）
   const onConnect = useCallback(
@@ -113,20 +172,37 @@ function StoryboardCanvasInner({
     [beats, onUpdateBeat, onReorderBeats],
   );
 
-  // 画布 → 表单：断开绑定连线
+  // 画布 → 表单：断开绑定连线（先确认，区分资源绑定边与首尾帧衔接边）
   const onEdgesDelete = useCallback(
-    (deleted: Edge[]) => {
-      removeBindingEdges(deleted, beats, onUpdateBeat);
+    async (deleted: Edge[]) => {
+      const desc = describePendingEdgeDeletes(deleted, beats, characters, scenes);
+      if (!desc) return;
+      const ok = await confirm({
+        title: desc.title,
+        description:
+          desc.count > 1 ? `${desc.message}（共 ${desc.count} 条）` : desc.message,
+        confirmText: t("storyboard.canvas.confirmDisconnect"),
+        variant: "warning",
+      });
+      if (!ok) return;
+      removeBindingEdges(
+        deleted.filter((e) => e.data),
+        beats,
+        onUpdateBeat,
+      );
     },
-    [beats, onUpdateBeat],
+    [beats, characters, scenes, onUpdateBeat],
   );
 
-  // 节点点击：分镜 → 打开详细编辑；资源 → 引用反查
+  // 节点点击：分镜/3D 导演台 → 打开详细编辑；资源 → 引用反查
   const onNodeClick = useCallback<NodeMouseHandler<CanvasNode>>(
     (_event, node) => {
       if (node.type === "beat") {
         setSelectedResourceId(null);
         onBeatSelect(node.id.slice("beat-".length));
+      } else if (node.type === "blockout") {
+        setSelectedResourceId(null);
+        onBeatSelect((node.data as BlockoutNodeData).beatId);
       } else {
         setSelectedResourceId((prev) => (prev === node.id ? null : node.id));
       }
@@ -163,6 +239,7 @@ function StoryboardCanvasInner({
 
   const minimapNodeColor = useCallback((node: CanvasNode) => {
     if (node.type === "beat") return "var(--primary)";
+    if (node.type === "blockout") return "var(--warning)";
     return node.type === "character" ? "var(--info)" : "var(--success)";
   }, []);
 
@@ -199,7 +276,7 @@ function StoryboardCanvasInner({
         onNodeDragStop={onNodeDragStop}
         onPaneClick={() => {
           setSelectedResourceId(null);
-          setShowResourcePicker(false);
+          setResourcePickerKind(null);
         }}
         nodeTypes={nodeTypes}
         minZoom={0.2}
@@ -222,8 +299,10 @@ function StoryboardCanvasInner({
           onFitView={() => fitView({ padding: 0.2, duration: 300 })}
           showMinimap={showMinimap}
           onToggleMinimap={() => setShowMinimap((v) => !v)}
-          resourcePickerActive={showResourcePicker}
-          onToggleResourcePicker={() => setShowResourcePicker((v) => !v)}
+          resourcePickerKind={resourcePickerKind}
+          onOpenResourcePicker={(kind) =>
+            setResourcePickerKind((prev) => (prev === kind ? null : kind))
+          }
         />
 
         <CanvasOverlayPanel
@@ -237,17 +316,18 @@ function StoryboardCanvasInner({
         />
       </ReactFlow>
 
-      {/* 资源节点选择面板（浮动在工具栏下方） */}
-      {showResourcePicker && (
+      {/* 资源节点选择面板（浮动在工具栏下方，按类型预筛） */}
+      {resourcePickerKind !== null && (
         <ResourcePickerOverlay
           beats={beats}
           characters={characters}
           scenes={scenes}
           hiddenResourceIds={hiddenResourceIds}
+          initialKind={resourcePickerKind}
           onToggle={toggleResourceVisibility}
           onShowAll={showAllResources}
           onShowBoundOnly={showBoundOnly}
-          onClose={() => setShowResourcePicker(false)}
+          onClose={() => setResourcePickerKind(null)}
         />
       )}
 

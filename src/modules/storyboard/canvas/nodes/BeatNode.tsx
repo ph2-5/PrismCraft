@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Check, Clock, Image as ImageIcon, MapPin, User } from "lucide-react";
+import { Box, Check, Clock, Image as ImageIcon, MapPin, User } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { getBeatCharacterIds } from "@/domain/utils";
@@ -71,6 +71,30 @@ export const BeatNode = memo(function BeatNode(
         type="source"
         position={Position.Right}
         style={{ background: "var(--primary)", width: 8, height: 8 }}
+      />
+      {/* 帧衔接手柄：本镜尾帧 → 下一镜首帧（连线写入 referencedPrevKeyframe） */}
+      <Handle
+        id="frame-source"
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: "var(--warning)",
+          width: 8,
+          height: 8,
+          left: "auto",
+          right: 14,
+        }}
+      />
+      <Handle
+        id="frame-target"
+        type="target"
+        position={Position.Bottom}
+        style={{
+          background: "var(--warning)",
+          width: 8,
+          height: 8,
+          left: 14,
+        }}
       />
 
       {/* 头部：序号 + 标题 + 状态 */}
@@ -164,6 +188,21 @@ export const BeatNode = memo(function BeatNode(
           >
             <MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
             {sceneName}
+          </span>
+        )}
+        {beat.blockout3D && (
+          <span
+            className="badge"
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              color: "var(--primary)",
+              border: "1px solid var(--primary)",
+            }}
+            title={`3D: ${beat.blockout3D.name}`}
+          >
+            <Box style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+            3D
           </span>
         )}
       </div>

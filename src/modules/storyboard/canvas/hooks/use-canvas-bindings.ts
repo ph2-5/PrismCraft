@@ -1,9 +1,12 @@
 import type { Connection, Edge, XYPosition } from "@xyflow/react";
 import { MarkerType } from "@xyflow/react";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import type { BlockoutScene } from "@/domain/schemas/blockout-scene";
 import { getBeatCharacterIds } from "@/domain/utils";
 import {
   beatNodeId,
+  blockoutNodeId,
+  BLOCKOUT_ROW_Y,
   characterNodeId,
   sceneNodeId,
   parseBeatNodeId,
@@ -12,11 +15,17 @@ import {
 import type {
   BeatNodeData,
   BindingEdgeData,
+  BlockoutNodeData,
   CanvasEdge,
   CanvasNode,
+  CanvasNodeData,
   ResourceKind,
   ResourceNodeData,
 } from "../types";
+
+/** 首尾帧衔接专用手柄：BeatNode 的"尾帧"source handle 与"首帧"target handle id */
+export const FRAME_SOURCE_HANDLE = "frame-source";
+export const FRAME_TARGET_HANDLE = "frame-target";
 
 /* ────────────────────────────────────────────────────────────────
  * 连线派生（视图层，单一事实源 = StoryBeat 字段）
@@ -27,8 +36,8 @@ import type {
  * - 序列连线：beat i → beat i+1（镜头顺序）
  * - 角色绑定：character → beat（characterIds）
  * - 场景绑定：scene → beat（sceneId）
- * - 帧衔接：相邻 beat 存在 keyframe 链 / 首尾帧 derivedFrom 引用时，
- *   序列连线以警告色虚线表达（避免两条平行边重叠）
+ * - 帧衔接：next.keyframe.referencedPrevKeyframe === beat.id 时，
+ *   beat 尾帧手柄 → next 首帧手柄（独立虚线，可断开）
  */
 export function deriveEdges(beats: StoryBeat[]): CanvasEdge[] {
   const edges: CanvasEdge[] = [];
@@ -36,11 +45,6 @@ export function deriveEdges(beats: StoryBeat[]): CanvasEdge[] {
   beats.forEach((beat, index) => {
     const next = beats[index + 1];
     if (!next) return;
-
-    const chained =
-      next.keyframe?.referencedPrevKeyframe === beat.id ||
-      (beat.framePair?.lastFrame &&
-        next.framePair?.firstFrame?.derivedFrom === beat.framePair.lastFrame.imageUrl);
 
     edges.push({
       id: `seq-${beat.id}-${next.id}`,
@@ -54,11 +58,9 @@ export function deriveEdges(beats: StoryBeat[]): CanvasEdge[] {
         type: MarkerType.ArrowClosed,
         width: 14,
         height: 14,
-        color: chained ? "var(--warning)" : "var(--border)",
+        color: "var(--border)",
       },
-      style: chained
-        ? { stroke: "var(--warning)", strokeWidth: 1.5, strokeDasharray: "6 4" }
-        : { stroke: "var(--border)", strokeWidth: 1.5 },
+      style: { stroke: "var(--border)", strokeWidth: 1.5 },
     });
   });
 
@@ -96,6 +98,42 @@ export function deriveEdges(beats: StoryBeat[]): CanvasEdge[] {
         style: { stroke: "var(--success)", strokeWidth: 1.5 },
       });
     }
+  });
+
+  // 帧衔接连线：keyframe 链引用
+  beats.forEach((beat, index) => {
+    if (index === 0) return;
+    const prev = beats[index - 1];
+    if (!prev || beat.keyframe?.referencedPrevKeyframe !== prev.id) return;
+    edges.push({
+      id: `frame-${prev.id}-${beat.id}`,
+      source: beatNodeId(prev.id),
+      sourceHandle: FRAME_SOURCE_HANDLE,
+      target: beatNodeId(beat.id),
+      targetHandle: FRAME_TARGET_HANDLE,
+      type: "smoothstep",
+      data: { kind: "frame", resourceId: prev.id, beatId: beat.id },
+      style: {
+        stroke: "var(--warning)",
+        strokeWidth: 1.5,
+        strokeDasharray: "6 4",
+      },
+    });
+  });
+
+  // 3D 导演台参考边：beat → blockout 节点（虚线，不可断开）
+  beats.forEach((beat) => {
+    if (!beat.blockout3D) return;
+    edges.push({
+      id: `b3d-${beat.id}`,
+      source: beatNodeId(beat.id),
+      target: blockoutNodeId(beat.id),
+      type: "smoothstep",
+      deletable: false,
+      selectable: false,
+      focusable: false,
+      style: { stroke: "var(--border)", strokeWidth: 1, strokeDasharray: "4 4" },
+    });
   });
 
   return edges;
@@ -214,6 +252,19 @@ function buildResourceNodeData(
   };
 }
 
+function buildBlockoutNodeData(
+  beat: StoryBeat,
+  input: CanvasNodeBuildInput,
+): BlockoutNodeData {
+  return {
+    kind: "blockout",
+    beatId: beat.id,
+    title: beat.title || "",
+    scene: beat.blockout3D as BlockoutScene,
+    isSelected: input.selectedBeatId === beat.id,
+  };
+}
+
 /** 构建全部节点（初始渲染 / 自动布局后使用） */
 export function buildInitialNodes(input: CanvasNodeBuildInput): CanvasNode[] {
   const nodes: CanvasNode[] = [];
@@ -224,6 +275,7 @@ export function buildInitialNodes(input: CanvasNodeBuildInput): CanvasNode[] {
       id,
       type: "beat",
       position: input.positions.get(id) ?? { x: 0, y: 0 },
+      deletable: false,
       data: buildBeatNodeData(beat, index, input),
     });
   });
@@ -235,6 +287,7 @@ export function buildInitialNodes(input: CanvasNodeBuildInput): CanvasNode[] {
       id,
       type: "character",
       position: input.positions.get(id) ?? { x: 0, y: 200 },
+      deletable: false,
       data: buildResourceNodeData("character", character, input),
     });
   });
@@ -246,7 +299,20 @@ export function buildInitialNodes(input: CanvasNodeBuildInput): CanvasNode[] {
       id,
       type: "scene",
       position: input.positions.get(id) ?? { x: 0, y: 360 },
+      deletable: false,
       data: buildResourceNodeData("scene", scene, input),
+    });
+  });
+
+  input.beats.forEach((beat) => {
+    if (!beat.blockout3D) return;
+    const id = blockoutNodeId(beat.id);
+    nodes.push({
+      id,
+      type: "blockout",
+      position: input.positions.get(id) ?? { x: 0, y: BLOCKOUT_ROW_Y },
+      deletable: false,
+      data: buildBlockoutNodeData(beat, input),
     });
   });
 
@@ -254,7 +320,7 @@ export function buildInitialNodes(input: CanvasNodeBuildInput): CanvasNode[] {
 }
 
 /** 节点 data 是否等价（浅比较 + 数组内容比较）。等价时复用旧节点引用，避免 React Flow 全量重渲染。 */
-function sameNodeData(a: BeatNodeData | ResourceNodeData, b: BeatNodeData | ResourceNodeData): boolean {
+function sameNodeData(a: CanvasNodeData, b: CanvasNodeData): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === "beat") {
     const ab = a as BeatNodeData;
@@ -267,6 +333,16 @@ function sameNodeData(a: BeatNodeData | ResourceNodeData, b: BeatNodeData | Reso
       ab.isDimmed === bb.isDimmed &&
       ab.characters === bb.characters &&
       ab.scenes === bb.scenes
+    );
+  }
+  if (a.kind === "blockout") {
+    const ab = a as BlockoutNodeData;
+    const bb = b as BlockoutNodeData;
+    return (
+      ab.beatId === bb.beatId &&
+      ab.title === bb.title &&
+      ab.scene === bb.scene &&
+      ab.isSelected === bb.isSelected
     );
   }
   const ar = a as ResourceNodeData;
@@ -309,6 +385,7 @@ export function reconcileNodes(
       id,
       type: "beat",
       position: prev?.position ?? input.positions.get(id) ?? { x: 0, y: 0 },
+      deletable: false,
       data: buildBeatNodeData(beat, index, input),
     });
   });
@@ -321,6 +398,7 @@ export function reconcileNodes(
       id,
       type: "character",
       position: prev?.position ?? input.positions.get(id) ?? { x: 0, y: 200 },
+      deletable: false,
       data: buildResourceNodeData("character", character, input),
     });
   });
@@ -333,7 +411,21 @@ export function reconcileNodes(
       id,
       type: "scene",
       position: prev?.position ?? input.positions.get(id) ?? { x: 0, y: 360 },
+      deletable: false,
       data: buildResourceNodeData("scene", scene, input),
+    });
+  });
+
+  input.beats.forEach((beat) => {
+    if (!beat.blockout3D) return;
+    const id = blockoutNodeId(beat.id);
+    const prev = byId.get(id);
+    pushNode(result, prev, {
+      id,
+      type: "blockout",
+      position: prev?.position ?? input.positions.get(id) ?? { x: 0, y: BLOCKOUT_ROW_Y },
+      deletable: false,
+      data: buildBlockoutNodeData(beat, input),
     });
   });
 
@@ -346,8 +438,9 @@ export function reconcileNodes(
 
 /**
  * 处理画布连线创建：
+ * - 帧衔接（尾帧手柄 → 首帧手柄）：写入 next.keyframe.referencedPrevKeyframe
  * - 资源节点 → 分镜：写回 beat.characterIds / beat.sceneId
- * - 分镜 → 分镜：重排镜头顺序（moveBeatBefore）
+ * - 分镜 → 分镜（普通手柄）：重排镜头顺序（moveBeatBefore）
  * @returns 若发生了分镜重排，返回新数组；否则 null
  */
 export function applyConnection(
@@ -355,8 +448,30 @@ export function applyConnection(
   beats: StoryBeat[],
   onUpdateBeat: (id: string, updates: Partial<StoryBeat>) => void,
 ): StoryBeat[] | null {
-  const { source, target } = connection;
+  const { source, target, sourceHandle, targetHandle } = connection;
   if (!source || !target) return null;
+
+  // 帧衔接：A 尾帧手柄 → B 首帧手柄
+  if (sourceHandle === FRAME_SOURCE_HANDLE && targetHandle === FRAME_TARGET_HANDLE) {
+    const sourceBeatId = parseBeatNodeId(source);
+    const targetBeatId = parseBeatNodeId(target);
+    if (sourceBeatId && targetBeatId && sourceBeatId !== targetBeatId) {
+      const targetBeat = beats.find((b) => b.id === targetBeatId);
+      if (targetBeat) {
+        onUpdateBeat(targetBeatId, {
+          keyframe: {
+            ...targetBeat.keyframe,
+            imageUrl: targetBeat.keyframe?.imageUrl,
+            prompt: targetBeat.keyframe?.prompt,
+            generatedAt: targetBeat.keyframe?.generatedAt,
+            source: targetBeat.keyframe?.source,
+            referencedPrevKeyframe: sourceBeatId,
+          },
+        });
+      }
+    }
+    return null;
+  }
 
   const sourceBeatId = parseBeatNodeId(source);
   const targetBeatId = parseBeatNodeId(target);
@@ -385,7 +500,7 @@ export function applyConnection(
   return null;
 }
 
-/** 断开绑定连线 → 从 beat 字段移除对应引用 */
+/** 断开绑定连线 → 从 beat 字段移除对应引用（角色/场景/帧衔接） */
 export function removeBindingEdges(
   edges: Edge[],
   beats: StoryBeat[],
@@ -404,8 +519,23 @@ export function removeBindingEdges(
       if (next.length !== getBeatCharacterIds(beat).length) {
         onUpdateBeat(data.beatId, { characterIds: next });
       }
-    } else if (beat.sceneId === data.resourceId) {
-      onUpdateBeat(data.beatId, { sceneId: undefined });
+    } else if (data.kind === "scene") {
+      if (beat.sceneId === data.resourceId) {
+        onUpdateBeat(data.beatId, { sceneId: undefined });
+      }
+    } else if (data.kind === "frame") {
+      if (beat.keyframe?.referencedPrevKeyframe === data.resourceId) {
+        onUpdateBeat(data.beatId, {
+          keyframe: {
+            ...beat.keyframe,
+            imageUrl: beat.keyframe?.imageUrl,
+            prompt: beat.keyframe?.prompt,
+            generatedAt: beat.keyframe?.generatedAt,
+            source: beat.keyframe?.source,
+            referencedPrevKeyframe: undefined,
+          },
+        });
+      }
     }
   }
 }

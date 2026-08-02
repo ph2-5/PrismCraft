@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { StoryBeat } from "@/domain/schemas";
+import { createEmptyScene } from "@/modules/blockout-3d";
 import {
   deriveEdges,
   resolveResourceReferences,
@@ -9,13 +10,17 @@ import {
   buildInitialNodes,
   reconcileNodes,
   computeUnboundResourceIds,
+  FRAME_SOURCE_HANDLE,
+  FRAME_TARGET_HANDLE,
 } from "../hooks/use-canvas-bindings";
 import {
   beatNodeId,
+  blockoutNodeId,
   characterNodeId,
   sceneNodeId,
   computeAutoLayout,
   MAX_RESOURCE_STACK,
+  BLOCKOUT_ROW_Y,
 } from "../layout/auto-layout";
 
 function makeBeat(id: string, overrides: Partial<StoryBeat> = {}): StoryBeat {
@@ -96,15 +101,25 @@ describe("deriveEdges", () => {
     expect(sceneEdges[0]?.data).toEqual({ kind: "scene", resourceId: "s1", beatId: "b1" });
   });
 
-  it("keyframe 链引用时序列连线变为帧衔接样式（warning 虚线）", () => {
+  it("keyframe 链引用时派生独立帧衔接边（warning 虚线，专用手柄）", () => {
     const a = makeBeat("a");
     const b = makeBeat("b", {
       keyframe: { imageUrl: "k2", referencedPrevKeyframe: "a" },
     });
     const edges = deriveEdges([a, b]);
+
+    const frameEdge = edges.find((e) => e.id === "frame-a-b");
+    expect(frameEdge).toBeDefined();
+    expect(frameEdge?.data).toEqual({ kind: "frame", resourceId: "a", beatId: "b" });
+    expect(frameEdge?.sourceHandle).toBe(FRAME_SOURCE_HANDLE);
+    expect(frameEdge?.targetHandle).toBe(FRAME_TARGET_HANDLE);
+    expect(frameEdge?.style?.strokeDasharray).toBe("6 4");
+    expect(frameEdge?.style?.stroke).toBe("var(--warning)");
+
+    // 序列连线保持原样，帧衔接样式不再合流到 seq 边
     const seqEdge = edges.find((e) => e.id === "seq-a-b");
-    expect(seqEdge?.style?.strokeDasharray).toBe("6 4");
-    expect(seqEdge?.style?.stroke).toBe("var(--warning)");
+    expect(seqEdge?.style?.strokeDasharray).toBeUndefined();
+    expect(seqEdge?.style?.stroke).toBe("var(--border)");
   });
 });
 
@@ -364,6 +379,65 @@ describe("computeAutoLayout（大量资源不堆叠）", () => {
     const charY = positions.get(characterNodeId("c1"))!.y;
     const sceneY = positions.get(sceneNodeId("s1"))!.y;
     expect(sceneY).toBeGreaterThan(charY);
+  });
+});
+
+describe("Blockout3DNode（3D 导演台节点）", () => {
+  const scene = createEmptyScene("b3d-1", "3D 构图");
+
+  it("deriveEdges 为有 blockout3D 的分镜派生参考边（不可断开）", () => {
+    const a = makeBeat("a", { blockout3D: scene });
+    const b = makeBeat("b");
+    const edges = deriveEdges([a, b]);
+    const refEdge = edges.find((e) => e.id === "b3d-a");
+    expect(refEdge).toBeDefined();
+    expect(refEdge?.source).toBe(beatNodeId("a"));
+    expect(refEdge?.target).toBe(blockoutNodeId("a"));
+    expect(refEdge?.deletable).toBe(false);
+  });
+
+  it("buildInitialNodes 为有 blockout3D 的分镜生成 3D 节点", () => {
+    const beats = [makeBeat("a", { blockout3D: scene })];
+    const nodes = buildInitialNodes({
+      beats,
+      characters: [],
+      scenes: [],
+      positions: new Map(),
+      selectedBeatId: null,
+      selectedResourceId: null,
+    });
+    const node = nodes.find((n) => n.type === "blockout");
+    expect(node).toBeDefined();
+    expect(node?.id).toBe(blockoutNodeId("a"));
+    expect(node?.data.kind).toBe("blockout");
+  });
+
+  it("移除 blockout3D 后 3D 节点被移除", () => {
+    const initial = buildInitialNodes({
+      beats: [makeBeat("a", { blockout3D: scene })],
+      characters: [],
+      scenes: [],
+      positions: new Map(),
+      selectedBeatId: null,
+      selectedResourceId: null,
+    });
+    const next = reconcileNodes(initial, {
+      beats: [makeBeat("a")],
+      characters: [],
+      scenes: [],
+      positions: new Map(),
+      selectedBeatId: null,
+      selectedResourceId: null,
+    });
+    expect(next.some((n) => n.type === "blockout")).toBe(false);
+  });
+
+  it("computeAutoLayout 将 3D 节点锚定到对应分镜列（BLOCKOUT_ROW_Y 行）", () => {
+    const beats = [makeBeat("a", { blockout3D: scene }), makeBeat("b")];
+    const positions = computeAutoLayout(beats, [], []);
+    const pos = positions.get(blockoutNodeId("a"));
+    expect(pos?.x).toBe(0);
+    expect(pos?.y).toBe(BLOCKOUT_ROW_Y);
   });
 });
 

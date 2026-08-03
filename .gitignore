@@ -18,6 +18,10 @@
 /test-reports/
 /.playwright-browsers/
 /.stryker-tmp/
+/tests/screenshots/
+
+# local tool state
+.workbuddy/
 
 # runtime logs
 stderr.log

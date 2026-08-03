@@ -433,29 +433,43 @@
 - **修改文件**: `src/modules/storyboard/generation/services/frame-prompt-service.ts`
 - **功能**: 当前 `director-rules.ts` 只影响 shot contract，下一步让它直接影响首帧/尾帧 prompt、镜头衔接、情感强度
 - **改动点**: `frame-prompt-service.ts` 里读取 shot contract 和前后镜头上下文，生成带 180 度规则、动作匹配、高潮强化的 prompt
+- **本地状态**: ✅ 已完成（commit `1c33793`）
+  - `director-guidance.ts` 生成导演指导并注入帧提示词
+  - `beat-frame-generator` / `beat-chain-generator` 透传 `prevBeat`/`nextBeat`/`directorContext`
+  - hook 与单 beat 重生成补传相邻镜头对象，主生成链路真正应用导演规则
 - **预估**: 5-7 天
 
 #### P3.2 shot contract 可视化编辑 UI（消息 72 方向 2）
 - **新增**: `ShotContractEditor` 组件
 - **功能**: 在 storyboard 页面加表格/时间线，用户直接改景别/运动/灯光/时长，实时影响后续生成
 - **改动点**: 新增 `ShotContractEditor` 组件 + 把 shot contract 接入 storyboard store
+- **本地状态**: ✅ 已完成（commit `6008ab5`）
 - **预估**: 5-7 天
 
 #### P3.3 自动故事结构 + 角色弧线分析（消息 72 方向 3）
 - **修改文件**: `src/modules/novel/structure/services/structure-analyzer.ts`
 - **新增文件**: `src/shared-logic/story/story-director-config.ts`
 - **功能**: 上传小说后自动识别三幕结构、情节点、角色成长曲线，自动推荐导演规则配置（高潮段落自动启用 climaxIntensifyRule）
+- **本地状态**: ✅ 已完成（commit `46eb0a2`）
 - **预估**: 7-10 天
 
 #### P3.4 Few-shot 学习机制
 - **功能**: 根据用户编辑/反馈自动优化示例
 - **当前问题**: 示例写在代码里，不能自适应
 - **解决的 6 大核心问题**: Few-shot 是静态的，没有学习机制
+- **本地状态**: ✅ 已完成（commit `441ae99`）
+  - `dynamic-few-shot` 支持合并用户示例，评分加权优先选中（USER_EXAMPLE_BONUS）
+  - `collectUserFewShotExamples` 从当前 story.beats 实时提取成品分镜为示例
+  - `buildEnrichedPrompt` 接入用户示例，后续 AI 规划参考用户已编辑分镜风格
 - **预估**: 5-7 天
 
 #### P3.5 视觉连贯性主动规划
 - **功能**: 生成阶段就规划角色位置、镜头轴线、动作衔接（当前是事后检查）
 - **解决的 6 大核心问题**: 缺少"视觉连贯性"的主动规划
+- **本地状态**: ✅ 已完成（commit `d6e9579`）
+  - `planVisualContinuity` 纯函数规划器：同场景保持轴线、场景切换重置、内容关键词推断
+  - `shotInstruction` 新增 `subjectScreenSide`/`actionDirection` 字段
+  - story-generation-pipeline 生成后写入规划，director-guidance 消费形成闭环
 - **预估**: 7-10 天
 
 #### P3.6 云端化接口预研（消息 72 方向 4）
@@ -464,6 +478,10 @@
 - **前置条件**: P0.2（localStorage 清理）已完成
 - **可利用的 7 项预埋接口**: file-http、HTTP 路由、SSRF 防护、AI Provider HTTP 层、存储端口抽象、同步模块、用户/会话抽象
 - **迁移成本评估**: 低成本 1-2 人月（文件/配置/AI/DB）、中等成本 2-4 人月（用户/权限/队列/ffmpeg）、高成本 4+ 人月（多租户/计费/监控/CDN）
+- **本地状态**: ✅ 已完成（commit `3d2fe1f`）
+  - `infrastructure/api/gateway.ts`：local/remote 双模式，baseUrl 纯函数解析，remote 自动加 Bearer 鉴权
+  - 持久化走 file-http `cloud.gateway` 配置，损坏/缺失自动回退本地
+  - `apiClient` 接入网关抽象，业务 API 请求 baseUrl 可切换
 - **预估**: 7-10 天
 
 ---
@@ -570,19 +588,19 @@ Week 4:
 ### 阶段 3: 架构统一（第 5-7 周）
 ```
 Week 5-6:
-  ├── P1.4 统一"故事 → 分镜"架构 (5-7d)
-  └── P2.1 拆分超长文件 - 后 3 个 (3d)
+  ├── P1.4 统一"故事 → 分镜"架构 (5-7d) ✅ 已完成
+  └── P2.1 拆分超长文件 - 后 3 个 (3d) ✅ 已完成
 
 Week 7:
-  ├── P3.1 把导演规则真正接入分镜生成 pipeline (开始)
-  └── P3.4 Few-shot 学习机制 (开始)
+  ├── P3.1 把导演规则真正接入分镜生成 pipeline ✅ 已完成
+  └── P3.4 Few-shot 学习机制 ✅ 已完成
 ```
 
 ### 阶段 4: 战略功能（第 8-12 周）
 ```
-Week 8-9:  P3.1 导演规则接入 pipeline + P3.4 Few-shot 学习
-Week 10-11: P3.2 ShotContractEditor + P3.3 自动故事结构
-Week 12: P3.5 视觉连贯性主动规划 + P3.6 云端化接口预研
+Week 8-9:  P3.1 导演规则接入 pipeline + P3.4 Few-shot 学习 ✅ 已完成
+Week 10-11: P3.2 ShotContractEditor + P3.3 自动故事结构 ✅ 已完成
+Week 12: P3.5 视觉连贯性主动规划 + P3.6 云端化接口预研 ✅ 已完成
 ```
 
 ### 阶段 5: 商业化（持续）
@@ -658,26 +676,26 @@ node scripts/check-module-api-consistency.mjs
 | 会话消息 | 提出的优化点 | 本规划对应项 | 状态 |
 |---|---|---|---|
 | msg 20-21 | Traction 核心指标体系 | P4.2 | 本地未实施 |
-| msg 24 | P0/P1/P2 级问题 | P0.1-P0.3, P2.1-P2.4 | P0 阶段 1 已完成 |
+| msg 24 | P0/P1/P2 级问题 | P0.1-P0.3, P2.1-P2.4 | ✅ 全部完成 |
 | msg 27 | 项目前景分析五维度 | P4.1 | 待决策 |
-| msg 30 | 云端化接口 7 项预埋分析 | P3.6 | 待实施 |
+| msg 30 | 云端化接口 7 项预埋分析 | P3.6 | ✅ 已完成（commit `3d2fe1f`） |
 | msg 33 | 2026 年市场格局详细对比 | P4.1 | 待决策 |
 | msg 36 | 决策框架 5 个关键问题 | 决策 1 | 待决策 |
 | msg 39 | "没有资金只有时间"核心策略 | P4.1, P4.2 | 待决策 |
 | msg 42 | 现实估值表与买方视角 | P4.3 | 待决策 |
 | msg 48 | 代码深度审查 + 脱手方案 | P0.1-P0.3, P4.3 | P0 阶段 1 已完成 |
-| msg 63 | 当前策略 6 大核心问题 | P1.4 | 本地未实施 |
-| msg 72 | "大胆一点"4 个方向 | P3.1-P3.6 | 本地未实施 |
-| msg 90 | 实际实施的 4 项高 ROI 改动 | P1.1, P1.2, P1.3 | 远程沙盒已实施，本地未同步 |
+| msg 63 | 当前策略 6 大核心问题 | P1.4 | ✅ 已完成（commit `ef238ae`） |
+| msg 72 | "大胆一点"4 个方向 | P3.1-P3.6 | ✅ 全部完成 |
+| msg 90 | 实际实施的 4 项高 ROI 改动 | P1.1, P1.2, P1.3 | ✅ 本地同步完成 |
 
 ---
 
 ## 八、下一步行动
 
-1. **立即可执行**: 提交 P0 阶段 1 + P2.4 的全部修复到 `feature/p0-cleanup` 分支
-2. **本周目标**: P2.2 拆分 AgentPage 超长组件
-3. **下周目标**: 同步远程沙盒的 P1.1-P1.3 改动到本地（13 个文件，+585/-51）
-4. **本月目标**: 完成阶段 1 + 阶段 2 前半
+1. **已全部完成**: P0（工程债务）、P1（高 ROI 功能）、P2（代码质量）、P3（产品/架构优化）——P1.1-P1.4、P2.1-P2.4、P3.1-P3.6 均已实现并提交
+2. **待决策项（P4 商业化）**: 市场定位聚焦、Traction 验证、售卖材料准备——需用户决策后执行
+3. **后续候选（未启动）**: P3.6 云端化的远程 provider 实际落地（api-gateway 已预埋接口，待接入远程服务端）、启动时加载网关配置、云端网关 UI 设置页
 
 > **注**: 本规划基于会话 `6a6707cd9d35f6e35f5c3962` 的完整内容（90 条消息，11694 行，323.9 KB），会话记录见 `session_full_content.md`。
 > **v2 修订**: 补充 11 项遗漏内容（Traction 指标体系、项目前景五维度、云端化 7 项预埋、2026 市场格局、决策框架 5 问题、零成本策略、现实估值表、代码审查真实资产/幻灭点、6 大核心问题、大胆一点 4 方向、远程沙盒完整文件清单），修正 4 项理解错误（删除 P0.3 agent-tools-* 违规、估值修正过程、远程沙盒改动描述、会话最终状态描述）。
+> **v3 修订（2026-08-04）**: P1-P3 全部完成并标注提交号；剩余 P4 商业化项待用户决策。

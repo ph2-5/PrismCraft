@@ -37,6 +37,8 @@ export {
 export type { VideoGenerationMode, ProviderDeps } from "./services/storyboard-generation-service";
 export { generateFramePrompts, batchGenerateFramePrompts } from "./services/frame-prompt-service";
 export { generateStyleGuide, generateStylePromptOnly } from "./services/style-guide-service";
+// P1.4：ShotContract → StoryBeat 适配（Layer 2 标准输出桥接 storyboard）
+export { shotContractToBeatPatch, shotContractsToBeatPatches } from "./services/shot-contract-adapter";
 export {
   buildVideoUrlUpdates,
   applyVideoUrlUpdates,

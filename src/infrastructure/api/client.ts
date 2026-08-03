@@ -4,6 +4,11 @@ import type { ApiErrorCode } from "@/domain/schemas";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import type { Interceptor } from "@/infrastructure/network/types";
 import { aiApiProfile } from "@/infrastructure/network/profiles";
+import {
+  getGatewayConfig,
+  resolveApiBaseUrl,
+  buildGatewayHeaders,
+} from "./gateway";
 
 const DEFAULT_TIMEOUT = aiApiProfile.timeout;
 
@@ -61,7 +66,9 @@ async function request<T>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  const baseUrl = `http://localhost:${API_SERVER_PORT}`;
+  // P3.6：API 网关抽象 — baseUrl 按网关模式解析（local → 本地服务器；remote → 远程网关）
+  const gateway = getGatewayConfig();
+  const baseUrl = resolveApiBaseUrl(gateway, API_SERVER_PORT);
 
   const fullUrl = `${baseUrl}/api/${endpoint}`;
 
@@ -70,11 +77,11 @@ async function request<T>(
     url: fullUrl,
     endpoint,
     signal: controller.signal,
-    headers: {
+    headers: buildGatewayHeaders(gateway, {
       "Content-Type": "application/json",
       ...ELECTRON_APP_HEADERS,
       ...fetchOptions.headers,
-    },
+    } as Record<string, string>),
   };
 
   const finalHandler = async (req: RequestInit & { url?: string; endpoint?: string }): Promise<Response> => {

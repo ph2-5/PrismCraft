@@ -191,13 +191,19 @@ generateFramePrompts(input: {
   beat: StoryBeat; index: number; characters: Character[]; scenes: Scene[];
   elements?: StoryElement[]; styleGuide?: StoryStyleGuide;
   prevBeatDescription?: string; nextBeatDescription?: string; textProvider: ITextProvider;
+  prevBeat?: StoryBeat; nextBeat?: StoryBeat;
+  directorContext?: { beatType?: string; emotionIntensity?: number; pacing?: "slow" | "normal" | "fast"; tone?: string };
 }): Promise<Result<{ firstFramePrompt: string; lastFramePrompt: string }>>
 // Note: Returns err(ValidationError) when beat content, character descriptions, and scene descriptions are all empty
+// Note (P3.1): 传入 prevBeat/nextBeat/directorContext 时，导演规则引擎（180 度/动作匹配/高潮强化/抒情远景/快速节奏）
+// 会生成"导演指导"段落注入 prompt，直接影响首尾帧画面描述
 
 batchGenerateFramePrompts(beats: StoryBeat[], options: {
   characters: Character[]; scenes: Scene[]; elements?: StoryElement[];
-  styleGuide?: StoryStyleGuide; textProvider: ITextProvider;
+  styleGuide?: StoryStyleGuide; directorContext?: { beatType?: string; emotionIntensity?: number; pacing?: "slow" | "normal" | "fast"; tone?: string };
+  textProvider: ITextProvider;
 }): Promise<Result<Map<string, { firstFramePrompt: string; lastFramePrompt: string }>>>
+// Note (P3.1): 批量路径自动传递 prevBeat/nextBeat，导演连续性规则默认生效；directorContext 可选透传
 
 generateStyleGuide(input: {
   storyTitle: string; storyDescription: string; genre?: string; tone?: string;

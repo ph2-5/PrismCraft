@@ -24,7 +24,7 @@ import type { BatchOptions, BatchResult } from "@/modules/storyboard/generation"
 import type { PromptEditorContext } from "@/modules/storyboard/prompt-editor";
 import { ShotTimeline } from "@/modules/shot";
 import { useVideoTaskStore } from "@/modules/video";
-import { StoryboardCanvas } from "../../canvas";
+import { StoryboardCanvas, type CanvasFocusRequest } from "../../canvas";
 import { BeatListView } from "./BeatListView";
 import { BeatDetailView } from "./BeatDetailView";
 import { BeatThumbnailCard } from "./BeatThumbnailCard";
@@ -338,6 +338,52 @@ function BeatTimelineSection({
   );
 }
 
+/** 画布 / 编辑双模式切换栏（互斥模式，不并排） */
+interface ModeSwitchBarProps {
+  viewMode: "canvas" | "edit";
+  onSwitch: (mode: "canvas" | "edit") => void;
+  hint: string;
+}
+
+function ModeSwitchBar({ viewMode, onSwitch, hint }: ModeSwitchBarProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "6px 10px",
+        background: "var(--panel)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <div
+        role="group"
+        aria-label={t("beat.beatList")}
+        style={{ display: "inline-flex", overflow: "hidden", borderRadius: 8, border: "1px solid var(--border)" }}
+      >
+        <button
+          type="button"
+          className={`btn btn-sm ${viewMode === "canvas" ? "btn-primary" : "btn-ghost"}`}
+          style={{ borderRadius: 0, border: "none" }}
+          onClick={() => onSwitch("canvas")}
+        >
+          {t("storyboard.canvas.viewCanvas")}
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${viewMode === "edit" ? "btn-primary" : "btn-ghost"}`}
+          style={{ borderRadius: 0, border: "none" }}
+          onClick={() => onSwitch("edit")}
+        >
+          {t("storyboard.canvas.viewEdit")}
+        </button>
+      </div>
+      <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>{hint}</span>
+    </div>
+  );
+}
+
 export function ProfessionalModeEditor({
   currentStory: _currentStory,
   beats,
@@ -382,6 +428,9 @@ export function ProfessionalModeEditor({
    */
   const [viewMode, setViewMode] = useState<"canvas" | "edit">("canvas");
   const pendingNewBeatRef = useRef<boolean>(false);
+  // 时间线 ↔ 画布联动：画布模式下点击时间线分镜 → 画布定位并高亮对应节点
+  const [canvasFocus, setCanvasFocus] = useState<CanvasFocusRequest | null>(null);
+  const focusCounterRef = useRef(0);
   const elements = useElementsSubscription();
 
   // 视频任务进度查询：先通过 selector 获取 allTasks 引用（Zustand 用 Object.is 比较，稳定），
@@ -425,6 +474,13 @@ export function ProfessionalModeEditor({
   const handleCanvasBeatSelect = useCallback((beatId: string) => {
     setEditingBeatId(beatId);
     setViewMode("edit");
+  }, []);
+
+  // 画布模式：时间线点击分镜 → 高亮 + 画布定位（保持画布模式，不切换）
+  const handleCanvasTimelineBeatClick = useCallback((beatId: string) => {
+    setEditingBeatId(beatId);
+    focusCounterRef.current += 1;
+    setCanvasFocus({ beatId, requestId: focusCounterRef.current });
   }, []);
 
   // 画布模式：添加分镜后进入编辑模式编辑新分镜
@@ -511,6 +567,21 @@ export function ProfessionalModeEditor({
   const handleOpenPreview = useCallback(() => setShowPreviewModal(true), []);
   const handleClosePreview = useCallback(() => setShowPreviewModal(false), []);
 
+  // 时间线公共 props（画布模式与编辑模式各渲染一个 BeatTimelineSection，仅 onBeatClick 不同）
+  const timelineProps = {
+    beats,
+    characters,
+    scenes,
+    editingBeatId,
+    generatingKeyframe,
+    progressByBeat,
+    isPlanningStory,
+    onAddBeat: handleAddBeat,
+    onBatchGenerateVideos: handleBatchGenerateVideos,
+    onOpenPreview: handleOpenPreview,
+    onDragEnd: handleDragEnd,
+  };
+
   const totalDuration = useMemo(
     () => beats.reduce((sum, b) => sum + (b.duration ?? 0), 0),
     [beats],
@@ -519,67 +590,50 @@ export function ProfessionalModeEditor({
   return (
     <div className="flex flex-col h-full">
       {/* 模式切换：画布模式 / 编辑模式（互斥，不并排） */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "6px 10px",
-          background: "var(--panel)",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <div
-          role="group"
-          aria-label={t("beat.beatList")}
-          style={{ display: "inline-flex", overflow: "hidden", borderRadius: 8, border: "1px solid var(--border)" }}
-        >
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === "canvas" ? "btn-primary" : "btn-ghost"}`}
-            style={{ borderRadius: 0, border: "none" }}
-            onClick={() => setViewMode("canvas")}
-          >
-            {t("storyboard.canvas.viewCanvas")}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === "edit" ? "btn-primary" : "btn-ghost"}`}
-            style={{ borderRadius: 0, border: "none" }}
-            onClick={() => setViewMode("edit")}
-          >
-            {t("storyboard.canvas.viewEdit")}
-          </button>
-        </div>
-        <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-          {viewMode === "canvas"
+      <ModeSwitchBar
+        viewMode={viewMode}
+        onSwitch={setViewMode}
+        hint={
+          viewMode === "canvas"
             ? t("storyboard.canvas.canvasHint")
-            : t("beat.shotsCountShort", { count: beats.length, duration: totalDuration })}
-        </span>
-      </div>
+            : t("beat.shotsCountShort", { count: beats.length, duration: totalDuration })
+        }
+      />
 
       {viewMode === "canvas" || viewMode === "edit" ? (
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-          {/* ── 画布模式：全屏无限画布。常驻挂载（visibility 隐藏而非卸载），
-              避免模式切换丢失用户拖拽布局；隐藏时不接收事件 ── */}
+          {/* ── 画布模式：全屏无限画布 + 底部时间线（节奏辅助）。常驻挂载
+              （visibility 隐藏而非卸载），避免模式切换丢失用户拖拽布局；隐藏时不接收事件 ── */}
           <div
             style={{
               position: "absolute",
               inset: 0,
+              display: "flex",
+              flexDirection: "column",
               visibility: viewMode === "canvas" ? "visible" : "hidden",
               pointerEvents: viewMode === "canvas" ? "auto" : "none",
             }}
           >
-            <StoryboardCanvas
-              beats={beats}
-              characters={characters}
-              scenes={scenes}
-              selectedBeatId={editingBeatId}
-              onBeatSelect={handleCanvasBeatSelect}
-              onAddBeat={handleCanvasAddBeat}
-              onReorderBeats={onReorderBeats}
-              onUpdateBeat={onUpdateBeat}
-            />
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <StoryboardCanvas
+                beats={beats}
+                characters={characters}
+                scenes={scenes}
+                selectedBeatId={editingBeatId}
+                onBeatSelect={handleCanvasBeatSelect}
+                onAddBeat={handleCanvasAddBeat}
+                onReorderBeats={onReorderBeats}
+                onUpdateBeat={onUpdateBeat}
+                focusRequest={canvasFocus}
+              />
+            </div>
+            {/* 画布模式时间线：点击分镜 → 画布定位并高亮（时间线 ↔ 画布联动） */}
+            {viewMode === "canvas" && (
+              <BeatTimelineSection
+                {...timelineProps}
+                onBeatClick={handleCanvasTimelineBeatClick}
+              />
+            )}
           </div>
 
           {/* ── 编辑模式：之前的完整编辑器（列表 + 详情 + 时间线 + AI 输入栏） ── */}
@@ -639,18 +693,8 @@ export function ProfessionalModeEditor({
               </div>
 
               <BeatTimelineSection
-                beats={beats}
-                characters={characters}
-                scenes={scenes}
-                editingBeatId={editingBeatId}
-                generatingKeyframe={generatingKeyframe}
-                progressByBeat={progressByBeat}
-                isPlanningStory={isPlanningStory}
-                onAddBeat={handleAddBeat}
-                onBatchGenerateVideos={handleBatchGenerateVideos}
-                onOpenPreview={handleOpenPreview}
+                {...timelineProps}
                 onBeatClick={setEditingBeatId}
-                onDragEnd={handleDragEnd}
               />
 
               {/* Task 2B.11：底部 AI 输入栏（匹配 design-preview.html #bottom-bar-storyboard） */}

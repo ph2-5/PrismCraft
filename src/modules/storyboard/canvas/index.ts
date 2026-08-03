@@ -1,4 +1,4 @@
-export { StoryboardCanvas } from "./StoryboardCanvas";
+export { StoryboardCanvas, type CanvasFocusRequest } from "./StoryboardCanvas";
 export { BeatNode } from "./nodes/BeatNode";
 export { ResourceNode } from "./nodes/ResourceNode";
 export { Blockout3DNode } from "./nodes/Blockout3DNode";

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -6,6 +6,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   type Connection,
   type Edge,
   type NodeMouseHandler,
@@ -24,7 +25,7 @@ import {
   CanvasToolbar,
   ResourcePickerOverlay,
 } from "./CanvasPanels";
-import { parseResourceNodeId } from "./layout/auto-layout";
+import { parseResourceNodeId, beatNodeId } from "./layout/auto-layout";
 import {
   applyConnection,
   computeUnboundResourceIds,
@@ -110,6 +111,14 @@ function applyResourceSelectionStyles(
   });
 }
 
+/** 时间线 → 画布定位请求：点击时间线分镜时由外部传入 */
+export interface CanvasFocusRequest {
+  /** 目标分镜 id */
+  beatId: string;
+  /** 请求序号：重复点击同一分镜也触发重新定位 */
+  requestId: number;
+}
+
 interface StoryboardCanvasProps {
   beats: StoryBeat[];
   characters: Character[];
@@ -119,6 +128,8 @@ interface StoryboardCanvasProps {
   onAddBeat: () => void;
   onReorderBeats?: (beats: StoryBeat[]) => void;
   onUpdateBeat: (id: string, updates: Partial<StoryBeat>) => void;
+  /** 时间线联动：定位并高亮对应分镜节点 */
+  focusRequest?: CanvasFocusRequest | null;
 }
 
 function StoryboardCanvasInner({
@@ -130,12 +141,11 @@ function StoryboardCanvasInner({
   onAddBeat,
   onReorderBeats,
   onUpdateBeat,
+  focusRequest,
 }: StoryboardCanvasProps) {
+  const { getNode } = useReactFlow();
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
-  // 资源面板打开状态：null=关闭；"character"/"scene"=打开并预筛对应类型
-  const [resourcePickerKind, setResourcePickerKind] = useState<ResourceKind | null>(
-    null,
-  );
+  const [resourcePickerKind, setResourcePickerKind] = useState<ResourceKind | null>(null);
   const {
     hiddenResourceIds,
     toggleResourceVisibility,
@@ -236,6 +246,11 @@ function StoryboardCanvasInner({
     resetPositions();
     requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
   }, [resetPositions, fitView]);
+
+  useEffect(() => {
+    const node = focusRequest && getNode(beatNodeId(focusRequest.beatId));
+    if (node) requestAnimationFrame(() => fitView({ nodes: [node], duration: 300, padding: 0.35 }));
+  }, [focusRequest, fitView, getNode]);
 
   const minimapNodeColor = useCallback((node: CanvasNode) => {
     if (node.type === "beat") return "var(--primary)";

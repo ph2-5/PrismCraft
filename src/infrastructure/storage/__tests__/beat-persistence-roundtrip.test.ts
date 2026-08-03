@@ -74,7 +74,8 @@ describe("画布字段持久化 roundtrip", () => {
     };
 
     const beat = parseBeatRow(row);
-    expect(beat.keyframe?.referencedPrevKeyframe).toBe("prev-1");
+    const keyframe = beat.keyframe as { referencedPrevKeyframe?: string } | undefined;
+    expect(keyframe?.referencedPrevKeyframe).toBe("prev-1");
     expect(beat.blockout3D).toEqual(blockout3D);
   });
 
@@ -109,7 +110,8 @@ describe("画布字段持久化 roundtrip", () => {
     };
 
     const beat = parseBeatRow(row);
-    expect(beat.keyframe?.referencedPrevKeyframe).toBe("prev-old");
+    const keyframe = beat.keyframe as { referencedPrevKeyframe?: string } | undefined;
+    expect(keyframe?.referencedPrevKeyframe).toBe("prev-old");
     expect(beat.blockout3D).toEqual(blockout3D);
   });
 
@@ -141,7 +143,8 @@ describe("画布字段持久化 roundtrip", () => {
     };
 
     const beat = parseBeatRow(row);
-    expect(beat.keyframe?.referencedPrevKeyframe).toBeUndefined();
+    const keyframe = beat.keyframe as { referencedPrevKeyframe?: string } | undefined;
+    expect(keyframe?.referencedPrevKeyframe).toBeUndefined();
     expect(beat.blockout3D).toBeUndefined();
   });
 });

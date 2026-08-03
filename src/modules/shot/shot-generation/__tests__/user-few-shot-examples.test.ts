@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { collectUserFewShotExamples } from "../user-few-shot-examples";
-import type { Story } from "@/domain/schemas";
+import type { Story, StoryBeat } from "@/domain/schemas";
 
 function makeStory(overrides: Partial<Story> = {}): Partial<Story> {
   return {
@@ -13,9 +13,10 @@ function makeStory(overrides: Partial<Story> = {}): Partial<Story> {
   };
 }
 
-const fullBeat = {
+const fullBeat: StoryBeat = {
   id: "beat-1",
   sequence: 1,
+  description: "对峙场面：主角与对手目光对峙，气氛紧张。",
   title: "对峙",
   content: "主角与对手面对面站立，目光如炬。风吹动两人的衣角，空气中弥漫着紧张的气氛，主角缓缓拔出武器。",
   duration: 4,

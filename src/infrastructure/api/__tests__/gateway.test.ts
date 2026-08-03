@@ -63,7 +63,7 @@ describe("buildGatewayHeaders", () => {
   });
 
   it("不修改入参对象", () => {
-    const original = { "Content-Type": "application/json" };
+    const original: Record<string, string> = { "Content-Type": "application/json" };
     buildGatewayHeaders({ mode: "remote", token: "t" }, original);
     expect(original.Authorization).toBeUndefined();
   });

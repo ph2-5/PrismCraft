@@ -142,7 +142,7 @@ describe("applyConnection（画布 → 表单）", () => {
     const beats = [makeBeat("b1")];
     const update = vi.fn();
     applyConnection(
-      { source: characterNodeId("c1"), target: beatNodeId("b1") },
+      { source: characterNodeId("c1"), target: beatNodeId("b1"), sourceHandle: null, targetHandle: null },
       beats,
       update,
     );
@@ -153,7 +153,7 @@ describe("applyConnection（画布 → 表单）", () => {
     const beats = [makeBeat("b1", { characterIds: ["c1"] })];
     const update = vi.fn();
     applyConnection(
-      { source: characterNodeId("c1"), target: beatNodeId("b1") },
+      { source: characterNodeId("c1"), target: beatNodeId("b1"), sourceHandle: null, targetHandle: null },
       beats,
       update,
     );
@@ -164,7 +164,7 @@ describe("applyConnection（画布 → 表单）", () => {
     const beats = [makeBeat("b1")];
     const update = vi.fn();
     applyConnection(
-      { source: sceneNodeId("s1"), target: beatNodeId("b1") },
+      { source: sceneNodeId("s1"), target: beatNodeId("b1"), sourceHandle: null, targetHandle: null },
       beats,
       update,
     );
@@ -175,7 +175,7 @@ describe("applyConnection（画布 → 表单）", () => {
     const beats = [makeBeat("a"), makeBeat("b"), makeBeat("c")];
     const update = vi.fn();
     const reordered = applyConnection(
-      { source: beatNodeId("c"), target: beatNodeId("a") },
+      { source: beatNodeId("c"), target: beatNodeId("a"), sourceHandle: null, targetHandle: null },
       beats,
       update,
     );
@@ -259,7 +259,7 @@ describe("节点构建 / 调和", () => {
     expect(nodes.find((n) => n.type === "character")?.id).toBe(characterNodeId("c1"));
     // 引用反查数据注入节点 data
     const charNode = nodes.find((n) => n.type === "character");
-    expect(charNode?.data.referencedBeatIds).toEqual(["b1"]);
+    expect(charNode?.data.kind === "character" ? charNode.data.referencedBeatIds : undefined).toEqual(["b1"]);
   });
 
   it("reconcileNodes 保留既有节点位置、补齐新增、移除已删除", () => {

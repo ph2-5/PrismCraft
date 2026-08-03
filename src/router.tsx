@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
       { path: "plugins", element: withSuspense(lazy(() => import("./app/plugins/page"))) },
       { path: "login", element: withSuspense(lazy(() => import("./app/coming-soon/LoginPage"))) },
       { path: "template-market", element: withSuspense(lazy(() => import("./app/coming-soon/TemplateMarketPage"))) },
-      { path: "workflow", element: withSuspense(lazy(() => import("./app/coming-soon/WorkflowPage"))) },
+      { path: "workflow", element: withSuspense(lazy(() => import("./modules/workflow/page"))) },
       { path: "workspace", element: withSuspense(lazy(() => import("./app/coming-soon/WorkspacePage"))) },
       { path: "mobile", element: withSuspense(lazy(() => import("./app/coming-soon/MobilePage"))) },
       { path: "*", element: withSuspense(NotFound) },

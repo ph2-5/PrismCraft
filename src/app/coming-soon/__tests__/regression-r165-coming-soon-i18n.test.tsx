@@ -7,14 +7,15 @@
  *   也必须是 i18n key。这保持 sidebar 标签与页面标题同步，并支持 locale 切换。
  *
  * 被测代码：
- *   src/app/coming-soon/{Login,Mobile,Workspace,Workflow,
+ *   src/app/coming-soon/{Login,Mobile,Workspace,
  *     TemplateMarket}Page.tsx
  *
  * 注意：AgentPage 已升级为真实 Agent UI（src/modules/agent/presentation/AgentPage.tsx），
  *      不再使用 ComingSoon 组件，因此从本测试中移除。
  * 注意：ComposerPage 已被 ./modules/video-compose/page 替换为真实功能页，
  *      StoryPage 已被 ./app/story/page（StoryPipelineShell）替换为真实功能页，
- *      因此两者从本测试中移除。
+ *      WorkflowPage 已被 ./modules/workflow/page（Phase 7 节点化工作流）替换为真实功能页，
+ *      因此三者从本测试中移除。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -44,12 +45,11 @@ vi.mock("@/shared/presentation/ComingSoon", () => ({
 }));
 
 // coming-soon 页面清单（AgentPage 已升级为真实 UI，不再在此列表；PluginsPage 已移至 src/app/plugins/page.tsx；
-// ComposerPage 与 StoryPage 已被真实功能页替换，不再在此列表）
+// ComposerPage / StoryPage / WorkflowPage 已被真实功能页替换，不再在此列表）
 const COMING_SOON_PAGES = [
   { file: "src/app/coming-soon/LoginPage.tsx", expectedKey: "sidebar.login" },
   { file: "src/app/coming-soon/MobilePage.tsx", expectedKey: "sidebar.mobile" },
   { file: "src/app/coming-soon/WorkspacePage.tsx", expectedKey: "sidebar.workspace" },
-  { file: "src/app/coming-soon/WorkflowPage.tsx", expectedKey: "sidebar.workflow" },
   { file: "src/app/coming-soon/TemplateMarketPage.tsx", expectedKey: "sidebar.templateMarket" },
 ];
 
@@ -75,12 +75,6 @@ describe("R165: coming-soon 页面 title 必须用 t() 国际化", () => {
     const { default: WorkspacePage } = await import("../WorkspacePage");
     render(<WorkspacePage />);
     expect(mockT).toHaveBeenCalledWith("sidebar.workspace");
-  });
-
-  it("WorkflowPage 渲染时 title 来自 t('sidebar.workflow')", async () => {
-    const { default: WorkflowPage } = await import("../WorkflowPage");
-    render(<WorkflowPage />);
-    expect(mockT).toHaveBeenCalledWith("sidebar.workflow");
   });
 
   it("TemplateMarketPage 渲染时 title 来自 t('sidebar.templateMarket')", async () => {

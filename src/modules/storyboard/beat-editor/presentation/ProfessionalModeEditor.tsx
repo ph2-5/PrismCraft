@@ -28,6 +28,7 @@ import { StoryboardCanvas, type CanvasFocusRequest } from "../../canvas";
 import { BeatListView } from "./BeatListView";
 import { BeatDetailView } from "./BeatDetailView";
 import { BeatThumbnailCard } from "./BeatThumbnailCard";
+import { ShotContractEditor } from "./ShotContractEditor";
 import { StoryboardBottomInputBar } from "./StoryboardBottomInputBar";
 import { useElementsSubscription } from "./use-elements-subscription";
 
@@ -691,6 +692,9 @@ export function ProfessionalModeEditor({
                   imageModelId={imageModelId}
                 />
               </div>
+
+              {/* P3.2：镜头契约表格编辑（批量改景别/运镜/角度/灯光/时长） */}
+              <ShotContractEditor beats={beats} onUpdateBeat={onUpdateBeat} />
 
               <BeatTimelineSection
                 {...timelineProps}

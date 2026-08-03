@@ -2072,6 +2072,7 @@ const messages: Record<MessageKey, string> = {
   "beat.type": "类型",
   "beat.cameraParams": "镜头参数",
   "beat.angle": "角度",
+  "beat.lighting": "灯光",
   "beat.movement": "运动",
   "beat.shotSize": "景别",
   "beat.elementBinding": "元素绑定",
@@ -3329,6 +3330,24 @@ const messages: Record<MessageKey, string> = {
   "shotOption.angle.worms-eye.desc": "从地面仰视拍摄",
   "shotOption.angle.dutch.label": "倾斜",
   "shotOption.angle.dutch.desc": "镜头倾斜，制造不安感",
+
+  "shotOption.lighting.natural.label": "自然光",
+  "shotOption.lighting.natural.desc": "自然光线，贴近真实环境",
+  "shotOption.lighting.low-key.label": "低调光",
+  "shotOption.lighting.low-key.desc": "强烈明暗对比，营造紧张氛围",
+  "shotOption.lighting.high-key.label": "高调光",
+  "shotOption.lighting.high-key.desc": "明亮均匀，轻快氛围",
+  "shotOption.lighting.golden-hour.label": "黄金时刻",
+  "shotOption.lighting.golden-hour.desc": "日出日落暖色光线",
+  "shotOption.lighting.neon.label": "霓虹光",
+  "shotOption.lighting.neon.desc": "霓虹灯彩色光线，赛博氛围",
+
+  // ── shotContractEditor.* ── 镜头契约表格编辑（P3.2）
+  "shotContractEditor.title": "镜头契约",
+  "shotContractEditor.subtitle": "批量编辑所有分镜的镜头参数，实时影响后续画面生成",
+  "shotContractEditor.beat": "分镜",
+  "shotContractEditor.duration": "时长（秒）",
+  "shotContractEditor.empty": "暂无分镜，先添加分镜后再编辑镜头契约",
 
   // ── agent.* ── AI 助手
   "agent.title": "AI 助手",

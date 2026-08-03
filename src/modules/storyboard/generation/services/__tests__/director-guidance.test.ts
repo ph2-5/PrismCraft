@@ -45,6 +45,20 @@ describe("toDirectorShot", () => {
     );
     expect(shot).toMatchObject({ shotSize: "wide", movement: "static" });
   });
+
+  it("lighting 字段透传到导演镜头契约（P3.2）", () => {
+    const shot = toDirectorShot(
+      makeBeat({
+        shotInstruction: {
+          shotSize: "medium",
+          cameraMovement: "static",
+          cameraAngle: "eye_level",
+          lighting: "neon",
+        },
+      }),
+    );
+    expect(shot).toMatchObject({ lighting: "neon" });
+  });
 });
 
 describe("buildDirectorGuidanceSection", () => {

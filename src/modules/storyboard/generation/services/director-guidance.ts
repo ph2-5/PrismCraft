@@ -42,6 +42,15 @@ const MOVEMENT_MAP: Record<string, ShotMovement> = {
   tracking: "tracking",
 };
 
+/** shotInstruction.lighting 直接透传（P3.2 后该字段可编辑） */
+const LIGHTING_PASSTHROUGH: Record<string, DirectorShotContract["lighting"]> = {
+  natural: "natural",
+  low_key: "low_key",
+  high_key: "high_key",
+  golden_hour: "golden_hour",
+  neon: "neon",
+};
+
 const SHOT_SIZE_LABEL: Record<ShotSize, string> = {
   extreme_close_up: "大特写",
   close_up: "特写",
@@ -69,7 +78,7 @@ export function toDirectorShot(beat: StoryBeat): DirectorShotContract | null {
   return {
     shotSize: SHOT_SIZE_MAP[shot.shotSize] ?? "medium",
     movement: MOVEMENT_MAP[shot.cameraMovement] ?? "static",
-    lighting: "natural",
+    lighting: LIGHTING_PASSTHROUGH[shot.lighting ?? ""] ?? "natural",
     duration: beat.duration ?? 5,
     blocking: beat.content || beat.description || "",
   };

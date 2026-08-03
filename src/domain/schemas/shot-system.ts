@@ -26,6 +26,13 @@ export const shotInstructionSchema = z.object({
     "worms_eye",
     "dutch",
   ]),
+  /**
+   * 灯光氛围（P3.2 ShotContractEditor 可编辑；可选，旧数据无此字段向后兼容）。
+   * 枚举与 director-rules 的 ShotLighting 对齐。
+   */
+  lighting: z
+    .enum(["natural", "low_key", "high_key", "golden_hour", "neon"])
+    .optional(),
 });
 
 export const featureAnchorItemSchema = z.object({

@@ -53,6 +53,7 @@ import {
   stripUnsupportedLastFramePrompts,
   applyShotParamsAutoFix,
   checkReferenceImageQuality,
+  applyVisualContinuityPlanning,
   convertToStoryBeats,
 } from "./story-generation-pipeline-parts";
 
@@ -186,6 +187,9 @@ export async function generateStoryPlanWithValidation(
     validationResults,
   };
   applyShotParamsAutoFix(beats, opts, shotFixAccumulator);
+
+  // P3.5：视觉连贯性主动规划 — 生成阶段即规划角色屏幕侧与动作方向
+  applyVisualContinuityPlanning(beats);
 
   await checkReferenceImageQuality(elements, shotFixAccumulator.fixDetails);
 

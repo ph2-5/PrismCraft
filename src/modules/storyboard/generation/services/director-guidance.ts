@@ -81,6 +81,9 @@ export function toDirectorShot(beat: StoryBeat): DirectorShotContract | null {
     lighting: LIGHTING_PASSTHROUGH[shot.lighting ?? ""] ?? "natural",
     duration: beat.duration ?? 5,
     blocking: beat.content || beat.description || "",
+    // P3.5：读取视觉连贯性主动规划产出的字段，使 180 度规则 / 动作匹配基于真实规划判断
+    subjectScreenSide: shot.subjectScreenSide,
+    actionDirection: shot.actionDirection,
   };
 }
 

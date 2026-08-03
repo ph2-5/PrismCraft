@@ -33,6 +33,16 @@ export const shotInstructionSchema = z.object({
   lighting: z
     .enum(["natural", "low_key", "high_key", "golden_hour", "neon"])
     .optional(),
+  /**
+   * P3.5：角色在画面中的屏幕侧（视觉连贯性主动规划产出）。
+   * 用于 180 度规则：同一场景相邻镜头保持角色同一屏幕侧，避免越轴。
+   */
+  subjectScreenSide: z.enum(["left", "right"]).optional(),
+  /**
+   * P3.5：主体动作在画面中的移动方向（视觉连贯性主动规划产出）。
+   * 用于动作匹配：相邻镜头动作方向保持一致。
+   */
+  actionDirection: z.enum(["left_to_right", "right_to_left"]).optional(),
 });
 
 export const featureAnchorItemSchema = z.object({

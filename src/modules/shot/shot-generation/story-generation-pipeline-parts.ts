@@ -5,6 +5,7 @@ import {
 } from "./shot-validator";
 import { enrichPromptWithFewShot } from "./dynamic-few-shot";
 import { collectUserFewShotExamples } from "./user-few-shot-examples";
+import { planVisualContinuity } from "@/shared-logic/director";
 import { container } from "@/infrastructure/di";
 import type {
   ApiResponse,
@@ -338,6 +339,36 @@ export async function checkReferenceImageQuality(
         `[Pipeline] 参考图质量检查跳过: ${element.name}`,
       );
     }
+  }
+}
+
+/**
+ * P3.5：视觉连贯性主动规划。
+ *
+ * 在分镜生成完成后，为相邻 beat 规划角色屏幕侧与动作方向
+ * （写入 shotInstruction.subjectScreenSide / actionDirection），
+ * 使 180 度规则与动作匹配在后续导演指导、帧提示词生成时有据可依。
+ *
+ * 只回写已存在 shotInstruction 的 beat，避免构造不完整的镜头参数。
+ */
+export function applyVisualContinuityPlanning(beats: StoryBeat[]): void {
+  if (beats.length < 2) return;
+  const plans = planVisualContinuity(
+    beats.map((b) => ({
+      id: b.id,
+      sceneId: b.sceneId,
+      content: b.content || b.description,
+    })),
+  );
+  const planById = new Map(plans.map((p) => [p.id, p]));
+  for (const beat of beats) {
+    const plan = planById.get(beat.id);
+    if (!plan || !beat.shotInstruction) continue;
+    beat.shotInstruction = {
+      ...beat.shotInstruction,
+      subjectScreenSide: plan.subjectScreenSide,
+      actionDirection: plan.actionDirection,
+    };
   }
 }
 

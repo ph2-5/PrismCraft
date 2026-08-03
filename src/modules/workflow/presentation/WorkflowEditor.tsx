@@ -5,11 +5,12 @@
  * 顶栏：模板选择 + 验证 + 运行控制
  * 底部：执行日志
  */
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, MiniMap, useReactFlow, type Connection } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Play, Pause, RotateCcw, Square, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
+import { Play, Pause, RotateCcw, Square, AlertTriangle, CheckCircle2, ChevronDown, Trash2, Save } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 import { WorkflowNode } from "./WorkflowNode";
 import { WorkflowSidebar, PALETTE_DRAG_MIME, type PaletteNodeSpec } from "./WorkflowSidebar";
 import { NodeConfigPanel } from "./NodeConfigPanel";
@@ -33,9 +34,51 @@ function CanvasInner() {
   const resumeWorkflow = useWorkflowStore((s) => s.resumeWorkflow);
   const stopWorkflow = useWorkflowStore((s) => s.stopWorkflow);
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
+  const customTemplates = useWorkflowStore((s) => s.customTemplates);
+  const saveAsTemplate = useWorkflowStore((s) => s.saveAsTemplate);
+  const deleteCustomTemplate = useWorkflowStore((s) => s.deleteCustomTemplate);
 
   const { screenToFlowPosition } = useReactFlow();
   const dropRef = useRef(false);
+
+  // 模板选择 + 保存弹窗状态
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const loadTemplateById = useCallback(
+    (id: string) => {
+      const preset = WORKFLOW_TEMPLATES.find((x) => x.id === id);
+      if (preset) {
+        loadWorkflow(preset.create());
+        setSelectedTemplateId(id);
+        return;
+      }
+      const custom = customTemplates.find((ct) => ct.id === id);
+      if (custom) {
+        loadWorkflow(custom.workflow);
+        setSelectedTemplateId(id);
+      }
+    },
+    [customTemplates, loadWorkflow],
+  );
+
+  const isCustomSelected = selectedTemplateId.startsWith("tpl-custom-");
+
+  const handleSaveTemplate = () => {
+    const id = saveAsTemplate(templateName, templateDescription);
+    if (!id) {
+      setSaveError(nodes.length === 0 ? t("workflow.templateEmpty") : t("workflow.templateExists"));
+      return;
+    }
+    setSelectedTemplateId(id);
+    setSaveModalOpen(false);
+    setTemplateName("");
+    setTemplateDescription("");
+    setSaveError(null);
+  };
 
   // 面板点击添加（画布中心附近）
   useEffect(() => {
@@ -89,21 +132,42 @@ function CanvasInner() {
           <span className="font-semibold text-sm">{t("workflow.title")}</span>
           <select
             className="input input-sm w-auto text-xs"
-            value=""
-            onChange={(e) => {
-              const tpl = WORKFLOW_TEMPLATES.find((x) => x.id === e.target.value);
-              if (tpl) loadWorkflow(tpl.create());
-            }}
+            value={selectedTemplateId}
+            onChange={(e) => loadTemplateById(e.target.value)}
           >
             <option value="" disabled>
               {t("workflow.templatePlaceholder")}
             </option>
-            {WORKFLOW_TEMPLATES.map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>
-                {tpl.name}
-              </option>
-            ))}
+            <optgroup label={t("workflow.templatePresetGroup")}>
+              {WORKFLOW_TEMPLATES.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name}
+                </option>
+              ))}
+            </optgroup>
+            {customTemplates.length > 0 && (
+              <optgroup label={t("workflow.templateCustomGroup")}>
+                {customTemplates.map((ct) => (
+                  <option key={ct.id} value={ct.id}>
+                    {ct.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
+          {isCustomSelected && (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                deleteCustomTemplate(selectedTemplateId);
+                setSelectedTemplateId("");
+              }}
+              title={t("workflow.templateDelete")}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
           {validation.valid ? (
             <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--success)" }}>
               <CheckCircle2 size={13} /> {t("workflow.validationOk")}
@@ -116,6 +180,19 @@ function CanvasInner() {
           )}
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setTemplateName("");
+              setTemplateDescription("");
+              setSaveError(null);
+              setSaveModalOpen(true);
+            }}
+            title={t("workflow.saveTemplate")}
+          >
+            <Save size={13} /> {t("workflow.saveTemplate")}
+          </button>
           {!running ? (
             <button type="button" className="btn btn-primary btn-sm" disabled={!validation.valid} onClick={() => void runWorkflow()}>
               <Play size={14} /> {t("workflow.run")}
@@ -137,13 +214,55 @@ function CanvasInner() {
           <button
             type="button"
             className="btn btn-outline btn-sm"
-            onClick={() => loadWorkflow(WORKFLOW_TEMPLATES[0]!.create())}
+            onClick={() => {
+              loadWorkflow(WORKFLOW_TEMPLATES[0]!.create());
+              setSelectedTemplateId(WORKFLOW_TEMPLATES[0]!.id);
+            }}
             title={t("workflow.reset")}
           >
             <RotateCcw size={13} />
           </button>
         </div>
       </div>
+
+      {/* 保存为自定义模板弹窗 */}
+      <Modal open={saveModalOpen} onClose={() => setSaveModalOpen(false)} ariaLabel={t("workflow.saveTemplateTitle")}>
+        <div style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
+            <Save className="w-5 h-5" style={{ color: "var(--primary)" }} />
+            {t("workflow.saveTemplateTitle")}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 8 }}>
+            {t("workflow.templateName")}
+          </div>
+          <input
+            className="input input-sm w-full mt-1"
+            value={templateName}
+            placeholder={t("workflow.templateNamePlaceholder")}
+            onChange={(e) => setTemplateName(e.target.value)}
+            autoFocus
+          />
+          <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 8 }}>
+            {t("workflow.templateDescription")}
+          </div>
+          <textarea
+            className="input input-sm w-full mt-1"
+            rows={2}
+            value={templateDescription}
+            placeholder={t("workflow.templateDescriptionPlaceholder")}
+            onChange={(e) => setTemplateDescription(e.target.value)}
+          />
+          {saveError && <div className="text-xs mt-1" style={{ color: "var(--destructive)" }}>{saveError}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+          <button type="button" className="btn btn-outline" onClick={() => setSaveModalOpen(false)}>
+            {t("common.cancel")}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handleSaveTemplate}>
+            {t("workflow.templateSave")}
+          </button>
+        </div>
+      </Modal>
 
       {/* 主体：面板 + 画布 + 配置 */}
       <div className="flex flex-1 min-h-0">

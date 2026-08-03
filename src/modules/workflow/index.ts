@@ -37,5 +37,5 @@ export type {
 } from "./domain/node-types";
 export { INPUT_SUBTYPES, PROCESS_SUBTYPES, OUTPUT_SUBTYPES, SUBTYPE_LABELS, DEFAULT_SUBTYPE_CONFIG, NODE_KIND_LABELS, NODE_KIND_COLOR } from "./domain/node-types";
 
-export type { Workflow, WorkflowNode as WorkflowNodeModel, WorkflowEdge } from "./domain/workflow-schema";
+export type { Workflow, WorkflowNode as WorkflowNodeModel, WorkflowEdge, CustomWorkflowTemplate } from "./domain/workflow-schema";
 export { workflowNodeSchema, workflowEdgeSchema, workflowSchema, toWorkflowNode, toWorkflowEdge, createNodeId } from "./domain/workflow-schema";

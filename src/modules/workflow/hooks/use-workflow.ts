@@ -11,12 +11,24 @@ import { create } from "zustand";
 import { applyNodeChanges, type Connection, type Edge, type Node, type NodeChange } from "@xyflow/react";
 import type { RunState } from "../services/workflow-executor";
 import { workflowRunner, registerBuiltinExecutors } from "../services/workflow-executor";
-import type { Workflow, WorkflowNode } from "../domain/workflow-schema";
+import type { Workflow, WorkflowNode, CustomWorkflowTemplate } from "../domain/workflow-schema";
 import { toWorkflowNode, toWorkflowEdge, createNodeId } from "../domain/workflow-schema";
 import type { WorkflowNodeData, WorkflowNodeKind, WorkflowSubtype } from "../domain/node-types";
 import { DEFAULT_SUBTYPE_CONFIG, SUBTYPE_LABELS } from "../domain/node-types";
 import { validateEdge } from "../services/workflow-validator";
+import { WORKFLOW_TEMPLATES } from "../templates";
+import { preferencesStorage } from "@/shared/utils/preferences";
 import { t } from "@/shared/constants";
+
+const CUSTOM_TEMPLATES_KEY = "workflow.customTemplates";
+
+function loadCustomTemplates(): CustomWorkflowTemplate[] {
+  return preferencesStorage.get<CustomWorkflowTemplate[]>(CUSTOM_TEMPLATES_KEY, []) ?? [];
+}
+
+function persistCustomTemplates(list: CustomWorkflowTemplate[]): void {
+  preferencesStorage.set(CUSTOM_TEMPLATES_KEY, list);
+}
 
 // 内置 executor 只注册一次
 let builtinRegistered = false;
@@ -35,6 +47,7 @@ export interface WorkflowStoreState {
   selectedNodeId: string | null;
   run: RunState | null;
   running: boolean;
+  customTemplates: CustomWorkflowTemplate[];
 
   loadWorkflow: (wf: Workflow) => void;
   addNodeFromPalette: (kind: WorkflowNodeKind, subtype: WorkflowSubtype, position: { x: number; y: number }) => string;
@@ -48,6 +61,8 @@ export interface WorkflowStoreState {
   pauseWorkflow: () => void;
   resumeWorkflow: () => void;
   stopWorkflow: () => void;
+  saveAsTemplate: (name: string, description?: string) => string | null;
+  deleteCustomTemplate: (id: string) => void;
 }
 
 let nodeSeq = 0;
@@ -99,6 +114,7 @@ export const useWorkflowStore = create<WorkflowStoreState>()((set, get) => ({
   selectedNodeId: null,
   run: null,
   running: false,
+  customTemplates: loadCustomTemplates(),
 
   loadWorkflow: (wf) => {
     ensureBuiltinExecutors();
@@ -178,4 +194,39 @@ export const useWorkflowStore = create<WorkflowStoreState>()((set, get) => ({
   pauseWorkflow: () => workflowRunner.pause(),
   resumeWorkflow: () => workflowRunner.resume(),
   stopWorkflow: () => workflowRunner.stop(),
+
+  saveAsTemplate: (name, description) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { nodes, edges, customTemplates } = get();
+    if (nodes.length === 0) return null; // 空画布不可保存
+    const nameTaken =
+      WORKFLOW_TEMPLATES.some((tp) => tp.name === trimmed) ||
+      customTemplates.some((ct) => ct.name === trimmed);
+    if (nameTaken) return null;
+    const id = `tpl-custom-${Date.now().toString(36)}`;
+    const template: CustomWorkflowTemplate = {
+      id,
+      name: trimmed,
+      description: description?.trim() || undefined,
+      createdAt: Date.now(),
+      workflow: {
+        id,
+        name: trimmed,
+        description: description?.trim() || undefined,
+        nodes: nodes.map((n) => toWorkflowNode(n)),
+        edges: edges.map((e) => toWorkflowEdge(e)),
+      },
+    };
+    const next = [...customTemplates, template];
+    persistCustomTemplates(next);
+    set({ customTemplates: next });
+    return id;
+  },
+
+  deleteCustomTemplate: (id) => {
+    const next = get().customTemplates.filter((ct) => ct.id !== id);
+    persistCustomTemplates(next);
+    set({ customTemplates: next });
+  },
 }));

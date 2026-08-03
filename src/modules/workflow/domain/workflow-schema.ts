@@ -37,6 +37,15 @@ export const workflowSchema = z.object({
 
 export type Workflow = z.infer<typeof workflowSchema>;
 
+/** 自定义模板（用户基于预设或自建画布修改后保存） */
+export interface CustomWorkflowTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  workflow: Workflow;
+}
+
 /** 从 React Flow 节点/边转换为领域工作流（忽略运行时字段） */
 export function toWorkflowNode(
   n: { id: string; position: { x: number; y: number }; data: { kind: string; subtype: string; label: string; config?: Record<string, unknown> } },

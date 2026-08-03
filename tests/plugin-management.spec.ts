@@ -174,7 +174,9 @@ test.describe("Delete Plugin", () => {
   });
 
   test("should display delete button on user plugin items", async ({ page }) => {
-    const userPluginBadge = page.locator("text=声明式").or(page.locator("text=代码插件")).first();
+    // 只匹配插件项内的 badge（span.badge），避免误命中"插件管理"页顶部的安全提示条
+    //（提示条文案"代码插件可访问你的 API 密钥"也会匹配 text=代码插件）
+    const userPluginBadge = page.locator("span.badge", { hasText: "声明式" }).or(page.locator("span.badge", { hasText: "代码插件" })).first();
     if (!(await userPluginBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     const deleteBtn = page.locator("button[aria-label*='删除']").or(
@@ -185,7 +187,8 @@ test.describe("Delete Plugin", () => {
   });
 
   test("should show confirmation dialog when deleting a plugin", async ({ page }) => {
-    const userPluginBadge = page.locator("text=声明式").or(page.locator("text=代码插件")).first();
+    // 同 delete button 测试：收紧 badge 选择器避免误匹配安全提示条
+    const userPluginBadge = page.locator("span.badge", { hasText: "声明式" }).or(page.locator("span.badge", { hasText: "代码插件" })).first();
     if (!(await userPluginBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     const deleteBtn = page.locator("button").filter({ has: page.locator("svg.lucide-trash-2") }).first();

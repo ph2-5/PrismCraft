@@ -160,7 +160,17 @@ async function handleJsonBody(
   queryParams: Record<string, string>,
 ): Promise<void> {
   const body = Buffer.concat(chunks).toString("utf-8");
-  const parsedBody = body ? JSON.parse(body) : {};
+  let parsedBody: Record<string, unknown> = {};
+  if (body) {
+    // L4 修复：畸形 JSON 请求体单独 try/catch，返回 400 而非抛给外层 500
+    try {
+      parsedBody = JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      res.writeHead(400);
+      res.end(JSON.stringify({ success: false, error: "Invalid JSON body" }));
+      return;
+    }
+  }
   const fullBody: ApiRequest = { ...queryParams, ...parsedBody };
 
   if (route.schema) {

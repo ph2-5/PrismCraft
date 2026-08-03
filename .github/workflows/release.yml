@@ -16,7 +16,36 @@ env:
   npm_config_fetch_retries: 10
 
 jobs:
+  # P9 安全加固：tag 触发发布前必须通过静态检查（typecheck + 架构合规）。
+  # 与 ci.yml 的 lint-and-typecheck 保持同等的检查强度，独立于 CI 流程运行，
+  # 防止未通过检查的代码被打包发布。
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js and install dependencies
+        uses: ./.github/actions/setup-node-deps
+
+      - name: Build shared-logic (required for electron typecheck)
+        run: npm run build:shared-logic
+
+      - name: Setup shared-logic symlink (required for electron typecheck)
+        run: node scripts/setup-shared-logic-symlink.mjs
+
+      - name: TypeScript type check (root)
+        run: npx tsc --noEmit
+
+      - name: TypeScript type check (electron)
+        run: npx tsc -p electron/tsconfig.json --noEmit
+
+      - name: Architecture check
+        run: node scripts/check-architecture.mjs
+
   release-mac:
+    needs: preflight
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -80,6 +109,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-win:
+    needs: preflight
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -130,6 +160,14 @@ jobs:
         env:
           PYTHON: ${{ env.pythonLocation }}\python.exe
 
+      # ⚠️ Windows 发布签名是硬性要求（P6 安全加固）：
+      # - electron-updater 的 verifyUpdateCodeSignature 在 Windows 上默认关闭（autoUpdater 未显式开启）。
+      # - 若发布未签名的 exe/nsis 安装包，开启该选项将拒绝所有未签名更新，破坏现有更新流程，
+      #   故不强制开启；但签名缺失时，已安装应用无法验证更新来源，存在供应链投毒风险。
+      # - 因此发布流程必须配置 WINDOWS_CERT_BASE64 / WINDOWS_CERT_FILE / WINDOWS_PUBLISHER_NAME，
+      #   生成代码签名的安装包后再上传 Release。未配置签名证书时不应发布正式版本。
+      # - 若未来所有发布产物均实现代码签名，可在 electron/src/main.ts 的 setupAutoUpdater 中
+      #   对 Windows 启用 autoUpdater.verifyUpdateCodeSignature = true 以拒绝未签名更新。
       - name: Import Windows signing certificate
         if: env.WINDOWS_CERT_BASE64 != ''
         shell: pwsh

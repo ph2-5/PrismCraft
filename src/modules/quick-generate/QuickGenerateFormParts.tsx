@@ -7,6 +7,7 @@ import {
   Plus,
   Image,
   Wand2,
+  Ban,
 } from "lucide-react";
 import { useId } from "react";
 import { t } from "@/shared/constants";
@@ -267,11 +268,13 @@ export function SceneSelector({
 interface GenerateButtonProps {
   isGenerating: boolean;
   onGenerate: () => void;
+  onCancel?: () => void;
 }
 
 export function GenerateButton({
   isGenerating,
   onGenerate,
+  onCancel,
 }: GenerateButtonProps) {
   const { stageLabel } = useGenerationStage(isGenerating, {
     initialKey: "generate.stage.videoInitial",
@@ -306,6 +309,16 @@ export function GenerateButton({
         >
           {stageLabel}
         </div>
+      )}
+      {isGenerating && onCancel && (
+        <button
+          type="button"
+          className="btn btn-outline w-full h-10"
+          onClick={onCancel}
+        >
+          <Ban className="w-4 h-4 mr-2" />
+          {t("task.cancelButton")}
+        </button>
       )}
     </div>
   );

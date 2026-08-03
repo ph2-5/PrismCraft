@@ -301,6 +301,16 @@ export async function handleTestConnection(
     };
   }
 
+  // Q7 修复：apiUrl 缺失时显式校验失败返回，避免下游 apiUrl! 非空断言
+  if (!apiUrl) {
+    return {
+      success: false,
+      error: "api_not_configured",
+      code: API_ERROR_CODES.API_NOT_CONFIGURED,
+      httpStatus: 400,
+    };
+  }
+
   // 注册用户配置的 endpoint 到 SSRF 白名单（loopback 地址直接放行，支持 Ollama 等本地部署）
   if (apiUrl) {
     registerUserEndpoint(apiUrl);
@@ -311,16 +321,16 @@ export async function handleTestConnection(
 
   try {
     if (mode === "lightweight") {
-      return await testLightweightConnection(apiUrl!, apiKey, isAnthropic, effectivePlugin);
+      return await testLightweightConnection(apiUrl, apiKey, isAnthropic, effectivePlugin);
     }
 
     switch (capability) {
       case "text":
-        return await testTextCapability(apiUrl!, apiKey, isAnthropic, effectivePlugin, effectiveModel);
+        return await testTextCapability(apiUrl, apiKey, isAnthropic, effectivePlugin, effectiveModel);
       case "image":
       case "vision":
       case "video":
-        return await testMediaCapability(apiUrl!, apiKey, effectivePlugin, capability);
+        return await testMediaCapability(apiUrl, apiKey, effectivePlugin, capability);
       default:
         return { success: false, error: `UNSUPPORTED_CAPABILITY: ${capability}` };
     }

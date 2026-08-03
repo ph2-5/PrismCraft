@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Save, BookOpen } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Trash2, Save, BookOpen } from "lucide-react";
 import { DEFAULT_STORY, genres, tones, useStoryNovelSource } from "@/modules/storyboard";
 import { NovelSourceDialog } from "@/modules/novel";
 import { t } from "@/shared/constants";
@@ -138,6 +138,8 @@ function StoryProjectDropdown({
 
 export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
   const [showNovelSourceDialog, setShowNovelSourceDialog] = useState(false);
+  // 描述/基调折叠展开状态（默认收起，保持顶栏简洁）
+  const [showDetail, setShowDetail] = useState(false);
 
   // 查询当前 Story 关联的原始小说来源（novel_projects.story_id 回溯）
   const novelSourceQuery = useStoryNovelSource(story.currentStory.id ?? "");
@@ -161,20 +163,6 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         aria-label={t("story.titlePlaceholder")}
       />
 
-      <input
-        data-testid="story-description-input"
-        placeholder={t("story.descPlaceholder")}
-        value={story.currentStory.description ?? ""}
-        onChange={(e) =>
-          story.setCurrentStory((prev) => ({
-            ...prev,
-            description: e.target.value,
-          }))
-        }
-        className="input max-w-[240px] h-8 !text-xs !px-2.5 !py-1.5 flex-1"
-        aria-label={t("story.descPlaceholder")}
-      />
-
       <select
         className="select w-24 h-8 text-xs"
         aria-label={t("aria.genre")}
@@ -193,23 +181,56 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         ))}
       </select>
 
-      <select
-        className="select w-24 h-8 text-xs"
-        aria-label={t("aria.tone")}
-        value={story.currentStory.tone ?? ""}
-        onChange={(e) =>
-          story.setCurrentStory((prev) => ({
-            ...prev,
-            tone: e.target.value || undefined,
-          }))
-        }
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm h-8 px-2"
+        onClick={() => setShowDetail((v) => !v)}
+        title={showDetail ? t("common.collapse") : t("common.expand")}
+        aria-label={showDetail ? t("common.collapse") : t("common.expand")}
+        aria-expanded={showDetail}
       >
-        {tones.map((tone) => (
-          <option key={tone.value} value={tone.value}>
-            {tone.label}
-          </option>
-        ))}
-      </select>
+        {showDetail ? (
+          <ChevronUp className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5" />
+        )}
+      </button>
+
+      {showDetail && (
+        <>
+          <input
+            data-testid="story-description-input"
+            placeholder={t("story.descPlaceholder")}
+            value={story.currentStory.description ?? ""}
+            onChange={(e) =>
+              story.setCurrentStory((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
+            }
+            className="input max-w-[240px] h-8 !text-xs !px-2.5 !py-1.5 flex-1"
+            aria-label={t("story.descPlaceholder")}
+          />
+
+          <select
+            className="select w-24 h-8 text-xs"
+            aria-label={t("aria.tone")}
+            value={story.currentStory.tone ?? ""}
+            onChange={(e) =>
+              story.setCurrentStory((prev) => ({
+                ...prev,
+                tone: e.target.value || undefined,
+              }))
+            }
+          >
+            {tones.map((tone) => (
+              <option key={tone.value} value={tone.value}>
+                {tone.label}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <div className="flex-1" />
 

@@ -13,8 +13,9 @@
  */
 
 import { spawn } from "child_process";
+import fs from "fs";
 import { access, constants, mkdir } from "fs/promises";
-import { basename, dirname } from "path";
+import path, { basename, dirname } from "path";
 import { getLogger } from "../logging";
 
 const logger = getLogger("ffmpeg-handler");
@@ -24,6 +25,44 @@ const DEFAULT_FFMPEG = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 
 /** 默认 ffprobe 二进制名称 */
 const DEFAULT_FFPROBE = process.platform === "win32" ? "ffprobe.exe" : "ffprobe";
+
+/**
+ * 返回随应用分发的 ffmpeg/ffprobe 二进制路径（若有），否则返回 null。
+ *
+ * 打包约定（P1）：将 ffmpeg/ffprobe 二进制随应用分发，安装后位于
+ * `<resourcesPath>/ffmpeg/` 目录（process.resourcesPath 指向 app.asar 同级的
+ * resources 目录）。在 package.json 的 build.extraResources 中预留配置示例：
+ *
+ *   "extraResources": [
+ *     {
+ *       "from": "vendor/ffmpeg/bin/",
+ *       "to": "ffmpeg/",
+ *       "filter": ["ffmpeg*", "ffprobe*"]
+ *     }
+ *   ]
+ *
+ * 未随应用分发时返回 null，回退到自定义路径或系统 PATH（保持原有行为）。
+ */
+function getBundledBinaryPath(binaryName: string): string | null {
+  if (!process.resourcesPath) return null;
+  const candidate = path.join(process.resourcesPath, "ffmpeg", binaryName);
+  try {
+    fs.accessSync(candidate, fs.constants.X_OK);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
+/** 随应用分发的 ffmpeg 二进制路径（若有） */
+function getBundledFfmpegPath(): string | null {
+  return getBundledBinaryPath(DEFAULT_FFMPEG);
+}
+
+/** 随应用分发的 ffprobe 二进制路径（若有） */
+function getBundledFfprobePath(): string | null {
+  return getBundledBinaryPath(DEFAULT_FFPROBE);
+}
 
 /** 默认超时（5 分钟） */
 const DEFAULT_TIMEOUT = 5 * 60 * 1000;
@@ -86,7 +125,9 @@ export interface FfmpegProbeResult {
 export async function probeFfmpeg(
   customPath?: string,
 ): Promise<FfmpegProbeResult> {
-  const ffmpeg = customPath || DEFAULT_FFMPEG;
+  // 优先级：自定义路径 > 随应用分发的二进制（resources/ffmpeg/）> 系统 PATH
+  const bundledPath = getBundledFfmpegPath();
+  const ffmpeg = customPath || bundledPath || DEFAULT_FFMPEG;
 
   // 安全校验：拒绝非 ffmpeg/ffprobe 二进制（防命令注入）
   if (customPath) {
@@ -138,7 +179,7 @@ export async function executeFfmpeg(
   args: string[],
   options?: FfmpegExecuteOptions,
 ): Promise<FfmpegExecuteResult> {
-  const ffmpeg = options?.ffmpegPath || DEFAULT_FFMPEG;
+  const ffmpeg = options?.ffmpegPath || getBundledFfmpegPath() || DEFAULT_FFMPEG;
   const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
   const startTime = Date.now();
 
@@ -192,7 +233,7 @@ export async function executeFfprobe(
   args: string[],
   customPath?: string,
 ): Promise<FfmpegExecuteResult> {
-  const ffprobe = customPath || DEFAULT_FFPROBE;
+  const ffprobe = customPath || getBundledFfprobePath() || DEFAULT_FFPROBE;
   const startTime = Date.now();
 
   // 安全校验：拒绝非 ffmpeg/ffprobe 二进制（防命令注入）

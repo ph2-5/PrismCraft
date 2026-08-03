@@ -233,7 +233,11 @@ export async function readFile(
   // Fallback: IPC
   const api = getElectronAPI();
   if (!api?.readFile) return null;
-  return await api.readFile(filePath);
+  try {
+    return await api.readFile(filePath);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** 获取文件信息（大小等） */
@@ -249,7 +253,11 @@ export async function getFileInfo(
   // Fallback: IPC
   const api = getElectronAPI();
   if (!api?.getFileInfo) return null;
-  return await api.getFileInfo(filePath);
+  try {
+    return await api.getFileInfo(filePath);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** 获取视频缓存目录 */
@@ -264,7 +272,11 @@ export async function getCacheDirectory(): Promise<{ success: boolean; path?: st
   if (!api?.getCacheDirectory) {
     return { success: false, error: "No cache directory capability available" };
   }
-  return await api.getCacheDirectory();
+  try {
+    return await api.getCacheDirectory();
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** 查询磁盘空间 */
@@ -279,7 +291,11 @@ export async function getDiskSpace(
   // Fallback: IPC
   const api = getElectronAPI();
   if (!api?.getDiskSpace) return null;
-  return await api.getDiskSpace(dirPath);
+  try {
+    return await api.getDiskSpace(dirPath);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** 检查文件是否存在 */

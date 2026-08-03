@@ -1,5 +1,18 @@
 import type { Story } from "@/domain/schemas";
 
+/**
+ * 删除前引用检查（Delete-Reference Check）
+ *
+ * 职责：判断角色/场景是否被故事或分镜引用，用于删除前的确认提示
+ * （返回 canDelete / references / warningMessage）。
+ *
+ * 注意：本文件与 src/shared-logic/shot/reference-check.ts（参考图一致性检查）
+ * 同名并存，但功能完全不同：
+ *   - 本文件（domain 层）：checkCharacterReferences(id, name, stories) → DeleteCheckResult
+ *   - shared-logic 侧：checkCharacterReferences(id, stories) → ReferenceResult
+ * 引用时请按需选择，勿混用。
+ */
+
 export interface ReferenceInfo {
   elementId: string;
   elementType: "character" | "scene";

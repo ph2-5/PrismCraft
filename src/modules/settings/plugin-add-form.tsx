@@ -54,6 +54,9 @@ export function PluginAddForm({ onAdded, onCancel }: PluginAddFormProps) {
       }
       await addPlugin(parsed);
       showSuccess(t("success.added"), t("plugin.addedWithName", { name: parsed.displayName || parsed.id }));
+      // 添加成功后清空输入并复位校验结果区，方便连续添加
+      setJsonInput("");
+      setValidationResult(null);
       onAdded();
     } catch (e) {
       showError(t("plugin.addFailed"), mapUserFacingError(e));

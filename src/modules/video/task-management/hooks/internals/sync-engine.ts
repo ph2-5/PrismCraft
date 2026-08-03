@@ -139,7 +139,10 @@ async function performSync(): Promise<void> {
         errorLogger.warn(
           `[VideoTaskSync] 同步失败，${retryDelay}ms 后重试 (${syncRetryCount}/${MAX_SYNC_RETRIES})`,
         );
-        pollingState.syncTimeoutId = setTimeout(() => {
+        // L8 修复：重试定时器使用独立字段 retryTimeoutId，
+        // 避免被 scheduleSync 对 syncTimeoutId 的 clearTimeout 打断。
+        pollingState.retryTimeoutId = setTimeout(() => {
+          pollingState.retryTimeoutId = null;
           void performSync();
         }, retryDelay);
       } else {

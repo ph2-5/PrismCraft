@@ -27,6 +27,7 @@ domain → NOTHING (pure types)
 | `shared/` | `@/domain/*`, `@/infrastructure/*` (proxy exports only) | `@/modules/*`, `@/shared-logic/*` |
 | `modules/` | `@/domain/*`, `@/shared/*`, `@/shared-logic/*`, `@/infrastructure/di` | `@/infrastructure/*` (except DI), `@/modules/*/*/*` |
 | `infrastructure/` | `@/domain/*`, `@/shared/*` | `@/modules/*`, `@/shared-logic/*` |
+| `config/` | Relative imports within `src/config/`, `@/shared/*`, `@/domain/*` (types only) | `@/modules/*`, `@/infrastructure/*`, `@/shared-logic/*` |
 | `app/` | All layers | Deep module paths `@/modules/*/*/*` |
 | `electron/src/api/` | `@shared-logic/*`, `@shared/*`, `@domain/*` | `@/modules/*` |
 
@@ -37,6 +38,7 @@ domain → NOTHING (pure types)
 - `shared/` MAY re-export from `@/infrastructure/*` via proxy exports
 - `domain/` MUST NOT import from `@/modules/*` or `@/infrastructure/*`
 - `modules/` MUST NOT directly import from `@/infrastructure/*` except `@/infrastructure/di`
+- `src/config/` is a global constants/config layer (ports, headers, logger). All layers MAY import from it (e.g. `@/config/constants`), but it MUST NOT import from `@/modules/*` / `@/infrastructure/*` / `@/shared-logic/*` — only `@/shared/*`, `@/domain/*` (types) and relative imports are allowed
 - Cross-module imports: use barrel `@/modules/xxx` not deep paths `@/modules/xxx/hooks/yyy`
 - Cross-module deep-path imports blocked by ESLint (error in production code, warn in tests)
 - Type re-exports from infrastructure allowed via `export type` (compile-time only)

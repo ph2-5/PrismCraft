@@ -1567,30 +1567,18 @@ export function PluginPreviewExport(props: PluginPreviewExportProps): JSX.Elemen
 
 ---
 
-#### `PluginSchemaViewer` (plugin-schema-viewer.tsx)
+#### `PluginContentViewer` (plugin-content-viewer.tsx)
 
-插件 JSON Schema 查看器组件。
-
-```typescript
-interface PluginSchemaViewerProps {
-  schemaData: Record<string, unknown>;
-}
-
-export function PluginSchemaViewer({ schemaData }: PluginSchemaViewerProps): JSX.Element
-```
-
----
-
-#### `PluginSpecViewer` (plugin-spec-viewer.tsx)
-
-插件规范文档查看器组件。
+插件文档/配置查看卡片（合并原 PluginSchemaViewer 与 PluginSpecViewer）。
 
 ```typescript
-interface PluginSpecViewerProps {
-  specContent: string;
+interface PluginContentViewerProps {
+  title: string;
+  description: string;
+  content: ReactNode;
 }
 
-export function PluginSpecViewer({ specContent }: PluginSpecViewerProps): JSX.Element
+export function PluginContentViewer({ title, description, content }: PluginContentViewerProps): JSX.Element
 ```
 
 ---

@@ -12,6 +12,10 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
     const video = document.createElement("video");
     const url = URL.createObjectURL(file);
     let isSettled = false;
+    // L7 修复：seek 阶段超时定时器与 seeked 监听器提升到外层作用域，
+    // 使 cleanup 能统一清理，防止出错/超时时监听器与定时器泄漏。
+    let seekTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let handleSeekedRef: ((ev: Event) => void) | null = null;
 
     video.preload = "metadata";
     video.muted = true;
@@ -20,6 +24,14 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
     const cleanup = () => {
       if (isSettled) return;
       isSettled = true;
+      if (seekTimeoutId) {
+        clearTimeout(seekTimeoutId);
+        seekTimeoutId = null;
+      }
+      if (handleSeekedRef) {
+        video.removeEventListener("seeked", handleSeekedRef);
+        handleSeekedRef = null;
+      }
       video.removeEventListener("error", handleError);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       URL.revokeObjectURL(url);
@@ -75,7 +87,7 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
 
       let capturedCount = 0;
       // seek 阶段独立超时保护，防止 seeked 事件未触发导致 Promise 悬挂
-      let seekTimeoutId: ReturnType<typeof setTimeout> | null = null;
+      // （seekTimeoutId 已提升到外层，便于 cleanup 统一清理）
       const SEEK_TIMEOUT_MS = 10_000;
 
       const resetSeekTimeout = () => {
@@ -106,11 +118,13 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           frames.lastFrame = canvas.toDataURL("image/jpeg", 0.92);
           capturedCount++;
+          handleSeekedRef = null;
           video.removeEventListener("seeked", handleSeeked);
           safeResolve(frames);
         }
       };
 
+      handleSeekedRef = handleSeeked;
       video.addEventListener("seeked", handleSeeked);
 
       captureFrame(0);

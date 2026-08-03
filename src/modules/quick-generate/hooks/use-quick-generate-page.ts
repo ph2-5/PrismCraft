@@ -48,6 +48,7 @@ export function useQuickGeneratePage() {
     onRemoveReferenceVideo: state.handleRemoveReferenceVideo,
     isGenerating: state.isGenerating,
     onGenerate: state.handleGenerate,
+    onCancelGenerate: () => state.handleCancelTask(state.activeTaskId),
     generatedPrompt: state.generatedPrompt,
     onOpenTemplateDialog,
     characters: state.characters,
@@ -66,6 +67,7 @@ export function useQuickGeneratePage() {
     onSaveToAssets: state.handleSaveToAssets,
     onRetry: state.handleRetry,
     onClearCompleted: state.clearCompletedTasks,
+    onCancelTask: state.handleCancelTask,
     characterPosterImage,
 
     // TemplateSelectDialog props

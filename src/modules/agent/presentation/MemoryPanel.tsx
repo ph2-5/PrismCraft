@@ -72,6 +72,11 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   /** 删除单个偏好 */
   const handleRemovePreference = async (key: string) => {
+    const confirmed = await confirm({
+      description: t("agent.memoryDeleteConfirm"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
     setActionLoading(true);
     try {
       const ok = await removePreference(key);
@@ -87,6 +92,11 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   /** 删除单个事实 */
   const handleRemoveFact = async (key: string) => {
+    const confirmed = await confirm({
+      description: t("agent.memoryDeleteConfirm"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
     setActionLoading(true);
     try {
       const ok = await removeFact(key);

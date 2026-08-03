@@ -138,6 +138,14 @@ export async function pollTaskShared(
         message: result.data.message || task.message,
       });
 
+      // L1 修复：await queryVideoStatus 期间用户可能已删除该任务。
+      // 此时 store 中已无此任务，继续 persist 会把已删任务写回 DB，
+      // 检测到不存在则跳过持久化并记录 debug 日志。
+      if (!store.getState().allTasks.some((t) => t.taskId === taskId)) {
+        errorLogger.debug(`[VideoTaskManager] 轮询返回时任务 ${taskId} 已从 store 移除，跳过持久化`);
+        return;
+      }
+
       await persistVideoTask(
         { ...task, ...guardUpdates, lastPolledAt: new Date().toISOString() },
         { logLabel: "轮询结果持久化失败", catchExceptions: false },
@@ -161,6 +169,12 @@ export async function pollTaskShared(
       scheduleSync();
     }
   } catch (error) {
+    // L1 修复：await 抛出异常时任务可能已被用户删除（如取消/删除触发 abort），
+    // 此时 persist 会把已删任务写回 DB，检测到不存在则跳过并记录 debug 日志。
+    if (!store.getState().allTasks.some((t) => t.taskId === taskId)) {
+      errorLogger.debug(`[VideoTaskManager] 轮询异常时任务 ${taskId} 已从 store 移除，跳过处理`);
+      return;
+    }
     errorLogger.error("Error polling task", error);
 
     // Align with polling-task-handler.ts handlePollException: network errors

@@ -222,7 +222,7 @@ export async function summarizeConversation(
 
   // 构建摘要 prompt
   const conversationText = dialogueMessages
-    .map((m) => `${m.role === "user" ? "用户" : "助手"}: ${m.content!.slice(0, 500)}`)
+    .map((m) => `${m.role === "user" ? "用户" : "助手"}: ${m.content?.slice(0, 500) ?? ""}`)
     .join("\n");
 
   const summaryPrompt = existingSummary

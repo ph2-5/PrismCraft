@@ -30,6 +30,14 @@ function getConfigBackupFile(): string {
 /** 密钥存储前缀，用于标识加密存储的 API Key */
 const KEY_STORAGE_PREFIX = "api-key:";
 
+/**
+ * searchApiKey 在 keyStorage 中的存储键。
+ * 复用 `api-key:` 前缀，使 clearSecureStorageKeys / config clear 操作能统一清理。
+ * config.json 中只保存 `$secure:searchApiKey` 引用，明文只存在于 keyStorage。
+ */
+const SEARCH_API_KEY_STORAGE_KEY = `${KEY_STORAGE_PREFIX}searchApiKey`;
+const SEARCH_API_KEY_REFERENCE = "$secure:searchApiKey";
+
 interface ProviderConfig {
   id: string;
   name: string;
@@ -116,6 +124,13 @@ async function loadConfigAsync(): Promise<AppConfig> {
         const storedKey = await keyStorage.load(`${KEY_STORAGE_PREFIX}${provider.id}`);
         provider.apiKey = storedKey.ok && storedKey.value ? storedKey.value : "";
       }
+    }
+
+    // 解析 searchApiKey 的 $secure 引用（与 providers 同机制）。
+    // 旧版本明文 searchApiKey 保持原样返回（兼容老用户配置，写入时自动迁移）。
+    if (typeof config.searchApiKey === "string" && config.searchApiKey.startsWith("$secure:")) {
+      const storedKey = await keyStorage.load(SEARCH_API_KEY_STORAGE_KEY);
+      config.searchApiKey = storedKey.ok && storedKey.value ? storedKey.value : "";
     }
 
     return config;
@@ -215,9 +230,30 @@ async function saveConfigAsync(config: AppConfig): Promise<boolean> {
       }
     }
 
+    // R-SEC5: searchApiKey 与 providers 的 apiKey 同机制——明文只存 keyStorage，
+    // config.json 仅保存 $secure 引用（写入时自动迁移老用户的明文配置）。
+    let searchApiKey = config.searchApiKey;
+    if (typeof searchApiKey === "string") {
+      if (searchApiKey && !searchApiKey.startsWith("$secure:") && !isMaskedApiKey(searchApiKey)) {
+        const result = await keyStorage.save(SEARCH_API_KEY_STORAGE_KEY, searchApiKey);
+        if (!result.ok) {
+          logger.error(`Failed to save searchApiKey to keyStorage: ${result.error}`);
+          return false;
+        }
+        searchApiKey = SEARCH_API_KEY_REFERENCE;
+      } else if (isMaskedApiKey(searchApiKey) && !searchApiKey.startsWith("$secure:")) {
+        // R-SEC1 同款：脱敏 searchApiKey 不应写回 keyStorage，保留 $secure: 引用
+        searchApiKey = SEARCH_API_KEY_REFERENCE;
+      } else if (!searchApiKey) {
+        // 空字符串：清除 keyStorage 中的残留密钥
+        await keyStorage.delete(SEARCH_API_KEY_STORAGE_KEY);
+      }
+    }
+
     const configToSave: AppConfig = {
       ...config,
       providers,
+      ...(typeof searchApiKey === "string" ? { searchApiKey } : {}),
       _migratedToSecureStorage: true,
     };
 
@@ -250,9 +286,16 @@ function saveConfig(config: AppConfig): boolean {
   // R182/M1: 在 try 块之前检测明文 apiKey，确保 throw 能传播到调用方。
   // sync saveConfig 无法调用异步 keyStorage.save()，会导致 apiKey 更新丢失。
   // 抛错而非静默 warn，强制调用方迁移到 saveConfigAsync()。
-  const hasPlaintextKey = config.providers.some(
-    (p) => p.apiKey && !p.apiKey.startsWith("$secure:"),
-  );
+  // R-SEC5: searchApiKey 与 providers 的 apiKey 同机制——同步路径无法持久化明文，
+  // 同样抛错拒绝写入，防止 searchApiKey 明文落盘。
+  const hasPlaintextKey =
+    config.providers.some(
+      (p) => p.apiKey && !p.apiKey.startsWith("$secure:"),
+    ) ||
+    (typeof config.searchApiKey === "string" &&
+      config.searchApiKey.length > 0 &&
+      !config.searchApiKey.startsWith("$secure:") &&
+      !isMaskedApiKey(config.searchApiKey));
   if (hasPlaintextKey) {
     throw new Error(
       "saveConfig (sync) detected plaintext apiKey — use saveConfigAsync() to persist apiKey to keyStorage",

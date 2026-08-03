@@ -110,9 +110,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const timers = new Map(timersRef.current);
+    // L6 修复：卸载时清理 timersRef.current 的当前内容（而非挂载时快照），
+    // 确保所有已注册的 exit/overflow 定时器都被清理，防止定时器泄漏。
     return () => {
-      timers.forEach((timer) => clearTimeout(timer));
+      timersRef.current.forEach((timer) => clearTimeout(timer));
+      timersRef.current.clear();
     };
   }, []);
 

@@ -828,6 +828,7 @@ const messages: Record<MessageKey, string> = {
   "plugin.validateRequestFailed": "验证请求失败",
   "plugin.management": "插件管理",
   "plugin.managementDesc": "管理 AI 提供商插件，添加自定义 API 插件",
+  "plugins.apiKeyRiskHint": "注意：代码插件可访问你的 API 密钥，请仅安装可信来源的插件。",
   "plugin.hideSpec": "隐藏规范",
   "plugin.showSpec": "插件规范",
   "plugin.hideDoc": "隐藏文档",
@@ -3603,6 +3604,8 @@ const messages: Record<MessageKey, string> = {
   "agent.memory.loadFailed": "加载记忆失败",
   "agent.memory.entries": "{count} 条",
   "agent.memory.updatedAt": "更新于 {time}",
+  "agent.memoryDeleteConfirm": "确定删除这条记忆？此操作不可恢复。",
+  "agent.clearFfmpegPathConfirm": "确定清除 ffmpeg 路径？",
 
   // 审计日志
   "agent.audit.management": "审计日志",

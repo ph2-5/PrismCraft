@@ -11,6 +11,7 @@ interface QuickGenerateHistoryProps {
   onSaveToAssets: (task: VideoTask) => void;
   onRetry: (task: VideoTask) => void;
   onClearCompleted: () => void;
+  onCancelTask: (taskId: string) => void;
   characterPosterImage?: string | null;
 }
 
@@ -24,6 +25,7 @@ export function QuickGenerateHistory({
   onSaveToAssets,
   onRetry,
   onClearCompleted,
+  onCancelTask,
   characterPosterImage,
 }: QuickGenerateHistoryProps) {
   return (
@@ -37,6 +39,7 @@ export function QuickGenerateHistory({
       onSaveToAssets={onSaveToAssets}
       onRetry={onRetry}
       onClearCompleted={onClearCompleted}
+      onCancelTask={onCancelTask}
       characterPosterImage={characterPosterImage}
     />
   );

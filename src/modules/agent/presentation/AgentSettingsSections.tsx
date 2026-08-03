@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import { getConfig, setConfig } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
 import {
@@ -70,7 +71,11 @@ export function FfmpegConfigSection() {
     }
   }, [path]);
 
-  const handleClear = useCallback(() => {
+  const handleClear = useCallback(async () => {
+    const confirmed = await confirm({
+      description: t("agent.clearFfmpegPathConfirm"),
+    });
+    if (!confirmed) return;
     setPath("");
     void setConfig("ffmpegPath", null).catch((e) => {
       errorLogger.warn("[Agent] 清除 ffmpegPath 失败", e instanceof Error ? e : undefined);

@@ -173,19 +173,8 @@ function useGenerateActions(
   deps: GenerateActionDeps,
 ) {
   const handleGenerate = useCallback(async (promptOverride?: string) => {
-    const effectivePrompt = promptOverride ?? state.promptText;
-    const result = generateQuickModeVideoPrompt({
-      prompt: effectivePrompt,
-      duration: state.duration,
-      resolution: state.selectedResolution,
-      style: state.selectedStyle,
-      characters: deps.getSelectedCharacterObjects(),
-      scene: deps.getSelectedSceneObject() || undefined,
-      referenceImage: state.referenceImage || undefined,
-      enableSmartOptimization: state.enableSmartOptimization,
-      negativePrompt: state.negativePrompt || undefined,
-    });
-    deps.dispatch({ type: "SET_GENERATED_PROMPT", value: result });
+    // 新一次提交开始时清除旧 generatedPrompt，避免展示与当前输入不对应的历史内容
+    deps.dispatch({ type: "SET_GENERATED_PROMPT", value: null });
     await executeGenerate(
       state,
       deps,
@@ -303,6 +292,7 @@ interface GenerateDeps {
   selectedVideoModel: { providerId?: string; modelId?: string; format?: string } | null;
   getSelectedCharacterObjects: () => Character[];
   getSelectedSceneObject: () => Scene | null;
+  dispatch: React.Dispatch<QuickGenerateAction>;
   createTask: (
     prompt: string,
     opts?: {
@@ -378,6 +368,9 @@ async function executeGenerate(
       negativePrompt: params.negativePrompt || undefined,
     });
 
+    // 校验通过、任务真正提交前记录本次实际发送的提示词，确保与当前输入对应
+    deps.dispatch({ type: "SET_GENERATED_PROMPT", value: prompt });
+
     const imageUrl = resolveImageUrl(params, selectedSceneObj, selectedCharObjs);
     const referenceVideoBase64 = await readReferenceVideo(params.referenceVideoFile, deps.showError);
 
@@ -439,6 +432,7 @@ export function useQuickGenerateState() {
     createTask,
     clearCompletedTasks,
     initialize,
+    cancelTask,
   } = useVideoTaskManager();
 
   const [selectedVideoModel, setSelectedVideoModel] = useModelSelection("video");
@@ -512,6 +506,12 @@ export function useQuickGenerateState() {
 
   const quickExamples = useMemo(() => QUICK_EXAMPLES, []);
 
+  /** 取消正在生成的任务（复用 video task-management 的取消链路） */
+  const handleCancelTask = useCallback((taskId: string | null) => {
+    if (!taskId) return;
+    void cancelTask(taskId);
+  }, [cancelTask]);
+
 
   return {
     promptText: state.promptText,
@@ -563,6 +563,7 @@ export function useQuickGenerateState() {
     handleSaveToAssets,
     handleRetry,
     clearCompletedTasks,
+    handleCancelTask,
     getSelectedCharacterObjects,
     quickExamples,
   };

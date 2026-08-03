@@ -268,8 +268,16 @@ function registerConfigHandlers(): void {
     }
     const config = loadConfig();
     applyConfigValue(config, key, value);
-    saveConfig(config);
-    event.returnValue = true;
+    try {
+      // R182/R-SEC5: 同步 saveConfig 无法持久化明文 apiKey / searchApiKey，
+      // 会抛错拒绝写入。捕获异常避免主进程未捕获异常，返回 false 提示调用方
+      // 走异步路径（HTTP /api/config/set 或 saveConfigAsync）。
+      saveConfig(config);
+      event.returnValue = true;
+    } catch (e) {
+      logger.warn("[Main] config:set rejected (sync path cannot persist plaintext apiKey)", { error: e instanceof Error ? e.message : String(e) });
+      event.returnValue = false;
+    }
   });
 }
 

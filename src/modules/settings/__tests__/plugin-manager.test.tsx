@@ -124,15 +124,11 @@ vi.mock("../plugin-creator", () => ({
   ),
 }));
 
-vi.mock("../plugin-schema-viewer", () => ({
-  PluginSchemaViewer: ({ schemaData }: { schemaData: Record<string, unknown> }) => (
-    <div data-testid="plugin-schema-viewer">{JSON.stringify(schemaData)}</div>
-  ),
-}));
-
-vi.mock("../plugin-spec-viewer", () => ({
-  PluginSpecViewer: ({ specContent }: { specContent: string }) => (
-    <div data-testid="plugin-spec-viewer">{specContent}</div>
+vi.mock("../plugin-content-viewer", () => ({
+  PluginContentViewer: ({ content }: { content: unknown }) => (
+    <div data-testid="plugin-content-viewer">
+      {typeof content === "string" ? content : JSON.stringify(content)}
+    </div>
   ),
 }));
 
@@ -484,7 +480,7 @@ describe("PluginManager", () => {
 
     expect(mockFetchPluginSchema).toHaveBeenCalled();
     await waitFor(() => {
-      expect(screen.getByTestId("plugin-schema-viewer")).toBeInTheDocument();
+      expect(screen.getByTestId("plugin-content-viewer")).toBeInTheDocument();
     });
   });
 
@@ -504,7 +500,7 @@ describe("PluginManager", () => {
 
     expect(mockFetchPluginSpecification).toHaveBeenCalled();
     await waitFor(() => {
-      expect(screen.getByTestId("plugin-spec-viewer")).toBeInTheDocument();
+      expect(screen.getByTestId("plugin-content-viewer")).toBeInTheDocument();
     });
   });
 

@@ -198,6 +198,16 @@ NSIS 配置：
 - 创建开始菜单快捷方式
 - `signAndEditExecutable: false`（未配置代码签名时）
 
+> **ffmpeg 随包分发（可选，推荐）**：默认运行时依赖系统 PATH 中的 ffmpeg/ffprobe。
+> 若希望安装包自带 ffmpeg，将二进制放入仓库 `vendor/ffmpeg/bin/`，并在
+> `package.json` 的 `build.extraResources` 中启用（main 进程会在
+> `<resourcesPath>/ffmpeg/` 下优先查找，见 `electron/src/handlers/ffmpeg-handler.ts`）：
+> ```json
+> "extraResources": [
+>   { "from": "vendor/ffmpeg/bin/", "to": "ffmpeg/", "filter": ["ffmpeg*", "ffprobe*"] }
+> ]
+> ```
+
 ### 4.3 macOS 打包
 
 ```powershell

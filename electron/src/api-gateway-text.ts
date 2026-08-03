@@ -202,7 +202,8 @@ export async function generateTextStream(
       headers: requestHeaders,
       body: JSON.stringify(reqBody),
       onLine: (line) => {
-        const chunk = plugin.extractTextChunk!(line);
+        // Q7 修复：extractTextChunk 为可选方法，改用可选调用并处理 undefined 结果
+        const chunk = plugin.extractTextChunk?.(line);
         if (!chunk) return;
         if (chunk.delta) fullText += chunk.delta;
         options.onChunk(chunk);
@@ -474,7 +475,8 @@ export async function generateChatStream(
       headers: requestHeaders,
       body: JSON.stringify(reqBody),
       onLine: (line) => {
-        const chunk = plugin.extractTextChunk!(line);
+        // Q7 修复：extractTextChunk 为可选方法，改用可选调用并处理 undefined 结果
+        const chunk = plugin.extractTextChunk?.(line);
         if (!chunk) return;
         if (chunk.delta) fullText += chunk.delta;
         options.onChunk(chunk);

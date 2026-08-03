@@ -34,8 +34,7 @@ import {
 } from "./plugin-api";
 import type { PluginInfo, UserPluginFile } from "./plugin-api";
 import { PluginAddForm } from "./plugin-add-form";
-import { PluginSchemaViewer } from "./plugin-schema-viewer";
-import { PluginSpecViewer } from "./plugin-spec-viewer";
+import { PluginContentViewer } from "./plugin-content-viewer";
 
 export default function PluginManager() {
   const {
@@ -95,6 +94,13 @@ export default function PluginManager() {
           onReload={handleReload}
         />
         <div className="flex flex-col gap-4">
+          {/* 安全提示：代码插件运行在子进程沙箱中，但仍可访问注入的 API 密钥 */}
+          <div className="plugin-invalid-box">
+            <div>
+              <span className="text-xs">{t("plugins.apiKeyRiskHint")}</span>
+            </div>
+          </div>
+
           <PluginList
             builtInPlugins={builtInPlugins}
             declarativePlugins={declarativePlugins}
@@ -138,11 +144,19 @@ export default function PluginManager() {
       </div>
 
       {showSchema && schemaData && (
-        <PluginSchemaViewer schemaData={schemaData} />
+        <PluginContentViewer
+          title={t("plugin.apiPluginSpec")}
+          description={t("plugin.pluginSchemaDesc")}
+          content={JSON.stringify(schemaData, null, 2)}
+        />
       )}
 
       {showSpec && specContent && (
-        <PluginSpecViewer specContent={specContent} />
+        <PluginContentViewer
+          title={t("plugin.pluginSpecDoc")}
+          description={t("plugin.pluginSpecDocDesc")}
+          content={specContent}
+        />
       )}
 
       {showCreator && (

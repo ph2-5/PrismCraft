@@ -9,6 +9,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown, Film, Check } from "lucide-react"
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { SkeletonList } from "@/shared/presentation/Skeleton";
+import { confirm } from "@/shared/utils/confirm";
 import type { SubShot } from "@/domain/schemas";
 import { useSubShots } from "../hooks/use-sub-shots";
 
@@ -24,7 +25,13 @@ export const SubShotList = memo(function SubShotList({ beatId }: SubShotListProp
     void addSubShot();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirm({
+      title: t("subShot.delete"),
+      description: t("shot.deleteSubShotConfirm"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
     void removeSubShot(id);
   };
 
@@ -142,8 +149,8 @@ export const SubShotList = memo(function SubShotList({ beatId }: SubShotListProp
               <button
                 className="btn btn-sm btn-ghost"
                 onClick={() => setEditingId(null)}
-                aria-label={t("common.confirm")}
-                title={t("common.confirm")}
+                aria-label={t("shot.confirmEditShot")}
+                title={t("shot.confirmEditShot")}
               >
                 <Check size={14} />
               </button>

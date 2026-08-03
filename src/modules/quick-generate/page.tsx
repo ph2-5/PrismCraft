@@ -65,6 +65,7 @@ export default function QuickGeneratePage() {
               onRemoveReferenceVideo={vm.onRemoveReferenceVideo}
               isGenerating={vm.isGenerating}
               onGenerate={vm.onGenerate}
+              onCancel={vm.onCancelGenerate}
               generatedPrompt={vm.generatedPrompt}
               onOpenTemplateDialog={vm.onOpenTemplateDialog}
               characters={vm.characters}
@@ -89,6 +90,7 @@ export default function QuickGeneratePage() {
               onSaveToAssets={vm.onSaveToAssets}
               onRetry={vm.onRetry}
               onClearCompleted={vm.onClearCompleted}
+              onCancelTask={vm.onCancelTask}
               characterPosterImage={vm.characterPosterImage}
             />
           </div>

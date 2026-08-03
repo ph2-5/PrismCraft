@@ -161,13 +161,15 @@ describe("useVideoGenerator", () => {
     );
   });
 
-  it("shows error when createTask returns null", async () => {
+  it("createTask 返回 null（并发保护拒绝）时不误报失败也不报成功", async () => {
+    // null 仅表示已有任务创建中，createTask 内部已 emitToast 提示，此处不显示错误
     mockCreateTask.mockResolvedValueOnce(null);
     const { result } = renderHook(() => useVideoGenerator(createProps()));
     await act(async () => {
       await result.current.generateVideoNew("beat-1");
     });
-    expect(mockShowError).toHaveBeenCalled();
+    expect(mockShowError).not.toHaveBeenCalled();
+    expect(mockSuccess).not.toHaveBeenCalled();
   });
 
   it("calls success when task is created", async () => {

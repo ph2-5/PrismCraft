@@ -5,8 +5,11 @@ import { useFramePairGenerator } from "../use-frame-pair-generator";
 
 vi.mock("@/modules/storyboard", () => ({
   generateBeatFramePair: vi.fn().mockResolvedValue({
-    firstFrameUrl: "https://cdn.com/ff.jpg",
-    lastFrameUrl: "https://cdn.com/lf.jpg",
+    ok: true,
+    value: {
+      firstFrameUrl: "https://cdn.com/ff.jpg",
+      lastFrameUrl: "https://cdn.com/lf.jpg",
+    },
   }),
 }));
 

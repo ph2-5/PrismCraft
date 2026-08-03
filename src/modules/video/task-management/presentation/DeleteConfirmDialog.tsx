@@ -1,3 +1,14 @@
+/**
+ * DeleteConfirmDialog（video-task 本地实现）
+ *
+ * 与共享版 src/shared/presentation/DeleteConfirmDialog.tsx 的差异（有意保留，不去重）：
+ * - 语义不同：本组件用于「删除视频本地缓存」，展示任务标签（beatTitle）和缓存文件大小；
+ *   共享版面向角色/场景等实体删除，核心是 referenceCheck 引用检查（有引用时禁用确认按钮），
+ *   该语义对缓存删除不适用。
+ * - 文案不同：使用 task.confirmDeleteCache / task.confirmDeleteCacheDesc 等专属 i18n key。
+ * - 展示内容不同：共享版无法展示任务明细与缓存大小信息。
+ * 若后续统一删除确认交互，应先将本组件的 task/缓存大小展示能力并入共享版，再删除本文件。
+ */
 import { Loader2 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";

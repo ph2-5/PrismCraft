@@ -1,3 +1,16 @@
+/**
+ * 参考图一致性检查（Story Reference Check）
+ *
+ * 职责：统计故事/分镜中引用指定角色或场景的数量（返回 isReferenced /
+ * referencingStories / totalBeats），用于展示参考关系与一致性校验。
+ *
+ * 注意：本文件与 src/domain/services/reference-check.ts（删除前引用检查）
+ * 同名并存，但功能完全不同：
+ *   - 本文件（shared-logic 层）：checkCharacterReferences(id, stories) → ReferenceResult
+ *   - domain 侧：checkCharacterReferences(id, name, stories) → DeleteCheckResult
+ * 引用时请按需选择，勿混用。
+ */
+
 export interface Story {
   id: string;
   title?: string;

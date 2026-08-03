@@ -48,6 +48,7 @@ interface QuickGenerateFormProps {
   onRemoveReferenceVideo: () => void;
   isGenerating: boolean;
   onGenerate: () => void;
+  onCancel?: () => void;
   generatedPrompt: string | null;
   onOpenTemplateDialog: () => void;
   characters: Character[];
@@ -91,6 +92,7 @@ export function QuickGenerateForm({
   onRemoveReferenceVideo,
   isGenerating,
   onGenerate,
+  onCancel,
   generatedPrompt,
   onOpenTemplateDialog,
   characters,
@@ -206,6 +208,7 @@ export function QuickGenerateForm({
       <GenerateButton
         isGenerating={isGenerating}
         onGenerate={validateAndGenerate}
+        onCancel={onCancel}
       />
 
       {generatedPrompt && <GeneratedPromptCard generatedPrompt={generatedPrompt} />}

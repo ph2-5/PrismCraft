@@ -46,6 +46,9 @@ export function getStore(): StoreAccessor {
 export interface PollingState {
   pollingTimeoutId: ReturnType<typeof setTimeout> | null;
   syncTimeoutId: ReturnType<typeof setTimeout> | null;
+  // L8 修复：同步失败重试定时器使用独立字段，避免与 scheduleSync 共享 syncTimeoutId
+  // 导致的重试被 scheduleSync 的 clearTimeout 打断。
+  retryTimeoutId: ReturnType<typeof setTimeout> | null;
   recoveryIntervalId: ReturnType<typeof setInterval> | null;
   cacheCleanupIntervalId: ReturnType<typeof setInterval> | null;
   beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null;
@@ -64,6 +67,7 @@ export interface PollingState {
 export const pollingState: PollingState = {
   pollingTimeoutId: null,
   syncTimeoutId: null,
+  retryTimeoutId: null,
   recoveryIntervalId: null,
   cacheCleanupIntervalId: null,
   beforeUnloadHandler: null,
@@ -91,6 +95,7 @@ function isPollingStateLike(value: unknown): value is PollingState {
   return (
     "pollingTimeoutId" in v &&
     "syncTimeoutId" in v &&
+    "retryTimeoutId" in v &&
     "recoveryIntervalId" in v &&
     "cacheCleanupIntervalId" in v &&
     "beforeUnloadHandler" in v &&
@@ -125,6 +130,7 @@ export function initPollingEngine() {
   if (prev !== undefined && isPollingStateLike(prev)) {
     if (prev.pollingTimeoutId) clearTimeout(prev.pollingTimeoutId);
     if (prev.syncTimeoutId) clearTimeout(prev.syncTimeoutId);
+    if (prev.retryTimeoutId) clearTimeout(prev.retryTimeoutId);
     if (prev.recoveryIntervalId) clearInterval(prev.recoveryIntervalId);
     if (prev.cacheCleanupIntervalId) clearInterval(prev.cacheCleanupIntervalId);
     if (prev.abortController) prev.abortController.abort();
@@ -153,6 +159,10 @@ export function cleanupAllPollingResources() {
   if (pollingState.syncTimeoutId) {
     clearTimeout(pollingState.syncTimeoutId);
     pollingState.syncTimeoutId = null;
+  }
+  if (pollingState.retryTimeoutId) {
+    clearTimeout(pollingState.retryTimeoutId);
+    pollingState.retryTimeoutId = null;
   }
   if (pollingState.recoveryIntervalId) {
     clearInterval(pollingState.recoveryIntervalId);

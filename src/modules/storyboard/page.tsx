@@ -8,7 +8,6 @@ import { TemplateManagerDialog } from "@/modules/storyboard";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Modal } from "@/shared/presentation/Modal";
 import { Skeleton, SkeletonList } from "@/shared/presentation/Skeleton";
-import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
 import { StoryHeader } from "./StoryHeader";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
@@ -31,20 +30,12 @@ function StoryPageContent() {
     handlePromptChange,
     handleToggleGenerationEnhanced,
     activeTab,
-    setActiveTab,
   } = useStoryPage();
 
   return (
     <PageErrorBoundary pageName={t("page.storyboard")}>
       <div className="fade-in flex flex-col h-full">
         <div className="top-tabs !p-0 !items-stretch !justify-between">
-          <Tabs
-            tabs={[
-              { id: "storyboard", label: t("story.tab.storyboard") },
-            ]}
-            activeTab={activeTab}
-            onChange={(id) => setActiveTab(id as typeof activeTab)}
-          />
           <div className="toolbar pr-8">
             <StoryHeader story={story} onSwitchStory={switchStory} />
             <span className="text-border">|</span>

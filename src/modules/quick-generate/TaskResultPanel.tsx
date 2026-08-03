@@ -1,4 +1,4 @@
-import { Film, Download, Layers, Trash2, RefreshCw, AlertCircle, Lightbulb, Drama, Home, Settings } from "lucide-react";
+import { Film, Download, Layers, Trash2, RefreshCw, AlertCircle, Lightbulb, Drama, Home, Settings, Ban } from "lucide-react";
 import { type VideoTask } from "@/modules/video";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
@@ -15,6 +15,7 @@ interface TaskResultPanelProps {
   onSaveToAssets: (task: VideoTask) => void;
   onRetry: (task: VideoTask) => void;
   onClearCompleted: () => void;
+  onCancelTask: (taskId: string) => void;
   characterPosterImage?: string | null;
 }
 
@@ -28,6 +29,7 @@ export function TaskResultPanel({
   onSaveToAssets,
   onRetry,
   onClearCompleted,
+  onCancelTask,
   characterPosterImage,
 }: TaskResultPanelProps) {
   return (
@@ -65,6 +67,19 @@ export function TaskResultPanel({
                 />
               </div>
             </div>
+
+            {(currentTask.status === "pending" || currentTask.status === "generating") && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onCancelTask(currentTask.taskId)}
+                >
+                  <Ban className="w-4 h-4 mr-1" />
+                  {t("task.cancelButton")}
+                </button>
+              </div>
+            )}
 
             {(currentTask.status === "failed" || currentTask.status === "timeout") && (
               <div
@@ -141,6 +156,7 @@ export function TaskResultPanel({
           onDownload={onDownload}
           onRetry={onRetry}
           onClearCompleted={onClearCompleted}
+          onCancelTask={onCancelTask}
         />
       )}
 
@@ -156,10 +172,11 @@ interface TaskHistoryListProps {
   onDownload: (videoUrl: string | undefined, filename: string) => void;
   onRetry: (task: VideoTask) => void;
   onClearCompleted: () => void;
+  onCancelTask: (taskId: string) => void;
 }
 
 function TaskHistoryList({
-  tasks, activeTaskId, isGenerating, onDownload, onRetry, onClearCompleted,
+  tasks, activeTaskId, isGenerating, onDownload, onRetry, onClearCompleted, onCancelTask,
 }: TaskHistoryListProps) {
   return (
     <div className="card">
@@ -222,6 +239,18 @@ function TaskHistoryList({
                   {new Date(task.createdAt).toLocaleTimeString()}
                 </span>
               </div>
+              {(task.status === "pending" || task.status === "generating") && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm flex-1"
+                    onClick={() => onCancelTask(task.taskId)}
+                  >
+                    <Ban className="w-4 h-4 mr-1" />
+                    {t("task.cancelButton")}
+                  </button>
+                </div>
+              )}
               {task.videoUrl && (
                 <div className="flex gap-2 mt-2">
                   <button

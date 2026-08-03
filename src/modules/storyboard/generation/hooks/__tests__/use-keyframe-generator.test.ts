@@ -576,7 +576,6 @@ describe("useKeyframeGenerator", () => {
       });
 
       expect(mockUpdateBeat).toHaveBeenCalledWith("beat-1", {
-        ...mockBeat1,
         keyframe: mockKeyframe,
       });
       expect(props.success).toHaveBeenCalledWith(t("success.generated"), t("success.keyframeGeneratedDesc"));

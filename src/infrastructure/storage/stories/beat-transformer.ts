@@ -20,7 +20,7 @@ function extractExtraFromObject(
   }
 }
 
-const FLATTENED_KEYFRAME_KEYS = new Set(["imageUrl", "prompt", "generatedAt", "source"]);
+const FLATTENED_KEYFRAME_KEYS = new Set(["imageUrl", "prompt", "generatedAt", "source", "referencedPrevKeyframe"]);
 const FLATTENED_FRAMEPAIR_KEYS = new Set([
   "firstFrame",
   "lastFrame",
@@ -87,6 +87,8 @@ const KNOWN_BEAT_KEYS = new Set([
   // Q3-2: Beat 层关联变体
   "characterVariantIds", "character_variant_ids_json",
   "sceneVariantId", "scene_variant_id",
+  // 画布 3D 导演台节点：正式化到 generation 容器（不再走 meta 兜底）
+  "blockout3D",
 ]);
 
 function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
@@ -166,6 +168,10 @@ function buildGenerationContainer(
   assign("keyframeImageUrl", firstOf(keyframe?.imageUrl, beat.keyframeImageUrl, beat.keyframe_image_url));
   assign("keyframePrompt", firstOf(keyframe?.prompt, beat.keyframePrompt, beat.keyframe_prompt));
   assign("keyframeGeneratedAt", firstOf(keyframe?.generatedAt, beat.keyframeGeneratedAt, beat.keyframe_generated_at));
+  // 画布首尾帧衔接：链引用正式化到 generation（旧数据在 meta，读取侧双路径兼容）
+  assign("keyframeReferencedPrevKeyframe", firstOf(keyframe?.referencedPrevKeyframe));
+  // 画布 3D 导演台：构图数据正式化到 generation（旧数据在 meta，读取侧双路径兼容）
+  assign("blockout3D", beat.blockout3D);
   assign("firstFrameUrl", firstOf(firstFrame?.imageUrl, framePair?.firstFrameUrl, beat.firstFrameUrl, beat.first_frame_url));
   assign("firstFramePrompt", firstOf(firstFrame?.prompt, framePair?.firstFramePrompt, beat.firstFramePrompt, beat.first_frame_prompt));
   assign("lastFrameUrl", firstOf(lastFrame?.imageUrl, framePair?.lastFrameUrl, beat.lastFrameUrl, beat.last_frame_url));

@@ -141,23 +141,19 @@ async function attemptRegeneration(
 
 async function runConsistencyCheckWithRetry(
   beat: StoryBeat,
-  updatedBeat: StoryBeat,
+  framePair: StoryBeat["framePair"] | undefined,
   ctx: ReturnType<typeof buildGenerationContext>,
   signal: AbortSignal,
   customFirstFramePrompt: string | undefined,
   beatId: string,
-): Promise<void> {
+): Promise<{ framePair?: StoryBeat["framePair"]; consistencyCheck?: StoryBeat["consistencyCheck"] }> {
   try {
     const elements = await container.elementStorage.getAllElements();
     const check = await performConsistencyCheck(
-      updatedBeat,
+      beat,
       elements,
-      getFirstFrameUrl(updatedBeat.framePair),
+      getFirstFrameUrl(framePair),
     );
-
-    if (check.value) {
-      updatedBeat.consistencyCheck = check.value;
-    }
 
     if (check.passed || check.recommendation !== "regenerate" || customFirstFramePrompt) {
       if (!check.passed) {
@@ -166,7 +162,7 @@ async function runConsistencyCheckWithRetry(
           "Consistency",
         );
       }
-      return;
+      return { framePair, consistencyCheck: check.value };
     }
 
     errorLogger.warn(
@@ -175,14 +171,13 @@ async function runConsistencyCheckWithRetry(
     );
 
     const retry = await attemptRegeneration(beat, ctx, signal);
-    if (retry.framePair) {
-      Object.assign(updatedBeat, { framePair: retry.framePair });
-    }
-    if (retry.consistencyCheck) {
-      updatedBeat.consistencyCheck = retry.consistencyCheck;
-    }
+    return {
+      framePair: retry.framePair ?? framePair,
+      consistencyCheck: retry.consistencyCheck ?? check.value,
+    };
   } catch (checkErr) {
     errorLogger.warn(handleError(checkErr), "Consistency");
+    return { framePair };
   }
 }
 
@@ -238,7 +233,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
           prevBeatDescription: prevBeat?.content || prevBeat?.description,
         });
 
-        const framePair = await generateBeatFramePair(beat, ctx, {
+        const framePairResult = await generateBeatFramePair(beat, ctx, {
           videoProvider: container.videoProvider,
           imageProvider: container.imageProvider,
           textProvider: container.textProvider,
@@ -246,11 +241,19 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
 
         if (signal.aborted) return;
 
-        const updatedBeat = { ...beat, framePair } as StoryBeat;
+        if (!framePairResult.ok) {
+          // 生成失败：抛出以进入 withGenerationState 的错误处理
+          throw framePairResult.error instanceof Error
+            ? framePairResult.error
+            : new Error(String(framePairResult.error));
+        }
+        const framePair = framePairResult.value;
 
-        await runConsistencyCheckWithRetry(
+        // 字段级合并，避免基于生成开始时的快照整对象覆盖，
+        // 防止覆盖生成期间用户对该 beat 的并发编辑（标题/内容/绑定等）
+        const result = await runConsistencyCheckWithRetry(
           beat,
-          updatedBeat,
+          framePair,
           ctx,
           signal,
           customFirstFramePrompt,
@@ -259,9 +262,13 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
 
         if (signal.aborted) return;
 
-        updateBeat(beatId, updatedBeat);
+        const updates: Partial<StoryBeat> = {
+          ...(result.framePair ? { framePair: result.framePair } : {}),
+          ...(result.consistencyCheck ? { consistencyCheck: result.consistencyCheck } : {}),
+        };
+        updateBeat(beatId, updates);
         success(t("success.generated"), t("success.framePairGeneratedDesc"));
-        return updatedBeat;
+        return { ...beat, ...updates } as StoryBeat;
       }, t("story.framePairGenFailed"));
     },
     [

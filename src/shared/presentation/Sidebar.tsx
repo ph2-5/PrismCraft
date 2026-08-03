@@ -183,12 +183,12 @@ const SIDEBAR_SHORTCUTS: ShortcutSpec[] = [
   // Ctrl+/：跳转到 Agent 面板（文本字段聚焦时跳过）
   {
     test: (e, focused) => (e.metaKey || e.ctrlKey) && e.key === "/" && !focused,
-    action: (e, ctx) => { e.preventDefault(); ctx.guardedPush("/agent"); },
+    action: (e, ctx) => { e.preventDefault(); void ctx.guardedPush("/agent"); },
   },
   // Ctrl+Shift+M：跳转到素材库
   {
     test: (e) => (e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "M",
-    action: (e, ctx) => { e.preventDefault(); ctx.guardedPush("/asset-library"); },
+    action: (e, ctx) => { e.preventDefault(); void ctx.guardedPush("/asset-library"); },
   },
   // Ctrl+S：触发保存
   {
@@ -248,17 +248,17 @@ function useElectronMenuListeners(guardedPush: (path: string) => void) {
     const { signal } = controller;
 
     api.onMenuNewCharacter?.(() => {
-      if (!signal.aborted) guardedPush("/characters");
+      if (!signal.aborted) void guardedPush("/characters");
     });
     api.onMenuNewScene?.(() => {
-      if (!signal.aborted) guardedPush("/scenes");
+      if (!signal.aborted) void guardedPush("/scenes");
     });
     api.onMenuExport?.(() => {
-      if (!signal.aborted) guardedPush("/settings");
+      if (!signal.aborted) void guardedPush("/settings");
     });
     api.onNavigate?.((targetPath: string) => {
       if (!signal.aborted && targetPath) {
-        guardedPush(targetPath);
+        void guardedPush(targetPath);
       }
     });
 
@@ -416,7 +416,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
   }, []);
 
   const handleNavClick = useCallback((href: string) => {
-    guardedPush(href);
+    void guardedPush(href);
   }, [guardedPush]);
 
   useLayoutEffect(() => {

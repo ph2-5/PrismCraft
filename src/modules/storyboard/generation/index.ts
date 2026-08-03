@@ -4,7 +4,7 @@ export { useKeyframeGenerator } from "./hooks/use-keyframe-generator";
 export { useFramePairGenerator } from "./hooks/use-frame-pair-generator";
 export { useVideoGenerator } from "./hooks/use-video-generator";
 export { useBatchGenerator } from "./hooks/use-batch-generator";
-export type { BatchOptions, BatchResult } from "./hooks/use-batch-generator";
+export type { BatchOptions, BatchResult, BatchProgressState } from "./hooks/use-batch-generator";
 export const BatchStrategy = {
   ALL_SERIAL: "all_serial",
   SKIP_COMPLETED: "skip_completed",

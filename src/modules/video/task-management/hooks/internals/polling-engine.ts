@@ -234,9 +234,12 @@ function adjustPollInterval(hasSuccess: boolean, hasError: boolean): void {
   }
 
   const now = Date.now();
-  const hasYoungTask = activeTasks.some(
-    (t) => now - new Date(t.createdAt).getTime() < YOUNG_TASK_THRESHOLD_MS,
-  );
+  const hasYoungTask = activeTasks.some((t) => {
+    const createdAtMs = new Date(t.createdAt).getTime();
+    // 非法日期（NaN）不视为年轻任务，避免影响轮询间隔选择
+    if (!Number.isFinite(createdAtMs)) return false;
+    return now - createdAtMs < YOUNG_TASK_THRESHOLD_MS;
+  });
 
   if (hasYoungTask) {
     pollingState.pollInterval = applyJitter(YOUNG_TASK_INTERVAL);

@@ -309,6 +309,8 @@ const messages: Record<MessageKey, string> = {
   "video.batchDownloadStarted": "已开始下载 {count} 个视频",
   "video.copySuccess": "复制成功",
   "video.taskSubmittedProcessing": "「{label}」视频生成任务已提交，正在处理中...",
+  "video.taskCreatingInProgress": "任务创建中",
+  "video.taskCreatingInProgressDesc": "已有视频任务正在创建，请稍后重试",
   "video.videoGenerated": "视频已生成",
   "video.taskSubmittedTitle": "任务已提交",
   "video.duplicateDetectedTitle": "检测到相似任务",
@@ -3128,6 +3130,8 @@ const messages: Record<MessageKey, string> = {
 
   "story.timeline": "故事板时间轴",
   "story.generateAllVideos": "全部生成视频",
+  "story.batchGenerating": "批量生成中 {current}/{total}",
+  "story.batchStop": "停止",
   "story.preview": "预览",
   "story.noVideosToPreview": "暂无已生成的视频，请先生成视频",
   "story.snapshot": "快照",

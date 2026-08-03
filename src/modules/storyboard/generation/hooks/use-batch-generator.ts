@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import type { StoryBeat, ChainMode } from "@/domain/schemas";
 import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
@@ -19,6 +19,14 @@ export type BatchResult = {
   failed: number;
   skipped: number;
 };
+
+/** 批量生成进度（供 UI 展示进度/停止按钮） */
+export interface BatchProgressState {
+  running: boolean;
+  level: GenerationLevel | null;
+  current: number;
+  total: number;
+}
 
 interface BatchCounts {
   success: number;
@@ -194,6 +202,9 @@ interface BatchRunArgs {
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
   showWarning?: (title: string, description?: string) => void;
+  onStart?: (total: number) => void;
+  onProgress?: (current: number, total: number) => void;
+  onEnd?: () => void;
 }
 
 function resolveChainPrevBeat(
@@ -318,10 +329,13 @@ async function runBatchOperation<T>(
   const skipDelayOnFailure = cfg.skipDelayOnFailure ?? true;
   const opts = { skipOnError, continueOnFallback, skipDelayOnFailure };
 
+  args.onStart?.(targetBeats.length);
+
   for (let i = 0; i < targetBeats.length; i++) {
     if (cancelledRef.current) break;
     const beat = targetBeats[i]!;
     const result = await processBeat(cfg, args, beat, i, targetBeats, chainMode, opts, counts);
+    args.onProgress?.(i + 1, targetBeats.length);
     if (result.shouldBreak) break;
     if (!result.shouldSkipDelay && i < targetBeats.length - 1) {
       await sleep(delayMs);
@@ -329,6 +343,7 @@ async function runBatchOperation<T>(
   }
 
   reportBatchResult(success, showWarning, counts, cfg.reportMessages);
+  args.onEnd?.();
   return counts;
 }
 
@@ -361,6 +376,42 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       cancelledRef.current = true;
     };
   }, []);
+
+  const [batchProgress, setBatchProgress] = useState<BatchProgressState>({
+    running: false,
+    level: null,
+    current: 0,
+    total: 0,
+  });
+
+  /** 用户主动停止当前批量生成 */
+  const cancelBatch = useCallback(() => {
+    cancelledRef.current = true;
+    setBatchProgress((p) => ({ ...p, running: false }));
+  }, []);
+
+  /** 包装批量执行：重置取消标记（支持取消后再次运行）并驱动进度状态 */
+  const runWithProgress = useCallback(
+    async <T,>(
+      cfg: BatchOperationConfig<T>,
+      args: BatchRunArgs,
+    ): Promise<BatchResult> => {
+      cancelledRef.current = false;
+      setBatchProgress({ running: true, level: cfg.level, current: 0, total: 0 });
+      try {
+        return await runBatchOperation(cfg, {
+          ...args,
+          onStart: (total) => setBatchProgress({ running: true, level: cfg.level, current: 0, total }),
+          onProgress: (current, total) => setBatchProgress({ running: true, level: cfg.level, current, total }),
+          onEnd: () => setBatchProgress({ running: false, level: cfg.level, current: 0, total: 0 }),
+        });
+      } catch (e) {
+        setBatchProgress((p) => ({ ...p, running: false, current: 0, total: 0 }));
+        throw e;
+      }
+    },
+    [],
+  );
 
   const getChainMode = useCallback((beat: StoryBeat): ChainMode => {
     if (beat.chainMode) return beat.chainMode;
@@ -414,38 +465,40 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
   const batchGenerateKeyframes = useCallback(
     async (beatIds?: string[], options: BatchOptions = {}): Promise<BatchResult> => {
-      return runBatchOperation(
+      return runWithProgress(
         buildKeyframeBatchConfig(generateKeyframe),
         { beatsRef, setBeats, beatIds, options, cancelledRef, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning },
       );
     },
-    [beatsRef, generateKeyframe, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
+    [runWithProgress, beatsRef, generateKeyframe, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
   );
 
   const batchGenerateFramePairs = useCallback(
     async (beatIds?: string[], options: BatchOptions = {}): Promise<BatchResult> => {
-      return runBatchOperation(
+      return runWithProgress(
         buildFramePairBatchConfig(generateFramePair),
         { beatsRef, setBeats, beatIds, options, cancelledRef, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning },
       );
     },
-    [beatsRef, generateFramePair, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
+    [runWithProgress, beatsRef, generateFramePair, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
   );
 
   const batchGenerateVideos = useCallback(
     async (beatIds?: string[], options: BatchOptions = {}): Promise<BatchResult> => {
-      return runBatchOperation(
+      return runWithProgress(
         buildVideoBatchConfig(generateVideoNew),
         { beatsRef, setBeats, beatIds, options, cancelledRef, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning },
       );
     },
-    [beatsRef, generateVideoNew, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning],
+    [runWithProgress, beatsRef, generateVideoNew, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning],
   );
 
   return {
     batchGenerateKeyframes,
     batchGenerateFramePairs,
     batchGenerateVideos,
+    batchProgress,
+    cancelBatch,
     shouldUseChainReference,
     getPrevBeatForChain,
   };

@@ -100,10 +100,11 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
             : new Error(String(keyframeResult.error));
         }
 
-        const updatedBeat = { ...beat, keyframe: keyframeResult.value } as StoryBeat;
-        updateBeat(beatId, updatedBeat);
+        // 字段级合并，避免基于生成开始时的快照整对象覆盖，
+        // 防止覆盖生成期间用户对该 beat 的并发编辑
+        updateBeat(beatId, { keyframe: keyframeResult.value });
         success(t("success.generated"), t("success.keyframeGeneratedDesc"));
-        return updatedBeat;
+        return { ...beat, keyframe: keyframeResult.value } as StoryBeat;
       }, t("story.keyframeGenFailed"));
     },
     [

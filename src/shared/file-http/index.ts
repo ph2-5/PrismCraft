@@ -412,7 +412,18 @@ export async function getConfig(key: string): Promise<unknown | null> {
   const api = getElectronConfigAPI();
   if (!api?.getConfig) return null;
   try {
-    return api.getConfig(key);
+    const raw = api.getConfig(key);
+    if (raw === null || raw === undefined) return null;
+    // preload 的 IPC 路径返回 JSON.stringify 后的字符串，
+    // 与 HTTP 路径返回解析后值的契约对齐，避免调用方（如网关配置/会话列表）静默降级
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        return raw;
+      }
+    }
+    return raw;
   } catch (e) {
     errorLogger.debug(`[FileHTTP] config/get 失败`, e);
     return null;

@@ -63,6 +63,8 @@ export interface StoryContextValue {
   batchGenerateKeyframes: ReturnType<typeof useBatchGenerator>["batchGenerateKeyframes"];
   batchGenerateFramePairs: ReturnType<typeof useBatchGenerator>["batchGenerateFramePairs"];
   batchGenerateVideos: ReturnType<typeof useBatchGenerator>["batchGenerateVideos"];
+  batchProgress: ReturnType<typeof useBatchGenerator>["batchProgress"];
+  cancelBatch: ReturnType<typeof useBatchGenerator>["cancelBatch"];
 
   handleSave: ReturnType<typeof useStorySaver>["handleSave"];
   handleDeleteStory: ReturnType<typeof useStorySaver>["handleDeleteStory"];

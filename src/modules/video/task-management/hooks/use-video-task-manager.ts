@@ -10,7 +10,6 @@ import {
   registerPollingStore,
   stopPolling as _stopPolling,
   cleanupAllPollingResources,
-  schedulePolling,
   checkAndStartOrStopPolling,
   scheduleSync,
   registerSyncStore,
@@ -319,6 +318,8 @@ async function createTaskImpl(
 ): Promise<(VideoTask & { promptWasTruncated?: boolean }) | null> {
   if (get().isCreating) {
     errorLogger.warn("[VideoTaskManager] 已有任务创建中，请稍后重试");
+    // 明确告知用户"被拒绝"而非"失败"（返回 null 供调用方区分）
+    emitToast("warning", t("video.taskCreatingInProgress"), t("video.taskCreatingInProgressDesc"));
     return null;
   }
   set({ isCreating: true });
@@ -336,10 +337,20 @@ async function createTaskImpl(
       throw new Error("Invalid task ID from provider");
     }
 
+    // 显式校验 provider 返回字段，避免非空断言得到 undefined 导致任务永远轮询不到
+    const providerId = result.data.providerId;
+    if (typeof providerId !== "string" || providerId.length === 0 || providerId.length > 128) {
+      throw new Error("Invalid providerId from provider");
+    }
+    const providerModelId = result.data.providerModelId;
+    if (typeof providerModelId !== "string" || providerModelId.length === 0 || providerModelId.length > 256) {
+      throw new Error("Invalid providerModelId from provider");
+    }
+
     const newTask = buildNewVideoTask(prompt, extraOptions, {
       taskId,
-      providerId: result.data.providerId!,
-      providerModelId: result.data.providerModelId!,
+      providerId,
+      providerModelId,
       providerFormat: result.data.providerFormat,
     });
     const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
@@ -354,7 +365,9 @@ async function createTaskImpl(
     });
 
     get().setAllTasks((prev) => [newTask, ...prev]);
-    schedulePolling();
+    // 使用 checkAndStartOrStopPolling：若有活跃任务会重置 consecutiveErrors，
+    // 避免此前轮询错误暂停（>=5 次）导致新任务永远无法进入轮询队列
+    checkAndStartOrStopPolling();
     emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
 
     if (result.data?.promptWasTruncated) {

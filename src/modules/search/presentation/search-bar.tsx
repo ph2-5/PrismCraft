@@ -64,7 +64,7 @@ export function SearchBar({
   const handleSelect = useCallback(
     (result: SearchResult) => {
       const route = getSearchResultRoute(result);
-      guardedPush(route);
+      void guardedPush(route);
     },
     [guardedPush],
   );

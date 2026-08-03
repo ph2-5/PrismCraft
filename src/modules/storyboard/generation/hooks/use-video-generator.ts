@@ -158,12 +158,12 @@ function handleVideoTaskResult({
   result,
   signal,
   success,
-  showError,
   showWarning,
 }: VideoTaskResultContext): void {
   if (signal.aborted) return;
   if (!result) {
-    showError(t("story.videoGenFailed"));
+    // null 仅表示并发保护拒绝（已有任务创建中），createTask 内部已 emitToast 明确提示，
+    // 此处不再误报"生成失败"
     return;
   }
   if (result.promptWasTruncated && showWarning) {

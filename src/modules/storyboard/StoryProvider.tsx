@@ -235,6 +235,8 @@ function useStoryContext(): StoryContextValue {
       batchGenerateKeyframes: batchGenerator.batchGenerateKeyframes,
       batchGenerateFramePairs: batchGenerator.batchGenerateFramePairs,
       batchGenerateVideos: batchGenerator.batchGenerateVideos,
+      batchProgress: batchGenerator.batchProgress,
+      cancelBatch: batchGenerator.cancelBatch,
       handleSave: storySaver.handleSave,
       handleDeleteStory: storySaver.handleDeleteStory,
       performDeleteStory: storySaver.performDeleteStory,

@@ -90,7 +90,7 @@ export function OnboardingGuide() {
   const handleActionClick = (href: string) => {
     handleClose();
     navTimerRef.current = setTimeout(() => {
-      guardedPush(href);
+      void guardedPush(href);
     }, 100);
   };
 
@@ -221,7 +221,7 @@ export function ApiKeyAlert() {
             {t("onboarding.apiKeyNotConfiguredDesc")}
           </p>
           <button
-            onClick={() => guardedPush("/settings")}
+            onClick={() => void guardedPush("/settings")}
             className="inline-flex items-center gap-1 text-sm font-medium text-warning hover:text-warning/80 mt-2 underline"
           >
             {t("onboarding.goToSettingsLink")} <Settings className="h-3 w-3" />

@@ -114,6 +114,8 @@ function StoryPageContent() {
               onBatchGenerateKeyframes={story.batchGenerateKeyframes}
               onBatchGenerateFramePairs={story.batchGenerateFramePairs}
               onBatchGenerateVideos={story.batchGenerateVideos}
+              batchProgress={story.batchProgress}
+              onCancelBatch={story.cancelBatch}
               onPromptChange={handlePromptChange}
               imageProviderId={story.selectedImageModel?.providerId}
               imageModelId={story.selectedImageModel?.modelId}

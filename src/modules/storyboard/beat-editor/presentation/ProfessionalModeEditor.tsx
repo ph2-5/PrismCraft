@@ -16,11 +16,11 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clapperboard, Play, X } from "lucide-react";
+import { Clapperboard, Play, X, Square } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
-import type { BatchOptions, BatchResult } from "@/modules/storyboard/generation";
+import type { BatchOptions, BatchResult, BatchProgressState } from "@/modules/storyboard/generation";
 import type { PromptEditorContext } from "@/modules/storyboard/prompt-editor";
 import { ShotTimeline } from "@/modules/shot";
 import { useVideoTaskStore } from "@/modules/video";
@@ -134,6 +134,8 @@ interface ProfessionalModeEditorProps {
   onBatchGenerateKeyframes?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
   onBatchGenerateFramePairs?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
   onBatchGenerateVideos?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
+  batchProgress?: BatchProgressState;
+  onCancelBatch?: () => void;
   assetsLoading?: boolean;
 }
 
@@ -229,6 +231,8 @@ interface BeatTimelineSectionProps {
   onOpenPreview: () => void;
   onBeatClick: (beatId: string) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  batchProgress?: BatchProgressState;
+  onCancelBatch?: () => void;
 }
 
 function BeatTimelineSection({
@@ -244,6 +248,8 @@ function BeatTimelineSection({
   onOpenPreview,
   onBeatClick,
   onDragEnd,
+  batchProgress,
+  onCancelBatch,
 }: BeatTimelineSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -256,14 +262,37 @@ function BeatTimelineSection({
       onAddBeat={onAddBeat}
       toolbar={
         <>
-          <button
-            className="btn btn-outline btn-xs"
-            onClick={onBatchGenerateVideos}
-            disabled={isPlanningStory || beats.length === 0}
-            title={t("story.generateAllVideos")}
-          >
-            <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.generateAllVideos")}
-          </button>
+          {batchProgress?.running ? (
+            <>
+              <span
+                className="flex items-center gap-1 text-[11px] whitespace-nowrap"
+                style={{ color: "var(--warning)" }}
+                aria-live="polite"
+              >
+                {t("story.batchGenerating", {
+                  current: batchProgress.current,
+                  total: batchProgress.total,
+                })}
+              </span>
+              <button
+                type="button"
+                className="btn btn-outline btn-xs"
+                onClick={onCancelBatch}
+                title={t("story.batchStop")}
+              >
+                <Square style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.batchStop")}
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn btn-outline btn-xs"
+              onClick={onBatchGenerateVideos}
+              disabled={isPlanningStory || beats.length === 0}
+              title={t("story.generateAllVideos")}
+            >
+              <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.generateAllVideos")}
+            </button>
+          )}
           <button
             className="btn btn-outline btn-xs"
             onClick={onOpenPreview}
@@ -418,6 +447,8 @@ export function ProfessionalModeEditor({
   onBatchGenerateKeyframes,
   onBatchGenerateFramePairs,
   onBatchGenerateVideos,
+  batchProgress,
+  onCancelBatch,
   assetsLoading = false,
 }: ProfessionalModeEditorProps) {
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
@@ -581,6 +612,8 @@ export function ProfessionalModeEditor({
     onBatchGenerateVideos: handleBatchGenerateVideos,
     onOpenPreview: handleOpenPreview,
     onDragEnd: handleDragEnd,
+    batchProgress,
+    onCancelBatch,
   };
 
   const totalDuration = useMemo(

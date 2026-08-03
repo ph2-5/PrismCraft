@@ -937,14 +937,15 @@ describe("useVideoTaskStore", () => {
     it("should schedule polling after creation", async () => {
       await useVideoTaskStore.getState().createTask("a snake slithering");
 
-      expect(mockSchedulePolling).toHaveBeenCalled();
+      // 创建任务后走 checkAndStartOrStopPolling（会重置错误计数，避免轮询暂停后新任务卡死）
+      expect(mockCheckAndStartOrStopPolling).toHaveBeenCalled();
     });
 
     it("should set isCreating to true during creation and false after", async () => {
       let creatingDuringCall = false;
       mockVideoProvider.generateVideo.mockImplementationOnce(async () => {
         creatingDuringCall = useVideoTaskStore.getState().isCreating;
-        return { success: true, data: { taskId: "async-task" } };
+        return { success: true, data: { taskId: "async-task", providerId: "p1", providerModelId: "m1" } };
       });
 
       await useVideoTaskStore.getState().createTask("async test");
@@ -1015,6 +1016,8 @@ describe("useVideoTaskStore", () => {
         success: true,
         data: {
           taskId: "truncated-task",
+          providerId: "p1",
+          providerModelId: "m1",
           promptWasTruncated: true,
           originalPromptLength: 5000,
         },

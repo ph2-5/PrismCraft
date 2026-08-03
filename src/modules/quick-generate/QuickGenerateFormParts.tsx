@@ -163,7 +163,7 @@ export function CharacterSelector({
           <button
             type="button"
             className="btn btn-outline btn-sm !border-dashed !border-muted"
-            onClick={() => guardedPush("/characters")}
+            onClick={() => void guardedPush("/characters")}
           >
             <Plus className="w-4 h-4 mr-1" />
             {t("quickGenerate.newCharacter")}
@@ -173,7 +173,7 @@ export function CharacterSelector({
         <button
           type="button"
           className="btn btn-outline btn-sm !border-dashed !border-muted w-full"
-          onClick={() => guardedPush("/characters")}
+          onClick={() => void guardedPush("/characters")}
         >
           <Plus className="w-4 h-4 mr-1" />
           {t("scene.createCharacterHint")}
@@ -244,7 +244,7 @@ export function SceneSelector({
           <button
             type="button"
             className="btn btn-outline btn-sm !border-dashed !border-muted"
-            onClick={() => guardedPush("/scenes")}
+            onClick={() => void guardedPush("/scenes")}
           >
             <Plus className="w-4 h-4 mr-1" />
             {t("scene.createNewScene")}
@@ -254,7 +254,7 @@ export function SceneSelector({
         <button
           type="button"
           className="btn btn-outline btn-sm !border-dashed !border-muted w-full"
-          onClick={() => guardedPush("/scenes")}
+          onClick={() => void guardedPush("/scenes")}
         >
           <Plus className="w-4 h-4 mr-1" />
           {t("scene.createSceneHint")}

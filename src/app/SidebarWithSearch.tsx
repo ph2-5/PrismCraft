@@ -15,7 +15,7 @@ export function SidebarWithSearch() {
     (result: SearchResult) => {
       // 使用 global-search 服务的统一路由逻辑
       const route = getSearchResultRoute(result);
-      guardedPush(route);
+      void guardedPush(route);
     },
     [guardedPush],
   );

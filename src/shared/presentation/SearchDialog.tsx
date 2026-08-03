@@ -181,7 +181,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
       onSelect(result);
       onClose();
       const basePath = ROUTE_MAP[result.type];
-      guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
+      void guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
     },
     [onSelect, onClose, guardedPush],
   );

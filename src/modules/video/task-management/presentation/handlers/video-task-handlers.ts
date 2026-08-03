@@ -109,7 +109,10 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const handleRetryTask = useCallback(async (task: VideoTask) => {
     if (!task.beatId) { error(t("error.cannotRetry"), t("video.noBeatId")); return; }
     setRetryingTaskId(task.taskId);
-    try { guardedPush(`/story/beat/${task.beatId}`); success(t("video.jumpSuccess"), t("video.jumpToBeatDesc")); }
+    try {
+      const jumped = await guardedPush(`/story/beat/${task.beatId}`);
+      if (jumped) success(t("video.jumpSuccess"), t("video.jumpToBeatDesc"));
+    }
     catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setRetryingTaskId(null); }
   }, [guardedPush, success, error]);
@@ -122,7 +125,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   }, [success, error]);
 
   const handleJumpToBeat = useCallback((task: VideoTask) => {
-    if (task.beatId) guardedPush(`/story/beat/${task.beatId}`);
+    if (task.beatId) void guardedPush(`/story/beat/${task.beatId}`);
     else error(t("error.cannotJump"), t("video.noBeatAssociated"));
   }, [guardedPush, error]);
 

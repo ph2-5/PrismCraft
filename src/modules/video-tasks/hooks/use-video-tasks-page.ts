@@ -144,8 +144,8 @@ export function useVideoTasksPage() {
     }
   };
 
-  const navigateToStory = () => guardedPush("/storyboard");
-  const navigateToQuickGenerate = () => guardedPush("/quick-generate");
+  const navigateToStory = () => void guardedPush("/storyboard");
+  const navigateToQuickGenerate = () => void guardedPush("/quick-generate");
 
   // ── 诊断相关 ──
   // 简单实现：基于 classifyError 给出建议；后续可替换为 Agent 调用

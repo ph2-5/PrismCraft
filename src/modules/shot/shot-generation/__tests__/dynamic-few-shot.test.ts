@@ -56,6 +56,50 @@ describe("selectFewShotExamples", () => {
     const examples = selectFewShotExamples(baseContext, 2, "zh");
     expect(examples.length).toBeLessThanOrEqual(2);
   });
+
+  it("P3.4：传入用户示例时优先返回用户示例", () => {
+    const userExamples = [
+      {
+        input: { genre: "action", tone: "epic", beatIndex: 1, totalBeats: 8 },
+        output: {
+          title: "用户自定义分镜",
+          content: "这是用户手动编辑的完整分镜内容描述，包含丰富的视觉细节与角色动作表现，用于验证用户示例在少样本学习中的优先级。",
+          shotType: "medium",
+          cameraAngle: "low",
+          cameraMovement: "push",
+          duration: 4,
+          type: "action",
+        },
+      },
+    ];
+    const examples = selectFewShotExamples(baseContext, 3, "zh", userExamples);
+    expect(examples[0]).toBe(userExamples[0]);
+  });
+
+  it("P3.4：无用户示例时行为不变", () => {
+    const withUser = selectFewShotExamples(baseContext, 3, "zh", []);
+    const withoutUser = selectFewShotExamples(baseContext, 3, "zh");
+    expect(withUser).toEqual(withoutUser);
+  });
+
+  it("P3.4：用户示例与内置示例混合且用户示例数量受 count 限制", () => {
+    const userExamples = Array.from({ length: 5 }, (_, i) => ({
+      input: { genre: "action", tone: "epic", beatIndex: i, totalBeats: 8, hasAction: true },
+      output: {
+        title: `用户示例${i}`,
+        content: `用户手动编辑的第${i}个分镜内容描述，包含具体视觉细节与镜头调度信息，长度足够达到采集门槛，用于测试数量限制。`,
+        shotType: "close",
+        cameraAngle: "eye_level",
+        cameraMovement: "static",
+        duration: 5,
+        type: "scene",
+      },
+    }));
+    const examples = selectFewShotExamples(baseContext, 3, "zh", userExamples);
+    expect(examples.length).toBeLessThanOrEqual(3);
+    // 用户示例加权后应占据全部名额
+    expect(examples.every((ex) => ex.output.title.startsWith("用户示例"))).toBe(true);
+  });
 });
 
 describe("buildFewShotPrompt", () => {
@@ -145,5 +189,30 @@ describe("enrichPromptWithFewShot", () => {
     );
     expect(result).toContain("Existing Scenes");
     expect(result).toContain("Castle");
+  });
+
+  it("P3.4：传入用户示例时 prompt 包含用户示例内容", () => {
+    const userExamples = [
+      {
+        input: { genre: "action", tone: "epic", beatIndex: 1, totalBeats: 8 },
+        output: {
+          title: "用户编辑分镜",
+          content: "用户手动编辑后的分镜内容，包含完整视觉细节与镜头调度，验证用户示例注入到生成提示词中。",
+          shotType: "close",
+          cameraAngle: "eye_level",
+          cameraMovement: "push",
+          duration: 4,
+          type: "action",
+        },
+      },
+    ];
+    const result = enrichPromptWithFewShot(
+      "base prompt",
+      { genre: "action", tone: "epic", beatIndex: 0, totalBeats: 8 },
+      "zh",
+      userExamples,
+    );
+    expect(result).toContain("用户编辑分镜");
+    expect(result).toContain("用户手动编辑后的分镜内容");
   });
 });

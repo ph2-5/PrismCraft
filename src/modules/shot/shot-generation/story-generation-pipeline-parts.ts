@@ -4,6 +4,7 @@ import {
   type ValidationResult,
 } from "./shot-validator";
 import { enrichPromptWithFewShot } from "./dynamic-few-shot";
+import { collectUserFewShotExamples } from "./user-few-shot-examples";
 import { container } from "@/infrastructure/di";
 import type {
   ApiResponse,
@@ -94,6 +95,8 @@ export function buildEnrichedPrompt(
     : "";
   const promptWithUser = userSection ? `${basePrompt}${userSection}` : basePrompt;
   if (!opts.enhancedGeneration) return promptWithUser;
+  // P3.4：从当前 story 的分镜中提取用户示例，合并进 few-shot 选择
+  const userExamples = collectUserFewShotExamples(story);
   return enrichPromptWithFewShot(promptWithUser, {
     genre: story.genre || "drama",
     tone: story.tone || "neutral",
@@ -102,7 +105,7 @@ export function buildEnrichedPrompt(
     characters,
     scenes,
     elements,
-  }, resolvedLanguage);
+  }, resolvedLanguage, userExamples);
 }
 
 interface AttemptContext {

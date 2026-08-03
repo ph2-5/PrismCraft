@@ -295,6 +295,14 @@ function calculateRelevance(example: FewShotExample, context: {
 }
 
 /**
+ * P3.4：用户示例的额外权重。
+ *
+ * 用户在该 story 中编辑/保留的分镜代表其真实风格偏好，与内置示例相比
+ * 更贴合当前故事，评分时给予额外加分，使其在同类候选中优先被选中。
+ */
+const USER_EXAMPLE_BONUS = 2;
+
+/**
  * Task 4.7：项目类型 → genre 映射。
  *
  * 项目类型（古装/现代/科幻/奇幻）与现有 genre（action/romance/mystery/comedy/scifi/fantasy/drama）
@@ -363,16 +371,21 @@ export function selectFewShotExamples(context: {
   shotType?: string;
   hasDialogue?: boolean;
   hasAction?: boolean;
-}, count: number = 3, language: "en" | "zh" | "auto" = "zh"): FewShotExample[] {
+}, count: number = 3, language: "en" | "zh" | "auto" = "zh", userExamples: FewShotExample[] = []): FewShotExample[] {
   const pool = language === "en" ? EN_FEW_SHOT_EXAMPLES : FEW_SHOT_EXAMPLES;
-  const scored = pool.map(example => ({
+  const scored = [...pool, ...userExamples].map(example => ({
     example,
-    score: calculateRelevance(example, context),
+    score: calculateRelevance(example, context) + (isUserExample(example, pool) ? USER_EXAMPLE_BONUS : 0),
   }));
 
   scored.sort((a, b) => b.score - a.score);
 
   return scored.slice(0, count).map(s => s.example);
+}
+
+/** 判断示例是否来自用户（不在内置池中即为用户示例） */
+function isUserExample(example: FewShotExample, builtinPool: FewShotExample[]): boolean {
+  return !builtinPool.includes(example);
 }
 
 export function buildFewShotPrompt(examples: FewShotExample[], language: "en" | "zh" | "auto" = "zh"): string {
@@ -432,9 +445,10 @@ export function enrichPromptWithFewShot(
     elements?: StoryElement[];
   },
   language: "en" | "zh" | "auto" = "zh",
+  userExamples: FewShotExample[] = [],
 ): string {
   const resolvedLang = language === "auto" ? "zh" : language;
-  const examples = selectFewShotExamples(context, 3, resolvedLang);
+  const examples = selectFewShotExamples(context, 3, resolvedLang, userExamples);
   const fewShotSection = buildFewShotPrompt(examples, resolvedLang);
 
   const isEn = resolvedLang === "en";

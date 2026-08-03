@@ -130,6 +130,98 @@ describe("preferences", () => {
     });
   });
 
+  describe("clearAll", () => {
+    function setupStorageKeys(keys: string[]) {
+      Object.defineProperty(window.localStorage, "length", {
+        get: () => keys.length,
+        configurable: true,
+      });
+      Object.defineProperty(window.localStorage, "key", {
+        value: (index: number) => keys[index] ?? null,
+        configurable: true,
+        writable: true,
+      });
+    }
+
+    it("should remove all keys with ai_anim_studio_ prefix", () => {
+      const storageKeys = [
+        "ai_anim_studio_theme",
+        "ai_anim_studio_config",
+        "other_app_key",
+        "ai_anim_studio_enabled",
+      ];
+      setupStorageKeys(storageKeys);
+      // 重置 removeItem 实现（避免被前面的 throw 测试污染）
+      localStorageMock.removeItem.mockReset();
+      localStorageMock.removeItem.mockImplementation(() => {});
+
+      const removedKeys = preferencesStorage.clearAll();
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("ai_anim_studio_theme");
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("ai_anim_studio_config");
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("ai_anim_studio_enabled");
+      expect(localStorageMock.removeItem).not.toHaveBeenCalledWith("other_app_key");
+      expect(removedKeys).toEqual(["theme", "config", "enabled"]);
+    });
+
+    it("should return empty array when no prefixed keys exist", () => {
+      const storageKeys = ["other_app_key", "third_party_token"];
+      setupStorageKeys(storageKeys);
+      localStorageMock.removeItem.mockReset();
+      localStorageMock.removeItem.mockImplementation(() => {});
+
+      const removedKeys = preferencesStorage.clearAll();
+
+      expect(localStorageMock.removeItem).not.toHaveBeenCalled();
+      expect(removedKeys).toEqual([]);
+    });
+
+    it("should not throw when localStorage throws during iteration", () => {
+      Object.defineProperty(window.localStorage, "length", {
+        get: () => { throw new Error("storage error"); },
+        configurable: true,
+      });
+      localStorageMock.removeItem.mockReset();
+      localStorageMock.removeItem.mockImplementation(() => {});
+      expect(() => preferencesStorage.clearAll()).not.toThrow();
+      expect(mockErrorLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should be a no-op when window is undefined", () => {
+      const originalWindow = globalThis.window;
+      Object.defineProperty(globalThis, "window", {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+      const result = preferencesStorage.clearAll();
+      expect(result).toEqual([]);
+      Object.defineProperty(globalThis, "window", {
+        value: originalWindow,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it("should trigger emitChange for each removed key", () => {
+      const storageKeys = ["ai_anim_studio_emit-1", "ai_anim_studio_emit-2"];
+      setupStorageKeys(storageKeys);
+      localStorageMock.removeItem.mockReset();
+      localStorageMock.removeItem.mockImplementation(() => {});
+      mockSafeJsonParse.mockImplementation((raw: string) => JSON.parse(raw));
+
+      const { result } = renderHook(() => usePreference("emit-1", "default"));
+      expect(result.current[0]).toBe("default");
+
+      act(() => {
+        preferencesStorage.clearAll();
+      });
+
+      // removeItem 被调用，触发 emitChange，组件应回到默认值
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("ai_anim_studio_emit-1");
+    });
+  });
+
   describe("has", () => {
     it("should return true when key exists", () => {
       localStorageMock.getItem.mockReturnValue('"dark"');

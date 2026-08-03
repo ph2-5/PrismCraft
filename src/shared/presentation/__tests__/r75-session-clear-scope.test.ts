@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockConfirm, mockT, mockErrorLogger } = vi.hoisted(() => ({
+const { mockConfirm, mockT, mockErrorLogger, mockPreferencesStorage } = vi.hoisted(() => ({
   mockConfirm: vi.fn(),
   mockT: vi.fn((key: string) => {
     const map: Record<string, string> = {
@@ -14,6 +14,9 @@ const { mockConfirm, mockT, mockErrorLogger } = vi.hoisted(() => ({
     error: vi.fn(),
     info: vi.fn(),
     debug: vi.fn(),
+  },
+  mockPreferencesStorage: {
+    clearAll: vi.fn((): string[] => []),
   },
 }));
 
@@ -29,13 +32,19 @@ vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));
 
-function createHandleReset(sessionStorageMock: Storage, localStorageMock: Storage) {
+vi.mock("@/shared/utils/preferences", () => ({
+  preferencesStorage: mockPreferencesStorage,
+}));
+
+function createHandleReset(sessionStorageMock: Storage) {
   return async () => {
     if (!(await mockConfirm(mockT("errorBoundary.resetConfirm"), mockT("errorBoundary.resetConfirmTitle")))) {
       return;
     }
     try {
-      localStorageMock.removeItem("ai-animation-last-session");
+      // 清理所有 preferences（通过 preferencesStorage 统一管理，避免直接访问 localStorage）
+      mockPreferencesStorage.clearAll();
+      // 清理 sessionStorage 中应用前缀的临时数据（R75：只删除应用前缀的 key）
       for (let i = sessionStorageMock.length - 1; i >= 0; i--) {
         const key = sessionStorageMock.key(i);
         if (key?.startsWith("ai-animation-")) {
@@ -50,11 +59,11 @@ function createHandleReset(sessionStorageMock: Storage, localStorageMock: Storag
 
 describe("R75: Session clearing must only delete application-prefixed keys", () => {
   let sessionStorageMock: Storage;
-  let localStorageMock: Storage;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockConfirm.mockResolvedValue(true);
+    mockPreferencesStorage.clearAll.mockReturnValue([]);
 
     const store: Record<string, string> = {};
 
@@ -65,15 +74,6 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
       clear: vi.fn(() => { Object.keys(store).forEach((k) => delete store[k]); }),
       get length() { return Object.keys(store).length; },
       key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
-    } as unknown as Storage;
-
-    localStorageMock = {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
-      get length() { return 0; },
-      key: vi.fn(() => null),
     } as unknown as Storage;
   });
 
@@ -91,7 +91,7 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
     vi.mocked(sessionStorageMock).key = vi.fn((index: number) => Object.keys(mockStore)[index] ?? null);
     Object.defineProperty(sessionStorageMock, "length", { get: () => Object.keys(mockStore).length, configurable: true });
 
-    const handleReset = createHandleReset(sessionStorageMock, localStorageMock);
+    const handleReset = createHandleReset(sessionStorageMock);
     await handleReset();
 
     expect(mockStore).not.toHaveProperty("ai-animation-draft");
@@ -100,11 +100,11 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
     expect(mockStore).toHaveProperty("user-preference");
   });
 
-  it("removes 'ai-animation-last-session' from localStorage", async () => {
-    const handleReset = createHandleReset(sessionStorageMock, localStorageMock);
+  it("clears all preferences via preferencesStorage.clearAll() instead of direct localStorage access", async () => {
+    const handleReset = createHandleReset(sessionStorageMock);
     await handleReset();
 
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith("ai-animation-last-session");
+    expect(mockPreferencesStorage.clearAll).toHaveBeenCalledTimes(1);
   });
 
   it("non-app keys remain intact after reset", async () => {
@@ -119,7 +119,7 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
     vi.mocked(sessionStorageMock).key = vi.fn((index: number) => Object.keys(store)[index] ?? null);
     Object.defineProperty(sessionStorageMock, "length", { get: () => Object.keys(store).length, configurable: true });
 
-    const handleReset = createHandleReset(sessionStorageMock, localStorageMock);
+    const handleReset = createHandleReset(sessionStorageMock);
     await handleReset();
 
     expect(store).toHaveProperty("third-party-token");
@@ -130,10 +130,10 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
   it("does not clear any session data when confirm is cancelled", async () => {
     mockConfirm.mockResolvedValue(false);
 
-    const handleReset = createHandleReset(sessionStorageMock, localStorageMock);
+    const handleReset = createHandleReset(sessionStorageMock);
     await handleReset();
 
-    expect(localStorageMock.removeItem).not.toHaveBeenCalled();
+    expect(mockPreferencesStorage.clearAll).not.toHaveBeenCalled();
     expect(sessionStorageMock.removeItem).not.toHaveBeenCalled();
   });
 });

@@ -83,6 +83,30 @@ export const preferencesStorage = {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(makeKey(key)) !== null;
   },
+
+  /** 清理所有 preferences key（带 `ai_anim_studio_` 前缀的 localStorage 条目） */
+  clearAll(): string[] {
+    if (typeof window === "undefined") return [];
+    const removedKeys: string[] = [];
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const storageKey = localStorage.key(i);
+        if (storageKey && storageKey.startsWith(PREFIX)) {
+          keysToRemove.push(storageKey);
+        }
+      }
+      keysToRemove.forEach((storageKey) => {
+        localStorage.removeItem(storageKey);
+        const rawKey = storageKey.slice(PREFIX.length);
+        removedKeys.push(rawKey);
+        emitChange(rawKey);
+      });
+    } catch (e) {
+      errorLogger.warn("[Preferences] Failed to clear all values", e);
+    }
+    return removedKeys;
+  },
 };
 
 const snapshotCache = new Map<string, { raw: string | null; parsed: unknown }>();

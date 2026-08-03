@@ -7,6 +7,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { extractJsonObject } from "@/shared-logic/json";
 import { sleep } from "@/shared-logic/sleep";
+import { buildDirectorGuidanceSection, type DirectorGuidanceOptions } from "./director-guidance";
 
 const BATCH_FRAME_INTER_BEAT_DELAY_MS = 300;
 
@@ -19,6 +20,11 @@ interface FramePromptInput {
   styleGuide?: StoryStyleGuide;
   prevBeatDescription?: string;
   nextBeatDescription?: string;
+  /** P3.1：同一场景中的前后镜头（用于导演规则连续性判断） */
+  prevBeat?: StoryBeat;
+  nextBeat?: StoryBeat;
+  /** P3.1：导演上下文（beatType/emotionIntensity/pacing/tone），驱动 180 度规则/动作匹配/高潮强化 */
+  directorContext?: DirectorGuidanceOptions["context"];
   textProvider: ITextProvider;
   providerId?: string;
   modelId?: string;
@@ -88,7 +94,7 @@ function buildContextSection(prev?: string, next?: string): string {
   return parts.length > 0 ? `\n\n上下文：\n${parts.join("\n")}` : "";
 }
 
-function buildFramePromptText(beat: StoryBeat, index: number, charDesc: string, sceneDesc: string, cameraInfo: string, styleSection: string, contextSection: string): string {
+function buildFramePromptText(beat: StoryBeat, index: number, charDesc: string, sceneDesc: string, cameraInfo: string, styleSection: string, contextSection: string, directorSection: string): string {
   return `你是一位专业的动画分镜师。请为以下分镜生成首帧和尾帧的视觉描述提示词。
 
 分镜编号：第${index + 1}镜头
@@ -99,7 +105,7 @@ ${charDesc ? `角色：${charDesc}` : ""}
 ${sceneDesc ? `场景：${sceneDesc}` : ""}
 镜头信息：${cameraInfo}
 ${styleSection}
-${contextSection}
+${contextSection}${directorSection}
 
 请严格按照以下JSON格式输出，不要输出任何其他内容：
 {
@@ -113,7 +119,8 @@ ${contextSection}
 3. 描述要具体可执行，便于AI图片模型生成
 4. 保持角色外观与风格描述一致
 5. 如果有上一镜头信息，首帧应考虑与上一镜头的视觉衔接
-6. 如果有下一镜头信息，尾帧应为下一镜头的视觉过渡做铺垫`;
+6. 如果有下一镜头信息，尾帧应为下一镜头的视觉过渡做铺垫
+7. 如有导演指导，首尾帧画面必须遵循导演指导中的景别、运镜、时长与连续性要求`;
 }
 
 function parseFramePromptResult(text: string, beat: StoryBeat): FramePromptOutput {
@@ -147,7 +154,7 @@ export async function generateFramePrompts(
   input: FramePromptInput,
 ): Promise<Result<FramePromptOutput>> {
   return fromAsyncThrowable(async () => {
-    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider, providerId, modelId } = input;
+    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, prevBeat, nextBeat, directorContext, textProvider, providerId, modelId } = input;
 
     const charIds = getBeatCharacterIds(beat);
     const charDesc = buildCharacterVisualDesc(characters, charIds);
@@ -161,13 +168,16 @@ export async function generateFramePrompts(
     const cameraInfo = buildCameraInfo(beat);
     const styleSection = buildStyleSection(styleGuide);
     const contextSection = buildContextSection(prevBeatDescription, nextBeatDescription);
-    const prompt = buildFramePromptText(beat, index, charDesc, sceneDesc, cameraInfo, styleSection, contextSection);
+    // P3.1：应用导演规则（180 度规则/动作匹配/高潮强化/抒情远景/快速节奏）生成导演指导
+    const directorSection = buildDirectorGuidanceSection(beat, { prevBeat, nextBeat, context: directorContext });
+    const prompt = buildFramePromptText(beat, index, charDesc, sceneDesc, cameraInfo, styleSection, contextSection, directorSection);
 
     const result = await textProvider.generateText(prompt, {
       maxTokens: 600,
       temperature: 0.7,
       providerId,
       modelId,
+      taskType: "frame_prompt",
     });
 
     if (!result.success || !result.data?.text) {
@@ -185,6 +195,8 @@ export async function batchGenerateFramePrompts(
     scenes: Scene[];
     elements?: StoryElement[];
     styleGuide?: StoryStyleGuide;
+    /** P3.1：导演上下文，驱动导演规则接入 */
+    directorContext?: DirectorGuidanceOptions["context"];
     textProvider: ITextProvider;
     providerId?: string;
     modelId?: string;
@@ -208,6 +220,9 @@ export async function batchGenerateFramePrompts(
           styleGuide: options.styleGuide,
           prevBeatDescription,
           nextBeatDescription,
+          prevBeat: i > 0 ? beats[i - 1] : undefined,
+          nextBeat: i < beats.length - 1 ? beats[i + 1] : undefined,
+          directorContext: options.directorContext,
           textProvider: options.textProvider,
           providerId: options.providerId,
           modelId: options.modelId,

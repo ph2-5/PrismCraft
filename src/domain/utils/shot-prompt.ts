@@ -182,6 +182,57 @@ export const CAMERA_ANGLE_OPTIONS: Array<{
   },
 ];
 
+/** 灯光氛围选项（P3.2 ShotContractEditor 使用） */
+export const SHOT_LIGHTING_OPTIONS: Array<{
+  value: ShotInstructionTemplate["lighting"] extends infer T ? NonNullable<T> : never;
+  label: string; // 兼容 prompt 构造（保留中文，用于 AI prompt）
+  labelKey: string; // UI 显示用 i18n key
+  description: string; // 兼容 prompt 构造（保留中文，用于 AI prompt）
+  descKey: string; // UI 显示用 i18n key
+  keyword: string;
+}> = [
+  {
+    value: "natural",
+    label: "自然光",
+    labelKey: "shotOption.lighting.natural.label",
+    description: "自然光线，贴近真实环境",
+    descKey: "shotOption.lighting.natural.desc",
+    keyword: "natural lighting",
+  },
+  {
+    value: "low_key",
+    label: "低调光",
+    labelKey: "shotOption.lighting.low-key.label",
+    description: "强烈明暗对比，营造紧张氛围",
+    descKey: "shotOption.lighting.low-key.desc",
+    keyword: "low-key lighting, high contrast, dramatic shadows",
+  },
+  {
+    value: "high_key",
+    label: "高调光",
+    labelKey: "shotOption.lighting.high-key.label",
+    description: "明亮均匀，轻快氛围",
+    descKey: "shotOption.lighting.high-key.desc",
+    keyword: "high-key lighting, bright and even",
+  },
+  {
+    value: "golden_hour",
+    label: "黄金时刻",
+    labelKey: "shotOption.lighting.golden-hour.label",
+    description: "日出日落暖色光线",
+    descKey: "shotOption.lighting.golden-hour.desc",
+    keyword: "golden hour lighting, warm sunset glow",
+  },
+  {
+    value: "neon",
+    label: "霓虹光",
+    labelKey: "shotOption.lighting.neon.label",
+    description: "霓虹灯彩色光线，赛博氛围",
+    descKey: "shotOption.lighting.neon.desc",
+    keyword: "neon lighting, colorful neon glow",
+  },
+];
+
 export function shotInstructionToPrompt(instruction: ResolvedShotInstruction): string {
   const parts: string[] = [];
   const shotSize = SHOT_SIZE_OPTIONS.find((o) => o.value === instruction.shotSize);

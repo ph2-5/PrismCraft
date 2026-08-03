@@ -42,6 +42,10 @@ import {
   serializeMessages,
   truncateToolResult,
 } from "./agent-loop-helpers";
+// P2.1：以下独立逻辑已拆分为独立模块
+import { resolveIntentFilter } from "./agent-intent-filter";
+import { maybeSummarizeConversation } from "./conversation-summarizer";
+import { AgentRateLimiter } from "./agent-rate-limiter";
 import { memoryService } from "@/modules/agent-memory";
 // session-checkpoint 已拆分至 @/modules/agent-session（阶段2-b）
 import {
@@ -60,13 +64,8 @@ import {
   type AgentContext,
 } from "@/shared-logic/prompt";
 // Task 1.12：意图路由表 — 在 routeSkill 之上增加意图分类层
-import {
-  routeIntent,
-  routeIntentWithLlmFallback,
-  mapIntentToSkillId,
-  mapIntentToToolSet,
-} from "./intent-router";
-import { createLlmIntentClassifier } from "./intent-llm-classifier";
+import { mapIntentToSkillId } from "./intent-router";
+import type { routeIntentWithLlmFallback } from "./intent-router";
 import { buildRouteContext } from "./intent-routes";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
@@ -86,8 +85,8 @@ export class AgentLoop {
   private currentInput: string = "";
   /** P1-D：循环开始时间（用于总执行时间限制） */
   private loopStartTime: number = 0;
-  /** P1-D：工具调用时间戳记录（用于频率限制，滑动窗口） */
-  private toolCallTimestamps: number[] = [];
+  /** P1-D：工具调用频率限制（滑动窗口，P2.1 拆分至 agent-rate-limiter） */
+  private rateLimiter = new AgentRateLimiter();
   /**
    * P3 动态工具过滤：当前轮次的工具过滤器。
    *
@@ -172,7 +171,9 @@ export class AgentLoop {
     void initCheckpoint(this.session, processedInput).catch((e) => errorLogger.warn("[AgentLoop] initCheckpoint failed", e));
 
     const systemPrompt = await this.buildSystemPrompt(processedInput);
-    void this.maybeSummarizeConversation();
+    const maxHistoryTokens = this.config.contextBudget?.maxHistoryTokens
+      ?? DEFAULT_AGENT_CONFIG.contextBudget!.maxHistoryTokens;
+    void maybeSummarizeConversation(this.session, this.deps.memoryService, maxHistoryTokens);
     this.loopStartTime = Date.now();
 
     for (let i = 0; i < this.config.maxIterations; i++) {
@@ -293,14 +294,19 @@ export class AgentLoop {
 
     // P1-D：工具调用频率限制（前后检查 abort）
     if (this.aborted) return true;
-    await this.enforceRateLimit(approvedToolCalls.length);
+    await this.rateLimiter.enforce(approvedToolCalls.length, {
+      maxPerMinute: this.config.maxToolCallsPerMinute ?? 0,
+      onWaiting: (seconds) =>
+        this.deps.conversationManager.appendDelta(this.session, t("agent.rateLimitWaiting", { seconds })),
+      signal: this.callbacks.signal,
+    });
     if (this.aborted) return true;
 
     // Phase 3：并行执行已批准的工具
     const executedResults = approvedToolCalls.length > 0
       ? await this.deps.toolExecutor.executeAll(approvedToolCalls, ctx)
       : [];
-    this.recordToolCallTimestamps(approvedToolCalls.length);
+    this.rateLimiter.record(approvedToolCalls.length);
 
     // Phase 4：按原始顺序回灌结果 + 审计日志
     this.feedToolResultsBack(toolCalls, executedResults, rejectedResults, iteration);
@@ -467,23 +473,23 @@ export class AgentLoop {
 
     // P3 动态工具过滤：在读取工具描述前，先根据意图更新 currentToolFilter
     // 这样 toolDescs（用于 system prompt 的 {AVAILABLE_TOOLS}）和 streamLLM 的 toolDefs 保持一致
+    // P2.1：意图识别已拆分为 resolveIntentFilter（agent-intent-filter.ts）
     let intent: Awaited<ReturnType<typeof routeIntentWithLlmFallback>> | undefined;
     if (userMessage) {
       try {
-        // 启用 LLM fallback 时使用 routeIntentWithLlmFallback，否则保持原 routeIntent 同步调用
-        intent = this.config.enableLlmIntentFallback
-          ? await routeIntentWithLlmFallback(
-              userMessage,
-              createLlmIntentClassifier(this.deps.textProvider, {
-                providerId: this.config.providerId,
-                modelId: this.config.modelId,
-              }),
-            )
-          : routeIntent(userMessage);
-        const toolSet = mapIntentToToolSet(intent.type);
-        if (toolSet !== undefined) {
+        const resolved = await resolveIntentFilter(
+          userMessage,
+          {
+            enableLlmIntentFallback: this.config.enableLlmIntentFallback,
+            providerId: this.config.providerId,
+            modelId: this.config.modelId,
+          },
+          this.deps.textProvider,
+        );
+        intent = resolved.intent;
+        if (resolved.toolSet !== undefined) {
           // 意图有明确工具集 → 设置过滤器（覆盖 config.enabledTools）
-          this.currentToolFilter = toolSet;
+          this.currentToolFilter = resolved.toolSet;
         } else {
           // 意图无明确工具集 → 重置过滤器，使用 config.enabledTools
           this.currentToolFilter = undefined;
@@ -570,76 +576,6 @@ export class AgentLoop {
   }
 
   /**
-   * 检测并触发对话摘要压缩（P2 深化）
-   *
-   * 策略：
-   * - 计算当前消息历史的 token 总量
-   * - 超过阈值（maxHistoryTokens * 0.8）时触发摘要
-   * - 只摘要未被已摘要覆盖的旧消息（增量摘要）
-   * - 摘要结果缓存在 session.conversationSummary
-   * - 异步执行，不阻断 Agent Loop
-   */
-  private async maybeSummarizeConversation(): Promise<void> {
-    const maxHistoryTokens = this.config.contextBudget?.maxHistoryTokens
-      ?? DEFAULT_AGENT_CONFIG.contextBudget!.maxHistoryTokens;
-    const summarizeThreshold = Math.floor(maxHistoryTokens * 0.8);
-
-    // 估算当前消息 token 总量
-    const { estimateMessagesTokens } = await import("@/shared-logic/agent");
-    const totalTokens = estimateMessagesTokens(
-      this.session.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        toolCalls: m.toolCalls,
-      })),
-      false,
-    );
-
-    if (totalTokens < summarizeThreshold) {
-      return; // 未达阈值，不需要摘要
-    }
-
-    // 找到需要摘要的旧消息范围（未被 summaryCoveredUpTo 覆盖的）
-    const coveredId = this.session.summaryCoveredUpTo;
-    let toSummarize: typeof this.session.messages;
-    if (coveredId) {
-      const coveredIdx = this.session.messages.findIndex((m) => m.id === coveredId);
-      if (coveredIdx >= 0) {
-        // 摘要从 coveredIdx+1 开始到最近 N 条之前的消息（保留最近 10 条不摘要）
-        const recentKeep = 10;
-        const summarizeEnd = Math.max(coveredIdx + 1, this.session.messages.length - recentKeep);
-        toSummarize = this.session.messages.slice(coveredIdx + 1, summarizeEnd);
-      } else {
-        toSummarize = this.session.messages.slice(0, -10);
-      }
-    } else {
-      // 首次摘要：保留最近 10 条，摘要之前的
-      toSummarize = this.session.messages.slice(0, -10);
-    }
-
-    if (toSummarize.length < 3) {
-      return; // 可摘要的消息太少
-    }
-
-    // 异步触发摘要（不等待，不阻断）
-    void this.deps.memoryService
-      .summarizeConversation(toSummarize, this.session.conversationSummary)
-      .then((summary) => {
-        if (summary) {
-          this.session.conversationSummary = summary;
-          // 标记摘要覆盖到最后一条被摘要的消息
-          const lastSummarized = toSummarize[toSummarize.length - 1];
-          if (lastSummarized) {
-            this.session.summaryCoveredUpTo = lastSummarized.id;
-          }
-        }
-      })
-      .catch((err) => {
-        errorLogger.warn("[AgentLoop] 会话摘要失败", err);
-      });
-  }
-
-  /**
    * P1-D：检查总执行时间是否超限
    * @returns true 表示已超限，应停止循环
    */
@@ -647,68 +583,6 @@ export class AgentLoop {
     const maxDuration = this.config.maxTotalDurationMs ?? 0;
     if (maxDuration <= 0 || this.loopStartTime === 0) return false;
     return Date.now() - this.loopStartTime > maxDuration;
-  }
-
-  /**
-   * P1-D：工具调用频率限制（滑动窗口）
-   *
-   * 如果最近 60 秒内的工具调用次数已达上限，则异步等待至窗口外。
-   *
-   * @param pendingCount 本轮即将执行的工具调用数量
-   */
-  private async enforceRateLimit(pendingCount: number): Promise<void> {
-    const maxPerMinute = this.config.maxToolCallsPerMinute ?? 0;
-    if (maxPerMinute <= 0 || pendingCount === 0) return;
-
-    const now = Date.now();
-    const windowMs = 60_000;
-    // 清理 60 秒前的时间戳
-    this.toolCallTimestamps = this.toolCallTimestamps.filter((ts) => now - ts < windowMs);
-
-    if (this.toolCallTimestamps.length + pendingCount > maxPerMinute) {
-      // 需要等待：计算最早时间戳 + 60s 的时间点
-      const oldestInWindow = this.toolCallTimestamps[0] ?? now;
-      const waitUntil = oldestInWindow + windowMs;
-      const waitMs = waitUntil - now;
-      if (waitMs > 0) {
-        // 通知 UI 正在等待（可选）
-        this.deps.conversationManager.appendDelta(
-          this.session,
-          t("agent.rateLimitWaiting", { seconds: Math.ceil(waitMs / 1000) }),
-        );
-        // 等待（支持中断）
-        await new Promise<void>((resolve) => {
-          const onAbort = () => {
-            clearTimeout(timer);
-            resolve();
-          };
-          const timer = setTimeout(() => {
-            if (this.callbacks.signal) {
-              this.callbacks.signal.removeEventListener("abort", onAbort);
-            }
-            resolve();
-          }, waitMs);
-          if (this.callbacks.signal) {
-            this.callbacks.signal.addEventListener("abort", onAbort, { once: true });
-          }
-        });
-      }
-      // 等待后重新清理时间戳
-      const nowAfter = Date.now();
-      this.toolCallTimestamps = this.toolCallTimestamps.filter((ts) => nowAfter - ts < windowMs);
-    }
-  }
-
-  /**
-   * P1-D：记录工具调用时间戳（用于频率限制统计）
-   *
-   * @param count 本轮执行的工具调用数量
-   */
-  private recordToolCallTimestamps(count: number): void {
-    const now = Date.now();
-    for (let i = 0; i < count; i++) {
-      this.toolCallTimestamps.push(now);
-    }
   }
 
   /** 处理取消 */

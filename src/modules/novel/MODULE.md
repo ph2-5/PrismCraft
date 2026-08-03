@@ -70,7 +70,7 @@
 
 **Domain 常量与函数**：`NARRATIVE_BEAT_TYPES`、`computeBeatPosition`、`findClimaxPosition`、`inferOverallPacing`、`computeEmotionCurve`、`STORY_TONES`、`EMPTY_TREATMENT`、`isTreatmentComplete`、`SHOT_SIZES`、`SHOT_MOVEMENTS`、`SHOT_LIGHTINGS`、`DEFAULT_LENS_BY_SIZE`、`DEFAULT_DURATION_BY_SIZE`、`validateShotContract`、`clampDuration`
 
-**Services**：`analyzeStoryStructure`、`buildStructureAnalysisPrompt`、`parseNarrativeBeats`、`populateBeatPositionsAndDurations`、`extractJsonArrayFromText`、`suggestDurationByStructure`、`recalculateStoryStructure`、`DEFAULT_DURATION_ADJUSTMENTS`（结构化时长调整常量）、`extractTreatment`、`buildTreatmentExtractionPrompt`、`parseTreatment`、`extractJsonObjectFromText`、`buildShotContractsForBeats`、`buildShotContractsForBeat`、`buildShotContractPrompt`、`parseShotContracts`、`getDefaultLighting`、`DEFAULT_SHOT_COUNT_BY_BEAT`（每 beat 默认镜头数）、`DEFAULT_SHOT_SIZE_BY_BEAT`（每 beat 默认景别）、`GenerateTextFn`（LLM 调用函数类型，供 services 注入）
+**Services**：`analyzeStoryStructure`、`buildStructureAnalysisPrompt`、`parseNarrativeBeats`、`populateBeatPositionsAndDurations`、`extractJsonArrayFromText`、`suggestDurationByStructure`、`recalculateStoryStructure`、`buildDirectorConfigForStory`（P3.3：自动故事结构 → 导演规则配置）、`DEFAULT_DURATION_ADJUSTMENTS`（结构化时长调整常量）、`extractTreatment`、`buildTreatmentExtractionPrompt`、`parseTreatment`、`extractJsonObjectFromText`、`buildShotContractsForBeats`、`buildShotContractsForBeat`、`buildShotContractPrompt`、`parseShotContracts`、`getDefaultLighting`、`DEFAULT_SHOT_COUNT_BY_BEAT`（每 beat 默认镜头数）、`DEFAULT_SHOT_SIZE_BY_BEAT`（每 beat 默认景别）、`GenerateTextFn`（LLM 调用函数类型，供 services 注入）
 
 ---
 

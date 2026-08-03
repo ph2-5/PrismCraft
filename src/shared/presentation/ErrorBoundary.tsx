@@ -4,6 +4,7 @@ import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { classifyErrorSeverity, type ErrorSeverity } from "@/shared/utils/error-classifier";
+import { preferencesStorage } from "@/shared/utils/preferences";
 import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 
 interface Props {
@@ -101,7 +102,9 @@ export class ErrorBoundary extends Component<Props, State> {
       return;
     }
     try {
-      localStorage.removeItem("ai-animation-last-session");
+      // 清理所有 preferences（通过 preferencesStorage 统一管理，避免直接访问 localStorage）
+      preferencesStorage.clearAll();
+      // 清理 sessionStorage 中应用前缀的临时数据（R75：只删除应用前缀的 key）
       for (let i = sessionStorage.length - 1; i >= 0; i--) {
         const key = sessionStorage.key(i);
         if (key?.startsWith("ai-animation-")) {

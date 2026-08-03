@@ -26,6 +26,7 @@ import { useCreateCharacter, useCharacters, defaultCharacter } from "@/modules/c
 import type { Character } from "@/domain/schemas";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 import { extractCharactersFromTextTool } from "../tools";
 import type { ToolContext } from "@/domain/types/agent-tools";
 import type { Segment, ExtractedCharacter } from "../domain/types";
@@ -170,7 +171,7 @@ async function extractSegmentCharacters(
 
     return await batchCreateToDb(enriched, existingNames, sourceInfo);
   } catch (err) {
-    console.error(
+    errorLogger.error(
       `[useProgressiveExtraction] 提取片段 ${seg.title} 失败:`,
       err,
     );
@@ -210,7 +211,7 @@ export function useProgressiveExtraction({
           created++;
         } catch (err) {
           // 单个角色创建失败不阻塞整体流程
-          console.error(`[useProgressiveExtraction] 创建角色 ${name} 失败:`, err);
+          errorLogger.error(`[useProgressiveExtraction] 创建角色 ${name} 失败:`, err);
         }
       }
       return created;
@@ -240,7 +241,7 @@ export function useProgressiveExtraction({
         emitToast("success", t("novel.character.manual.added", { name: input.name }));
       } catch (err) {
         emitToast("error", t("novel.character.manual.addFailed"));
-        console.error("[useProgressiveExtraction] 手动预填失败:", err);
+        errorLogger.error("[useProgressiveExtraction] 手动预填失败:", err);
       }
     },
     [createCharacter],
@@ -323,7 +324,7 @@ export function useProgressiveExtraction({
         emitToast("error", t("novel.character.fullExtract.failed"));
       }
     } catch (err) {
-      console.error("[useProgressiveExtraction] 全文提取失败:", err);
+      errorLogger.error("[useProgressiveExtraction] 全文提取失败:", err);
       emitToast("error", t("novel.character.fullExtract.failed"));
     } finally {
       setIsExtracting(false);
@@ -351,7 +352,7 @@ export function useProgressiveExtraction({
         );
       } catch (err) {
         emitToast("error", t("novel.character.addToLibrary.failed", { name }));
-        console.error(`[useProgressiveExtraction] 添加角色 ${name} 到库失败:`, err);
+        errorLogger.error(`[useProgressiveExtraction] 添加角色 ${name} 到库失败:`, err);
       }
     },
     [createCharacter, dbCharacterNames],

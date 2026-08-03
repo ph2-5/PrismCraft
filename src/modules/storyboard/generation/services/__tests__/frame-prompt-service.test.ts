@@ -107,8 +107,55 @@ describe("generateFramePrompts", () => {
 
     expect(mockTextProvider.generateText).toHaveBeenCalledTimes(1);
     const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    expect(callArgs[1]!).toEqual({ maxTokens: 600, temperature: 0.7 });
+    // 远程分支 P1.3：frame-prompt-service 接入 taskType="frame_prompt" + providerId + modelId
+    expect(callArgs[1]!).toEqual({
+      maxTokens: 600,
+      temperature: 0.7,
+      providerId: undefined,
+      modelId: undefined,
+      taskType: "frame_prompt",
+    });
     expect(callArgs[0]!).toContain("第3镜头");
+  });
+
+  it("P3.1：传入导演上下文时 prompt 注入导演指导", async () => {
+    (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { text: JSON.stringify({ firstFramePrompt: "fp", lastFramePrompt: "lp" }) },
+    });
+
+    await generateFramePrompts({
+      beat: { ...mockBeat, shotInstruction: { shotSize: "medium", cameraMovement: "static", cameraAngle: "eye_level" } },
+      index: 0,
+      characters: [],
+      scenes: [],
+      directorContext: { beatType: "climax", emotionIntensity: 0.8 },
+      textProvider: mockTextProvider,
+    });
+
+    const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(callArgs[0]!).toContain("导演指导");
+    expect(callArgs[0]!).toContain("高潮/高情绪段落");
+    expect(callArgs[0]!).toContain("景别：特写");
+  });
+
+  it("P3.1：无导演上下文且无 shotInstruction 时不注入导演指导", async () => {
+    (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { text: JSON.stringify({ firstFramePrompt: "fp", lastFramePrompt: "lp" }) },
+    });
+
+    await generateFramePrompts({
+      beat: mockBeat,
+      index: 0,
+      characters: [],
+      scenes: [],
+      textProvider: mockTextProvider,
+    });
+
+    const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    // 固定要求文案含"导演指导"四字，用 section 标记"导演指导："精确断言
+    expect(callArgs[0]!).not.toContain("导演指导：");
   });
 
   it("beat 无内容、无角色、无场景时应返回错误", async () => {

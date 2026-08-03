@@ -15,7 +15,7 @@
  */
 
 import type { NovelSegment } from "../../domain/types";
-import type { NarrativeBeat, NarrativeBeatType } from "../domain/narrative-beats";
+import type { NarrativeBeat, NarrativeBeatType, OverallPacing } from "../domain/narrative-beats";
 import {
   SHOT_SIZES,
   SHOT_MOVEMENTS,
@@ -29,11 +29,16 @@ import {
   type ShotLighting,
 } from "../domain/shot-contract";
 import type { StoryTreatment } from "../domain/treatment";
+import {
+  applyDirectorRules,
+  type DirectorShotContract,
+} from "@/shared-logic/director/director-rules";
 
 /** AI 文本生成函数签名（与 structure-analyzer.ts 一致） */
 export type GenerateTextFn = (prompt: string, options?: {
   maxTokens?: number;
   temperature?: number;
+  taskType?: "shot_contract" | "structure_analysis" | "treatment_extraction" | "story_planning" | "frame_prompt";
 }) => Promise<{ success: boolean; data?: { text: string }; error?: string }>;
 
 /**
@@ -93,6 +98,153 @@ export function getDefaultLighting(beatType: NarrativeBeatType, tone?: StoryTrea
   if (tone === "action") return "high_key";
   if (beatType === "setup" || beatType === "resolution") return "natural";
   return "natural";
+}
+
+/**
+ * 情绪强度 → 景别映射。
+ *
+ * - 高强度（>0.8）: close_up（情绪特写）
+ * - 中高强度（0.6-0.8）: medium（对话/表情）
+ * - 中低强度（0.3-0.6）: 保持 beat 类型默认
+ * - 低强度（<0.3）: extreme_wide（建立/氛围）
+ */
+export function shotSizeByEmotion(intensity: number, defaultSize: ShotSize): ShotSize {
+  if (intensity > 0.8) return "close_up";
+  if (intensity > 0.6) return "medium";
+  if (intensity < 0.3) return "extreme_wide";
+  return defaultSize;
+}
+
+/**
+ * 情绪强度 + 整体节奏 → 运镜方式映射。
+ *
+ * - 快速节奏 / 高强度: tracking（动感）或 handheld（紧张）
+ * - 慢速节奏 / 低强度: static（稳定）
+ * - 默认: static
+ */
+export function movementByEmotionAndPacing(
+  intensity: number,
+  pacing: OverallPacing,
+  beatType: NarrativeBeatType,
+): ShotMovement {
+  if (pacing === "fast" || intensity > 0.75) {
+    return beatType === "climax" ? "handheld" : "tracking";
+  }
+  if (pacing === "slow" || intensity < 0.3) {
+    return "static";
+  }
+  return "static";
+}
+
+/**
+ * 情绪强度 + 时长 + 节奏 → 时长微调。
+ *
+ * - 高强度: 压缩时长（快切）
+ * - 低强度: 延长时长（氛围镜头）
+ */
+export function adjustDurationByEmotion(
+  duration: number,
+  intensity: number,
+  pacing: OverallPacing,
+): number {
+  let factor = 1.0;
+  if (intensity > 0.8) factor -= 0.25;
+  else if (intensity > 0.6) factor -= 0.15;
+  else if (intensity < 0.3) factor += 0.2;
+
+  if (pacing === "fast") factor -= 0.15;
+  if (pacing === "slow") factor += 0.15;
+
+  return clampDuration(Math.round(duration * factor));
+}
+
+/**
+ * 将情绪强度与整体节奏应用到 shot contracts 上。
+ *
+ * 作为 AI 返回结果的后处理，确保镜头语言与故事情绪/节奏对齐。
+ */
+function toDirectorShotContract(
+  c: Omit<ShotContract, "id" | "beatId" | "shotNumber">,
+): DirectorShotContract {
+  return {
+    shotSize: c.shotSize as DirectorShotContract["shotSize"],
+    lens: c.lens,
+    movement: c.movement as DirectorShotContract["movement"],
+    lighting: c.lighting as DirectorShotContract["lighting"],
+    duration: c.duration,
+    blocking: c.blocking,
+  };
+}
+
+function fromDirectorShotContract(
+  c: DirectorShotContract,
+  original: Omit<ShotContract, "id" | "beatId" | "shotNumber">,
+): Omit<ShotContract, "id" | "beatId" | "shotNumber"> {
+  return {
+    ...original,
+    shotSize: c.shotSize as ShotSize,
+    lens: c.lens ?? original.lens,
+    movement: c.movement as ShotMovement,
+    lighting: c.lighting as ShotLighting,
+    duration: c.duration,
+    blocking: c.blocking,
+  };
+}
+
+export function applyEmotionAndPacingToContracts(
+  contracts: Omit<ShotContract, "id" | "beatId" | "shotNumber">[],
+  beat: NarrativeBeat,
+  pacing: OverallPacing = "normal",
+  treatment?: StoryTreatment,
+): Omit<ShotContract, "id" | "beatId" | "shotNumber">[] {
+  const defaultSize = DEFAULT_SHOT_SIZE_BY_BEAT[beat.type];
+  const defaultLighting = getDefaultLighting(beat.type, treatment?.tone);
+
+  let tweaked = contracts.map((c) => {
+    const emotionSize = shotSizeByEmotion(beat.emotionIntensity, defaultSize);
+    // 仅在 AI 返回的景别与情绪明显不符时覆盖；若 AI 已有明确选择，保留 AI 结果。
+    const finalSize: ShotSize =
+      c.shotSize === defaultSize ? emotionSize : c.shotSize;
+
+    const finalMovement = movementByEmotionAndPacing(
+      beat.emotionIntensity,
+      pacing,
+      beat.type,
+    );
+
+    const finalDuration = adjustDurationByEmotion(
+      c.duration,
+      beat.emotionIntensity,
+      pacing,
+    );
+
+    // 灯光：低情绪保持默认，高情绪根据 tone 强化
+    const finalLighting: ShotLighting =
+      beat.emotionIntensity > 0.7
+        ? getDefaultLighting(beat.type, treatment?.tone)
+        : c.lighting || defaultLighting;
+
+    return {
+      ...c,
+      shotSize: finalSize,
+      movement: finalMovement,
+      duration: finalDuration,
+      lighting: finalLighting,
+      lens: c.lens || DEFAULT_LENS_BY_SIZE[finalSize],
+    };
+  });
+
+  // 应用导演规则（180 度、动作匹配、高潮强化、抒情段落等）
+  const directorShots = tweaked.map(toDirectorShotContract);
+  applyDirectorRules(directorShots, {
+    beatType: beat.type,
+    emotionIntensity: beat.emotionIntensity,
+    tone: treatment?.tone,
+    pacing,
+  });
+  tweaked = directorShots.map((c, i) => fromDirectorShotContract(c, tweaked[i]!));
+
+  return tweaked;
 }
 
 /**
@@ -164,10 +316,20 @@ ${treatment ? `**故事 Treatment**：
 ## 规则
 
 1. 景别按 beat 类型选择（高潮→近景，开端→远景）
-2. 时长总和应接近 beat.estimatedDuration（${beat.estimatedDuration} 秒）
-3. blocking 描述具体可见的角色动作（不要抽象描述）
-4. 不要返回 id/beatId/shotNumber（由系统自动填充）
-5. 不要返回任何额外解释，只返回 JSON 数组
+2. 同时参考情绪强度 ${beat.emotionIntensity}：
+   - 情绪强度 > 0.8：优先 close_up（近景），突出情绪张力
+   - 情绪强度 0.6-0.8：优先 medium（中景），兼顾表情与环境
+   - 情绪强度 < 0.3：优先 extreme_wide（大远景），营造氛围或建立空间
+3. 运镜参考情绪强度：
+   - 高强度 / 紧张情节：可用 tracking（跟随）或 handheld（手持晃动）增强动感
+   - 低强度 / 抒情段落：使用 static（固定机位）保持稳定
+4. 时长分配：
+   - 高强度镜头适当缩短（2-4 秒，快切）
+   - 低强度氛围镜头适当延长（5-8 秒）
+5. 时长总和应接近 beat.estimatedDuration（${beat.estimatedDuration} 秒）
+6. blocking 描述具体可见的角色动作（不要抽象描述）
+7. 不要返回 id/beatId/shotNumber（由系统自动填充）
+8. 不要返回任何额外解释，只返回 JSON 数组
 
 请直接返回 JSON 数组：`;
 }
@@ -265,10 +427,11 @@ export async function buildShotContractsForBeat(
   generateTextFn: GenerateTextFn,
   treatment?: StoryTreatment,
   startShotNumber = 1,
+  pacing: OverallPacing = "normal",
 ): Promise<{ success: true; data: ShotContract[] } | { success: false; error: string }> {
   // 1. 构建提示词并调用 AI
   const prompt = buildShotContractPrompt(beat, segments, treatment);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.6 });
+  const aiResult = await generateTextFn(prompt, { taskType: "shot_contract" });
 
   let rawContracts: Omit<ShotContract, "id" | "beatId" | "shotNumber">[];
 
@@ -277,7 +440,7 @@ export async function buildShotContractsForBeat(
     const shotCount = DEFAULT_SHOT_COUNT_BY_BEAT[beat.type];
     const defaultShotSize = DEFAULT_SHOT_SIZE_BY_BEAT[beat.type];
     const defaultLighting = getDefaultLighting(beat.type, treatment?.tone);
-    rawContracts = Array.from({ length: shotCount }, () => ({
+    const fallbackContracts = Array.from({ length: shotCount }, () => ({
       shotSize: defaultShotSize,
       lens: DEFAULT_LENS_BY_SIZE[defaultShotSize],
       movement: "static" as const,
@@ -285,6 +448,7 @@ export async function buildShotContractsForBeat(
       duration: DEFAULT_DURATION_BY_SIZE[defaultShotSize],
       blocking: beat.description || beat.title,
     }));
+    rawContracts = applyEmotionAndPacingToContracts(fallbackContracts, beat, pacing, treatment);
   } else {
     // 2. 提取并解析 JSON 数组
     try {
@@ -296,7 +460,8 @@ export async function buildShotContractsForBeat(
       if (!Array.isArray(parsed) || parsed.length === 0) {
         return { success: false, error: "AI 返回的 shot contract 数组为空或非数组" };
       }
-      rawContracts = parseShotContracts(parsed, beat, treatment);
+      const parsedContracts = parseShotContracts(parsed, beat, treatment);
+      rawContracts = applyEmotionAndPacingToContracts(parsedContracts, beat, pacing, treatment);
     } catch (e) {
       return { success: false, error: `JSON 解析失败: ${e instanceof Error ? e.message : String(e)}` };
     }
@@ -330,6 +495,7 @@ export async function buildShotContractsForBeats(
   segments: NovelSegment[],
   generateTextFn: GenerateTextFn,
   treatment?: StoryTreatment,
+  pacing: OverallPacing = "normal",
 ): Promise<{
   success: boolean;
   data: ShotContract[];
@@ -346,6 +512,7 @@ export async function buildShotContractsForBeats(
       generateTextFn,
       treatment,
       nextShotNumber,
+      pacing,
     );
     if (result.success) {
       allContracts.push(...result.data);

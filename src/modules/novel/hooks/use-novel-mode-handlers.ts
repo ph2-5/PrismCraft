@@ -10,7 +10,7 @@
  * - handleWorkflowModeChange：切换 semi-auto / full-auto 模式
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { WorkflowMode } from "../workflow";
 import { DEFAULT_PACING_CONFIG } from "../pacing";
 import type { SampleProject } from "../services/sample-projects";
@@ -64,6 +64,16 @@ export function useNovelModeHandlers({
   setWorkflowMode,
   isMountedRef,
 }: UseNovelModeHandlersOptions): UseNovelModeHandlersResult {
+  // P1.4 修复：保存 setTimeout 返回值，组件卸载时清理，避免卸载后 setState
+  const autoRunTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (autoRunTimerRef.current !== null) {
+        window.clearTimeout(autoRunTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleAutoRun = useCallback(() => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -75,7 +85,10 @@ export function useNovelModeHandlers({
         gates: getAutoGates({ ...prev.config, mode: "auto" }),
       },
     }));
-    window.setTimeout(() => setIsProcessing(false), PROCESSING_RESET_DELAY_MS);
+    autoRunTimerRef.current = window.setTimeout(() => {
+      autoRunTimerRef.current = null;
+      setIsProcessing(false);
+    }, PROCESSING_RESET_DELAY_MS);
   }, [isProcessing, setIsProcessing, setState]);
 
   const setCurrentSegmentIndex = useCallback((index: number) => {

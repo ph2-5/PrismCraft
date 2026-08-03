@@ -29,6 +29,7 @@ import {
 export type GenerateTextFn = (prompt: string, options?: {
   maxTokens?: number;
   temperature?: number;
+  taskType?: "treatment_extraction" | "structure_analysis" | "shot_contract" | "story_planning" | "frame_prompt";
 }) => Promise<{ success: boolean; data?: { text: string }; error?: string }>;
 
 /**
@@ -192,7 +193,7 @@ export async function extractTreatment(
 
   // 1. 构建提示词并调用 AI
   const prompt = buildTreatmentExtractionPrompt(segments, characters);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.5 });
+  const aiResult = await generateTextFn(prompt, { taskType: "treatment_extraction" });
 
   if (!aiResult.success || !aiResult.data?.text) {
     return {

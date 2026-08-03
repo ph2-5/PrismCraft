@@ -128,14 +128,14 @@ export default function Home() {
               {stories.length > 6 && (
                 <button
                   className="btn btn-outline btn-sm"
-                  onClick={() => navigate("/stories")}
+                  onClick={() => navigate("/story")}
                 >
                   {t("home.viewAll")}
                 </button>
               )}
               <button
                 className="btn btn-primary btn-sm"
-                onClick={() => navigate("/storyboard")}
+                onClick={() => navigate("/story")}
               >
                 + {t("home.newProject")}
               </button>
@@ -165,7 +165,7 @@ export default function Home() {
                 <div
                   key={story.id}
                   className="card home-project-card p-4 cursor-pointer transition-all hover:-translate-y-0.5"
-                  onClick={() => navigate(`/storyboard/${story.id}`)}
+                  onClick={() => navigate(`/story/${story.id}`)}
                 >
                   <div className="flex items-center gap-3 mb-2.5">
                     <div className="home-story-icon w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0">
@@ -192,7 +192,7 @@ export default function Home() {
             {stories.length === 0 && (
               <div
                 className="card home-empty-card p-4 flex items-center justify-center flex-col gap-2 transition-all"
-                onClick={() => navigate("/storyboard")}
+                onClick={() => navigate("/story")}
               >
                 <div className="text-3xl opacity-40"><Plus size={32} /></div>
                 <div className="text-[13px] text-muted-foreground">{t("home.newProject")}</div>

@@ -105,20 +105,18 @@ async function cleanupLocalFiles(paths: (string | null | undefined)[]): Promise<
   const validPaths = paths.filter((p): p is string => typeof p === "string" && p.length > 0 && isLocalFilePath(p));
   if (validPaths.length === 0) return;
   const fileStorage = await container.fileStorage;
-  for (const filePath of validPaths) {
-    try {
-      const deleted = await fileStorage.deleteFile(filePath);
-      if (!deleted) {
-        // 文件不存在不算失败，跳过
-        continue;
+  // P1.1 修复 N+1：并行删除文件，单个失败不阻塞其余，记录为 orphan 供后续清理
+  await Promise.allSettled(
+    validPaths.map(async (filePath) => {
+      try {
+        await fileStorage.deleteFile(filePath);
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        errorLogger.warn("[TransactionalDelete] Failed to delete file, recording as orphan", { filePath, reason });
+        await recordOrphanFile(filePath, reason);
       }
-    } catch (e) {
-      const reason = e instanceof Error ? e.message : String(e);
-      errorLogger.warn("[TransactionalDelete] Failed to delete file, recording as orphan", { filePath, reason });
-      // 记录到 orphan_files 表，供后续清理
-      await recordOrphanFile(filePath, reason);
-    }
-  }
+    }),
+  );
 }
 
 async function buildRemoveIdFromJsonArrayStatements(

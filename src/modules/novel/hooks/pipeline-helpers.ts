@@ -14,6 +14,7 @@
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
 import type { ToolContext } from "@/domain/types/agent-tools";
+import type { Story } from "@/domain/schemas";
 import type {
   PipelineState,
   PipelineConfig,
@@ -93,6 +94,65 @@ export function makeInitialState(config: PipelineConfig): PipelineState {
 }
 
 /**
+ * 已有故事模式：构造流水线初始状态。
+ *
+ * 用户期望流程为「先导入小说，再进行后续内容」，因此：
+ * - 定位到 content_import 阶段（导入小说），后续阶段由用户走完流水线
+ * - 预填 config.projectName / style（来自故事标题/题材）
+ * - 不注入分镜数据（从导入重新开始）
+ */
+export function makeStoryPipelineState(story: Story): PipelineState {
+  const config = makeDefaultConfig({
+    projectName: story.title,
+    style: story.genre || "现代",
+    format: "story",
+  });
+  return {
+    stage: "content_import",
+    step: 2,
+    config,
+    rawText: "",
+    segments: [],
+    currentSegmentIndex: 0,
+    characters: [],
+    scenes: [],
+    characterImportance: {},
+    prompts: [],
+    generationResults: [],
+    storyId: story.id,
+  };
+}
+
+/**
+ * 从工具调用结果中提取并按 name 去重。
+ *
+ * 提取自 extractAndMatchEntities，降低主函数圈复杂度（P2.3）。
+ * - 仅在 result 为 fulfilled 且 success 且 data 中指定字段为 Array 时返回非空数组
+ * - 按 name 精确去重（保留首次出现），AI 可能返回重复名称
+ */
+function extractAndDeduplicate<T extends { name?: string }>(
+  result: PromiseSettledResult<{ success: boolean; data?: unknown }>,
+  field: string,
+): T[] {
+  if (result.status !== "fulfilled" || !result.value.success || !result.value.data) {
+    return [];
+  }
+  const data = result.value.data as Record<string, T[]>;
+  if (!Array.isArray(data[field])) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const items: T[] = [];
+  for (const item of data[field]) {
+    const name = (item.name ?? "").trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    items.push(item);
+  }
+  return items;
+}
+
+/**
  * content_import → character_manage 阶段的实体提取与匹配逻辑。
  *
  * 调用 extractCharactersFromTextTool + extractScenesFromTextTool 并行提取，
@@ -114,42 +174,9 @@ export async function extractAndMatchEntities(
 
   if (!isMounted()) return null;
 
-  const extractedCharacters: ExtractedCharacter[] = [];
-  const extractedScenes: ExtractedScene[] = [];
-
-  if (
-    charResult.status === "fulfilled" &&
-    charResult.value.success &&
-    charResult.value.data
-  ) {
-    const data = charResult.value.data as { characters: ExtractedCharacter[] };
-    if (Array.isArray(data.characters)) {
-      // 内部去重保险：AI 仍可能返回重复名称，按 name 精确去重（保留首次）
-      const seen = new Set<string>();
-      for (const c of data.characters) {
-        const name = (c.name ?? "").trim();
-        if (!name || seen.has(name)) continue;
-        seen.add(name);
-        extractedCharacters.push(c);
-      }
-    }
-  }
-  if (
-    sceneResult.status === "fulfilled" &&
-    sceneResult.value.success &&
-    sceneResult.value.data
-  ) {
-    const data = sceneResult.value.data as { scenes: ExtractedScene[] };
-    if (Array.isArray(data.scenes)) {
-      const seen = new Set<string>();
-      for (const s of data.scenes) {
-        const name = (s.name ?? "").trim();
-        if (!name || seen.has(name)) continue;
-        seen.add(name);
-        extractedScenes.push(s);
-      }
-    }
-  }
+  // 内部去重保险：AI 仍可能返回重复名称，按 name 精确去重（保留首次）
+  const extractedCharacters = extractAndDeduplicate<ExtractedCharacter>(charResult, "characters");
+  const extractedScenes = extractAndDeduplicate<ExtractedScene>(sceneResult, "scenes");
 
   // 至少一个提取有结果时，调用 matchEntitiesTool 做匹配
   let matchedCharacters = extractedCharacters;

@@ -7,6 +7,7 @@ import { resolveCapability, safeTruncatePrompt } from "./config";
 import type { TextGenerationRequestBody, ChatCompletionRequestBody } from "./types";
 import { extractErrorMessage } from "@/shared/error-logger";
 import { GenerationError, ValidationError } from "@/domain/types/result";
+import { getRecommendedTextParams, type TextTaskType } from "@/shared/text-generation-params";
 
 export async function generateText(
   prompt: string,
@@ -15,26 +16,30 @@ export async function generateText(
     temperature?: number;
     providerId?: string;
     modelId?: string;
+    taskType?: TextTaskType;
   },
 ): Promise<ApiResponse<{ text: string }>> {
   try {
     const { truncated: safePrompt, wasTruncated } = safeTruncatePrompt(prompt);
 
+    let providerId = options?.providerId;
+    let modelId = options?.modelId;
+    if (!providerId || !modelId) {
+      const { provider, model } = await resolveCapability("text");
+      providerId = provider.id;
+      modelId = model.id;
+    }
+
+    const recommended = getRecommendedTextParams(modelId, options?.taskType ?? "chat");
+
     const requestBody: TextGenerationRequestBody = {
       prompt: safePrompt,
-      maxTokens: options?.maxTokens ?? 300,
-      temperature: options?.temperature ?? 0.7,
+      maxTokens: options?.maxTokens ?? recommended.maxTokens,
+      temperature: options?.temperature ?? recommended.temperature,
       promptWasTruncated: wasTruncated,
+      providerId,
+      modelId,
     };
-
-    if (options?.providerId && options?.modelId) {
-      requestBody.providerId = options.providerId;
-      requestBody.modelId = options.modelId;
-    } else {
-      const { provider, model } = await resolveCapability("text");
-      requestBody.providerId = provider.id;
-      requestBody.modelId = model.id;
-    }
 
     const result = await apiCallWithRetry<ApiResponse<{ text: string }>>(
       "generate-text",
@@ -65,6 +70,7 @@ export async function generateTextStream(
     temperature?: number;
     providerId?: string;
     modelId?: string;
+    taskType?: TextTaskType;
     tools?: ToolDef[];
     onChunk: (chunk: StreamChunk) => void;
     /** P1-1 修复：外部 abort 信号，让 Agent Loop 的取消按钮在 LLM 推理期间生效 */
@@ -79,21 +85,24 @@ export async function generateTextStream(
 
     const { truncated: safePrompt, wasTruncated } = safeTruncatePrompt(prompt);
 
+    let providerId = options?.providerId;
+    let modelId = options?.modelId;
+    if (!providerId || !modelId) {
+      const { provider, model } = await resolveCapability("text");
+      providerId = provider.id;
+      modelId = model.id;
+    }
+
+    const recommended = getRecommendedTextParams(modelId, options?.taskType ?? "chat");
+
     const requestBody: TextGenerationRequestBody & { tools?: ToolDef[] } = {
       prompt: safePrompt,
-      maxTokens: options?.maxTokens ?? 300,
-      temperature: options?.temperature ?? 0.7,
+      maxTokens: options?.maxTokens ?? recommended.maxTokens,
+      temperature: options?.temperature ?? recommended.temperature,
       promptWasTruncated: wasTruncated,
+      providerId,
+      modelId,
     };
-
-    if (options?.providerId && options?.modelId) {
-      requestBody.providerId = options.providerId;
-      requestBody.modelId = options.modelId;
-    } else {
-      const { provider, model } = await resolveCapability("text");
-      requestBody.providerId = provider.id;
-      requestBody.modelId = model.id;
-    }
 
     if (options?.tools && options.tools.length > 0) {
       requestBody.tools = options.tools;
@@ -136,12 +145,23 @@ export async function generateChat(
     temperature?: number;
     providerId?: string;
     modelId?: string;
+    taskType?: TextTaskType;
     tools?: ToolDef[];
     onChunk?: (chunk: StreamChunk) => void;
     signal?: AbortSignal;
   },
 ): Promise<ApiResponse<{ text: string }>> {
   try {
+    let providerId = options?.providerId;
+    let modelId = options?.modelId;
+    if (!providerId || !modelId) {
+      const { provider, model } = await resolveCapability("text");
+      providerId = provider.id;
+      modelId = model.id;
+    }
+
+    const recommended = getRecommendedTextParams(modelId, options?.taskType ?? "chat");
+
     const requestBody: ChatCompletionRequestBody = {
       messages: messages.map((m) => ({
         role: m.role,
@@ -150,18 +170,11 @@ export async function generateChat(
         ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
         ...(m.name ? { name: m.name } : {}),
       })),
-      maxTokens: options?.maxTokens ?? 4096,
-      temperature: options?.temperature ?? 0.7,
+      maxTokens: options?.maxTokens ?? recommended.maxTokens,
+      temperature: options?.temperature ?? recommended.temperature,
+      providerId,
+      modelId,
     };
-
-    if (options?.providerId && options?.modelId) {
-      requestBody.providerId = options.providerId;
-      requestBody.modelId = options.modelId;
-    } else {
-      const { provider, model } = await resolveCapability("text");
-      requestBody.providerId = provider.id;
-      requestBody.modelId = model.id;
-    }
 
     if (options?.tools && options.tools.length > 0) {
       requestBody.tools = options.tools;

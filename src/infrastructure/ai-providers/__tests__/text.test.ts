@@ -110,7 +110,8 @@ describe("generateText", () => {
     });
 
     const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body as string);
-    expect(callBody.maxTokens).toBe(300);
+    // 远程分支 P1.3：generateText 接入 taskType，默认 chat 类型推荐 maxTokens=2048
+    expect(callBody.maxTokens).toBe(2048);
     expect(callBody.temperature).toBe(0.7);
   });
 

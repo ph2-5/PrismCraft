@@ -44,6 +44,7 @@ import {
 import { usePreference } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { tryWithFallback } from "@/shared/utils/try-with-fallback";
 import { t } from "@/shared/constants";
 import { eventBus } from "@/shared/event-bus";
 import { DomainEvents } from "@/shared/event-types";
@@ -127,9 +128,7 @@ export function useAgent(): UseAgentReturn {
     registerAllTools();
     // P3 工具插件化：异步加载用户工具插件（不阻塞 UI）
     // 失败时记录警告，不阻塞 UI 主流程
-    void loadToolPlugins().catch((err) => {
-      errorLogger.warn("[useAgent] loadToolPlugins 失败", err instanceof Error ? err : undefined);
-    });
+    void tryWithFallback(loadToolPlugins, undefined, "[useAgent] loadToolPlugins 失败");
   }, []);
 
   // 持久化设置
@@ -201,22 +200,18 @@ export function useAgent(): UseAgentReturn {
 
   /** 刷新历史会话列表 */
   const refreshHistory = useCallback(async () => {
-    try {
-      const items = await listSessions();
-      setHistorySessions(items);
-    } catch (err) {
-      errorLogger.warn("[useAgent] 刷新历史会话列表失败", err instanceof Error ? err : undefined);
-    }
+    const items = await tryWithFallback(listSessions, [] as SessionListItem[], "[useAgent] 刷新历史会话列表失败");
+    setHistorySessions(items);
   }, []);
 
   /** 刷新中断会话列表（P5 断点恢复） */
   const refreshInterruptedSessions = useCallback(async () => {
-    try {
-      const items = await listInterruptedSessions();
-      setInterruptedSessions(items);
-    } catch (err) {
-      errorLogger.warn("[useAgent] 刷新中断会话列表失败", err instanceof Error ? err : undefined);
-    }
+    const items = await tryWithFallback(
+      listInterruptedSessions,
+      [] as CheckpointIndexEntry[],
+      "[useAgent] 刷新中断会话列表失败",
+    );
+    setInterruptedSessions(items);
   }, []);
 
   // 初始化：标记中断会话 + 加载最近的会话 + 历史列表

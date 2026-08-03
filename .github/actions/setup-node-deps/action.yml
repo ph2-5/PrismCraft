@@ -8,6 +8,11 @@ runs:
       shell: bash
       run: echo 'registry=https://registry.npmjs.org/' > .npmrc
 
+    - name: Setup Python for node-gyp
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.x"
+
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:

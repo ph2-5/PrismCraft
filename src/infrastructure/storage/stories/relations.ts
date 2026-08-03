@@ -39,13 +39,18 @@ function parseCharacterVariantIds(parsed: Record<string, unknown>): string[] | u
 
 function applyGenerationFields(beat: Record<string, unknown>, gen: Record<string, unknown> | null): void {
   if (!gen) return;
-  if (gen.keyframeImageUrl || gen.keyframePrompt) {
+  if (gen.keyframeImageUrl || gen.keyframePrompt || gen.keyframeReferencedPrevKeyframe) {
     beat.keyframe = {
       imageUrl: gen.keyframeImageUrl,
       prompt: gen.keyframePrompt,
       generatedAt: gen.keyframeGeneratedAt,
+      ...(gen.keyframeReferencedPrevKeyframe
+        ? { referencedPrevKeyframe: gen.keyframeReferencedPrevKeyframe }
+        : {}),
     };
   }
+  // 画布 3D 导演台：generation 容器还原（旧数据在 meta，applyMetaFields 兼容）
+  if (gen.blockout3D) beat.blockout3D = gen.blockout3D;
   if (gen.firstFrameUrl || gen.lastFrameUrl) {
     beat.framePair = {
       firstFrame: { imageUrl: gen.firstFrameUrl, prompt: gen.firstFramePrompt },

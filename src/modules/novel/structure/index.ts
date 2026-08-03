@@ -78,6 +78,7 @@ export {
   analyzeStoryStructure,
   suggestDurationByStructure,
   recalculateStoryStructure,
+  buildDirectorConfigForStory,
   DEFAULT_DURATION_ADJUSTMENTS,
 } from "./services/structure-analyzer";
 

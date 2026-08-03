@@ -1,11 +1,16 @@
 /**
- * P1-1: 故事库管理页面（/stories）
+ * 故事创作工作台（/story）
  *
- * 整合 P1-2（状态枚举）、P1-3（复制）、P1-4（搜索）功能，
- * 提供故事项目的统一管理入口：搜索、状态筛选、排序、复制、归档、删除。
+ * 用户设想：像编程一样"先新建项目，再进行细致编辑"。
+ * 已并入原 /stories（故事库）的完整管理能力：搜索、状态筛选、排序、
+ * 网格/列表切换、复制、归档、删除，并新增「新建项目」弹窗入口。
  *
- * 数据来源：useSearchStories（SQL 路径，支持 query/status/sort/paging）
- * 写操作：useUpdateStoryStatus / useDuplicateStory / useDeleteStory
+ * - 打开页面先显示项目总览（复用故事库卡片风格）
+ * - 没有故事时显示空态 +「新建项目」按钮
+ * - 「新建项目」弹窗：项目名称（必填）+ 故事题材（可选）→ 创建后进入故事创作页（三栏）进行细致编辑
+ *
+ * 数据源：useSearchStories / useStoryCount / useUpdateStoryStatus /
+ *         useDuplicateStory / useDeleteStory / useCreateStory（@/modules/storyboard）
  */
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -31,11 +36,12 @@ import {
   useUpdateStoryStatus,
   useDuplicateStory,
   useDeleteStory,
+  useCreateStory,
+  type StorySearchOptions,
 } from "@/modules/storyboard";
-import type { StorySearchOptions } from "@/modules/storyboard";
 import type { Story, StoryStatus } from "@/domain/schemas";
 import { cn } from "@/shared/utils/utils";
-import { StoryCard, StoryList } from "./StoryCard";
+import { StoryCard, StoryList } from "@/app/stories/StoryCard";
 
 // ── 常量与类型 ─────────────────────────────────────────────────────────────
 
@@ -57,7 +63,7 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 
 // ── 主页面 ────────────────────────────────────────────────────────────────
 
-export default function StoriesPage() {
+export default function StoryWorkbench() {
   const navigate = useNavigate();
   const toast = useToastHelpers();
 
@@ -68,6 +74,7 @@ export default function StoriesPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [page, setPage] = useState(0);
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Story | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<Story | null>(null);
   const [duplicateTitle, setDuplicateTitle] = useState("");
@@ -105,12 +112,12 @@ export default function StoriesPage() {
   const updateStatusMutation = useUpdateStoryStatus();
   const duplicateMutation = useDuplicateStory();
   const deleteMutation = useDeleteStory();
+  const createMutation = useCreateStory();
 
   const handleOpen = useCallback(
-    (story: Story) => navigate(`/storyboard/${story.id}`),
+    (story: Story) => navigate(`/story/${story.id}`),
     [navigate],
   );
-  const handleNewStory = useCallback(() => navigate("/story"), [navigate]);
 
   const handleStatusChange = useCallback(
     async (story: Story, status: StoryStatus) => {
@@ -155,6 +162,28 @@ export default function StoriesPage() {
     }
   }, [deleteTarget, deleteMutation, toast]);
 
+  const handleCreateStory = useCallback(
+    async (title: string, genre: string) => {
+      try {
+        const story = await createMutation.mutateAsync({
+          title,
+          genre: genre || undefined,
+          description: "",
+          characters: [],
+          scenes: [],
+          beats: [],
+          elementIds: [],
+        });
+        setNewDialogOpen(false);
+        // 先新建项目，然后进入故事创作页（三栏流水线）进行细致编辑
+        navigate(`/story/${story.id}`);
+      } catch {
+        toast.error(t("stories.createFailed"));
+      }
+    },
+    [createMutation, navigate, toast],
+  );
+
   const handleSortChange = useCallback((field: SortField) => {
     setSortBy(field);
     setPage(0);
@@ -172,7 +201,7 @@ export default function StoriesPage() {
   const showEmpty = !isLoading && stories.length === 0;
 
   return (
-    <PageErrorBoundary pageName={t("stories.pageTitle")}>
+    <PageErrorBoundary pageName={t("story.workbenchTitle")}>
       <div className="fade-in flex flex-col h-full overflow-hidden">
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
@@ -181,13 +210,13 @@ export default function StoriesPage() {
               <BookOpen size={20} />
             </div>
             <div>
-              <div className="text-lg font-bold">{t("stories.pageTitle")}</div>
-              <div className="text-xs text-muted-foreground">{t("stories.pageSubtitle")}</div>
+              <div className="text-lg font-bold">{t("story.workbenchTitle")}</div>
+              <div className="text-xs text-muted-foreground">{t("story.workbenchSubtitle")}</div>
             </div>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={handleNewStory}>
+          <button className="btn btn-primary btn-sm" onClick={() => setNewDialogOpen(true)}>
             <Plus size={14} className="inline-block mr-1" />
-            {t("stories.newStory")}
+            {t("story.workbenchNew")}
           </button>
         </div>
 
@@ -212,7 +241,7 @@ export default function StoriesPage() {
           hasMore={hasMore}
           totalCount={totalCount}
           onLoadMore={() => setPage((p) => p + 1)}
-          onNewStory={handleNewStory}
+          onNewStory={() => setNewDialogOpen(true)}
           onOpen={handleOpen}
           onDuplicate={handleDuplicateOpen}
           onStatusChange={handleStatusChange}
@@ -220,6 +249,12 @@ export default function StoriesPage() {
         />
       </div>
 
+      <NewStoryDialog
+        open={newDialogOpen}
+        isPending={createMutation.isPending}
+        onCancel={() => setNewDialogOpen(false)}
+        onCreate={handleCreateStory}
+      />
       <DeleteStoryDialog
         target={deleteTarget}
         isPending={deleteMutation.isPending}
@@ -386,12 +421,12 @@ function StoriesContent({
       ) : showEmpty ? (
         <EmptyState
           icon={FolderOpen}
-          title={t("stories.emptyTitle")}
-          description={t("stories.emptyDesc")}
+          title={t("story.workbenchEmptyTitle")}
+          description={t("story.workbenchEmptyDesc")}
           action={
             <button className="btn btn-primary" onClick={onNewStory}>
               <Plus size={16} className="inline-block mr-1" />
-              {t("stories.emptyAction")}
+              {t("story.workbenchEmptyAction")}
             </button>
           }
         />
@@ -434,6 +469,81 @@ function StoriesContent({
         </div>
       )}
     </div>
+  );
+}
+
+// ── 新建项目弹窗 ──────────────────────────────────────────────────────────
+
+function NewStoryDialog({
+  open,
+  isPending,
+  onCancel,
+  onCreate,
+}: {
+  open: boolean;
+  isPending: boolean;
+  onCancel: () => void;
+  onCreate: (title: string, genre: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState("");
+  const [genre, setGenre] = useState("");
+
+  const handleConfirm = useCallback(() => {
+    if (!title.trim() || isPending) return;
+    void onCreate(title.trim(), genre.trim());
+  }, [title, genre, isPending, onCreate]);
+
+  return (
+    <Modal open={open} onClose={onCancel} ariaLabel={t("stories.newDialogTitle")}>
+      <div className="p-5" style={{ minWidth: 400 }}>
+        <div className="flex items-center gap-2 text-base font-semibold mb-4">
+          <Plus className="w-5 h-5 text-primary" />
+          {t("stories.newDialogTitle")}
+        </div>
+
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+          {t("stories.newDialogNameLabel")}
+        </label>
+        <input
+          type="text"
+          className="input text-sm w-full mb-4"
+          placeholder={t("stories.newDialogNamePlaceholder")}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleConfirm();
+          }}
+        />
+
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+          {t("stories.newDialogGenreLabel")}
+        </label>
+        <input
+          type="text"
+          className="input text-sm w-full mb-4"
+          placeholder={t("stories.newDialogGenrePlaceholder")}
+          value={genre}
+          onChange={(e) => setGenre(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleConfirm();
+          }}
+        />
+
+        <div className="flex justify-end gap-2">
+          <button className="btn btn-outline" onClick={onCancel} disabled={isPending}>
+            {t("common.cancel")}
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleConfirm}
+            disabled={isPending || !title.trim()}
+          >
+            {isPending ? t("stories.creating") : t("stories.create")}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

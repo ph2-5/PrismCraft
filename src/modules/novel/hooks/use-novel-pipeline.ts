@@ -16,6 +16,7 @@
  * 依赖方向：仅依赖 domain/types + 同模块内子 hook + @/infrastructure/di（间接，通过子 hook）。
  */
 
+import { useEffect, useRef } from "react";
 import type {
   PipelineConfig,
   NovelProject,
@@ -33,10 +34,16 @@ import { useNovelTools } from "./use-novel-tools";
 import { useNovelStageTransitions } from "./use-novel-stage-transitions";
 import { usePipelinePersistence } from "./use-pipeline-persistence";
 import { useProgressiveExtraction } from "./use-progressive-extraction";
+import { makeStoryPipelineState } from "./pipeline-helpers";
 
 export interface UseNovelPipelineOptions {
   onComplete: () => void;
   initialConfig?: Partial<PipelineConfig>;
+  /**
+   * 已有故事模式：打开已创建的故事时，预填流水线（跳过 ModeSelector，
+   * 从 content_import「导入小说」阶段开始，后续流程与普通流水线一致）。
+   */
+  initialStory?: import("@/domain/schemas").Story | null;
 }
 
 export interface UseNovelPipelineResult {
@@ -174,6 +181,7 @@ export interface UseNovelPipelineResult {
 export function useNovelPipeline({
   onComplete,
   initialConfig,
+  initialStory,
 }: UseNovelPipelineOptions): UseNovelPipelineResult {
   // 1. 状态容器
   const {
@@ -184,6 +192,14 @@ export function useNovelPipeline({
     pacingConfig, setPacingConfig, workflowMode, setWorkflowMode,
     debounceRef, hasRecoveredRef, isMountedRef,
   } = usePipelineState({ initialConfig });
+
+  // 已有故事模式：挂载时预填流水线（跳过 ModeSelector，从导入阶段开始；仅注入一次）
+  const initialStoryInjectedRef = useRef(false);
+  useEffect(() => {
+    if (!initialStory || initialStoryInjectedRef.current) return;
+    initialStoryInjectedRef.current = true;
+    setState(makeStoryPipelineState(initialStory));
+  }, [initialStory, setState]);
 
   // 2. 派生 UI 标志
   const {

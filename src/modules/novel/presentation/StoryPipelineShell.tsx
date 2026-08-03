@@ -21,7 +21,7 @@
  * 三栏可独立滚动；窗口缩放时左右栏宽度固定，中栏 flex 自适应。
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Loader2, ArrowRight, ArrowLeft, Zap, Save, BarChart3, Settings } from "lucide-react";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
@@ -40,6 +40,7 @@ import { ModeSelector, type AiAssistLevel } from "./ModeSelector";
 import { QuickModePanel } from "./QuickModePanel";
 import { SampleProjectLoader } from "./SampleProjectLoader";
 import { OnboardingGuide } from "./OnboardingGuide";
+import { StoryShellToolbar } from "./StoryShellToolbar";
 import { WorkflowModeSelector } from "../workflow";
 import type { SampleProject } from "../services/sample-projects";
 
@@ -52,6 +53,11 @@ export interface StoryPipelineShellProps {
   onComplete: () => void;
   /** 可选：初始配置（默认 semi + professional） */
   initialConfig?: Partial<PipelineConfig>;
+  /**
+   * 已有故事模式：打开已创建的故事（跳过 ModeSelector，
+   * 从「导入小说」阶段开始，后续流程与普通流水线一致）。
+   */
+  initialStory?: import("@/domain/schemas").Story | null;
 }
 
 /**
@@ -66,6 +72,8 @@ export interface StoryPipelineShellProps {
  */
 interface UseShellStateOptions {
   pipeline: ReturnType<typeof useNovelPipeline>;
+  /** 已有故事模式：初始即跳过 ModeSelector */
+  initialModeSelected?: boolean;
 }
 
 interface UseShellStateResult {
@@ -93,7 +101,7 @@ interface UseShellStateResult {
   handleBack: () => void;
 }
 
-function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult {
+function useShellState({ pipeline, initialModeSelected = false }: UseShellStateOptions): UseShellStateResult {
   const {
     state,
     stagesForMode,
@@ -108,7 +116,16 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
   } = pipeline;
 
   const [overviewMode, setOverviewMode] = useState(false);
-  const [modeSelected, setModeSelected] = usePreference<boolean>(MODE_SELECTED_KEY, false);
+  // 已有故事模式固定跳过 ModeSelector（不读写 preference，避免污染全局模式记忆）
+  const [prefModeSelected, setPrefModeSelected] = usePreference<boolean>(MODE_SELECTED_KEY, false);
+  const modeSelected = initialModeSelected || prefModeSelected;
+  const setModeSelected: React.Dispatch<React.SetStateAction<boolean>> = useCallback(
+    (updater) => {
+      if (initialModeSelected) return;
+      setPrefModeSelected(updater);
+    },
+    [initialModeSelected, setPrefModeSelected],
+  );
   const [showSampleLoader, setShowSampleLoader] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = usePreference<boolean>(
     ONBOARDING_COMPLETED_KEY,
@@ -414,8 +431,9 @@ function StatusBar({
 // 主组件
 // ============================================================================
 
-export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineShellProps) {
-  const pipeline = useNovelPipeline({ onComplete, initialConfig });
+export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: StoryPipelineShellProps) {
+  const pipeline = useNovelPipeline({ onComplete, initialConfig, initialStory });
+  const isExistingStory = Boolean(initialStory);
   const {
     state, shots, selectedSegmentIds, isProcessing, isImporting,
     storyStructure, shotContracts, pacingConfig,
@@ -440,7 +458,7 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     showRecoveryDialog, nextLabel, nextDisabled, showAutoRun, progressStep,
     canGoBack, handleStageClick, handleModeSelect, handleSwitchMode,
     handleSampleLoad, handleOnboardingComplete, handleBack,
-  } = useShellState({ pipeline });
+  } = useShellState({ pipeline, initialModeSelected: isExistingStory });
 
   // 1. 模式未选择 → 显示 ModeSelector（或 SampleProjectLoader）
   if (!modeSelected) {
@@ -474,7 +492,19 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
 
   // 3. standard / professional 模式 → 完整三栏布局
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background fade-in">
+      {/* 顶部工具栏：项目名 + 进度 + 进入分镜编辑器 */}
+      <StoryShellToolbar
+        projectName={state.config.projectName}
+        style={state.config.style}
+        currentSegment={state.currentSegmentIndex + 1}
+        totalSegments={state.segments.length}
+        shotCount={shots.length}
+        completedShots={shots.filter((s) => s.status === "final").length}
+        characterCount={state.characters.length}
+        storyId={isExistingStory ? initialStory?.id : undefined}
+      />
+
       {/* 顶部 7 步指示器 */}
       <PhaseIndicator stage={state.stage} onStageClick={handleStageClick} />
 
@@ -569,8 +599,8 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
         />
       )}
 
-      {/* Task 2A.16: 新手引导 */}
-      {showOnboarding && (
+      {/* Task 2A.16: 新手引导（已有故事模式不展示） */}
+      {!isExistingStory && showOnboarding && (
         <OnboardingGuide
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingComplete}

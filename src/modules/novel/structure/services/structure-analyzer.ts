@@ -26,6 +26,11 @@ import {
   findClimaxPosition,
   inferOverallPacing,
 } from "../domain/narrative-beats";
+// P3.3：自动故事结构 → 导演规则配置
+import {
+  buildDirectorConfig,
+  type DirectorConfigOutput,
+} from "@/shared-logic/story";
 
 /**
  * AI 文本生成函数签名（解耦 infrastructure，便于测试）。
@@ -35,6 +40,7 @@ import {
 export type GenerateTextFn = (prompt: string, options?: {
   maxTokens?: number;
   temperature?: number;
+  taskType?: "structure_analysis" | "treatment_extraction" | "shot_contract" | "story_planning" | "frame_prompt";
 }) => Promise<{ success: boolean; data?: { text: string }; error?: string }>;
 
 /**
@@ -208,7 +214,7 @@ export async function analyzeStoryStructure(
 
   // 1. 构建提示词并调用 AI
   const prompt = buildStructureAnalysisPrompt(segments);
-  const aiResult = await generateTextFn(prompt, { maxTokens: 8192, temperature: 0.6 });
+  const aiResult = await generateTextFn(prompt, { taskType: "structure_analysis" });
 
   if (!aiResult.success || !aiResult.data?.text) {
     return {
@@ -343,4 +349,23 @@ export function recalculateStoryStructure(
     emotionCurve,
     climaxPosition,
   };
+}
+
+/**
+ * 基于故事结构自动生成导演规则配置（P3.3）。
+ *
+ * 将 NarrativeBeat[] 映射为导演配置（每 beat 的 beatType/emotionIntensity/pacing
+ * 与启用的规则），高潮 beat 自动启用 climaxIntensifyRule。
+ * 产出可直接用于 applyDirectorRules / frame-prompt 导演指导。
+ */
+export function buildDirectorConfigForStory(
+  beats: NarrativeBeat[],
+): DirectorConfigOutput {
+  return buildDirectorConfig(
+    beats.map((b) => ({
+      type: b.type,
+      emotionIntensity: b.emotionIntensity,
+      position: b.position,
+    })),
+  );
 }

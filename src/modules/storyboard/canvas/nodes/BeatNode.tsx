@@ -4,6 +4,7 @@ import { Box, Check, Clock, Image as ImageIcon, MapPin, User } from "lucide-reac
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { getBeatCharacterIds } from "@/domain/utils";
+import type { StoryBeat } from "@/domain/schemas";
 import { SHOT_SIZE_OPTIONS } from "@/modules/shot";
 import type { CanvasNode, BeatNodeData } from "../types";
 
@@ -40,12 +41,11 @@ export const BeatNode = memo(function BeatNode(
       })()
     : "";
 
-  const hasVideo = !!beat.videoGen?.videoUrl;
-  const hasFramePair = !!beat.framePair?.firstFrameUrl;
-  const hasKeyframe = !!beat.keyframe?.imageUrl;
-  const statusIcon = hasVideo || hasFramePair || hasKeyframe
-    ? <Check style={{ width: 11, height: 11, display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
-    : <Clock style={{ width: 11, height: 11, display: "inline", verticalAlign: "middle" }} aria-hidden="true" />;
+  const hasMedia = !!(
+    beat.videoGen?.videoUrl ||
+    beat.framePair?.firstFrameUrl ||
+    beat.keyframe?.imageUrl
+  );
 
   return (
     <div
@@ -128,8 +128,15 @@ export const BeatNode = memo(function BeatNode(
         >
           {beat.title || t("beat.shotNumber", { number: index + 1 })}
         </span>
-        <span className={hasVideo || hasFramePair || hasKeyframe ? "badge badge-success" : "badge"} style={{ fontSize: 10, padding: "2px 5px", flexShrink: 0 }}>
-          {statusIcon}
+        <span
+          className={hasMedia ? "badge badge-success" : "badge"}
+          style={{ fontSize: 10, padding: "2px 5px", flexShrink: 0 }}
+        >
+          {hasMedia ? (
+            <Check style={{ width: 11, height: 11, display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
+          ) : (
+            <Clock style={{ width: 11, height: 11, display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
+          )}
         </span>
       </div>
 
@@ -158,54 +165,72 @@ export const BeatNode = memo(function BeatNode(
         )}
       </div>
 
-      {/* 底部：景别/时长 + 绑定标签 */}
-      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-        <span
-          style={{
-            fontSize: 10,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--muted)",
-            color: "var(--muted-fg)",
-          }}
-        >
-          {shotLabel ? `${shotLabel}·` : ""}{beat.duration ?? 0}s
-        </span>
-        {charNames.slice(0, 3).map((name) => (
-          <span
-            key={name}
-            className="badge badge-info"
-            style={{ fontSize: 10, padding: "2px 6px" }}
-          >
-            <User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
-            {name}
-          </span>
-        ))}
-        {sceneName && (
-          <span
-            className="badge badge-success"
-            style={{ fontSize: 10, padding: "2px 6px" }}
-          >
-            <MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
-            {sceneName}
-          </span>
-        )}
-        {beat.blockout3D && (
-          <span
-            className="badge"
-            style={{
-              fontSize: 10,
-              padding: "2px 6px",
-              color: "var(--primary)",
-              border: "1px solid var(--primary)",
-            }}
-            title={`3D: ${beat.blockout3D.name}`}
-          >
-            <Box style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
-            3D
-          </span>
-        )}
-      </div>
+      <BeatNodeTags
+        beat={beat}
+        charNames={charNames}
+        sceneName={sceneName}
+        shotLabel={shotLabel}
+      />
     </div>
   );
 });
+
+interface BeatNodeTagsProps {
+  beat: StoryBeat;
+  charNames: string[];
+  sceneName: string | null | undefined;
+  shotLabel: string;
+}
+
+/** 底部标签区：景别/时长 + 角色 + 场景 + 3D 徽标 */
+function BeatNodeTags({ beat, charNames, sceneName, shotLabel }: BeatNodeTagsProps) {
+  return (
+    <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+      <span
+        style={{
+          fontSize: 10,
+          padding: "2px 6px",
+          borderRadius: 4,
+          background: "var(--muted)",
+          color: "var(--muted-fg)",
+        }}
+      >
+        {shotLabel ? `${shotLabel}·` : ""}{beat.duration ?? 0}s
+      </span>
+      {charNames.slice(0, 3).map((name) => (
+        <span
+          key={name}
+          className="badge badge-info"
+          style={{ fontSize: 10, padding: "2px 6px" }}
+        >
+          <User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+          {name}
+        </span>
+      ))}
+      {sceneName && (
+        <span
+          className="badge badge-success"
+          style={{ fontSize: 10, padding: "2px 6px" }}
+        >
+          <MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+          {sceneName}
+        </span>
+      )}
+      {beat.blockout3D && (
+        <span
+          className="badge"
+          style={{
+            fontSize: 10,
+            padding: "2px 6px",
+            color: "var(--primary)",
+            border: "1px solid var(--primary)",
+          }}
+          title={`3D: ${beat.blockout3D.name}`}
+        >
+          <Box style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+          3D
+        </span>
+      )}
+    </div>
+  );
+}

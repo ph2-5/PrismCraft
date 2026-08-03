@@ -116,6 +116,7 @@ async function regenerateBeatFramePair({
   const beats = story.beats || [];
   const beatIndex = beats.findIndex((b) => b.id === beat.id);
   const prevBeat = beatIndex > 0 ? beats[beatIndex - 1]! : null;
+  const nextBeat = beatIndex >= 0 && beatIndex < beats.length - 1 ? beats[beatIndex + 1]! : null;
 
   const { characterRefs, sceneRef, prevLastFrameUrl } = StoryGenerationService.resolveGenerationContext({
     beat,
@@ -136,12 +137,10 @@ async function regenerateBeatFramePair({
     autoGeneratePrompts: true,
     beatIndex,
     prevBeatDescription: prevBeat?.content || prevBeat?.description,
-    nextBeatDescription: (() => {
-      const nextBeat = beatIndex >= 0 && beatIndex < beats.length - 1
-        ? beats[beatIndex + 1]
-        : null;
-      return nextBeat?.content || nextBeat?.description;
-    })(),
+    nextBeatDescription: nextBeat?.content || nextBeat?.description,
+    // P3.1：传入前后镜头对象，驱动帧提示词的 180 度规则 / 动作匹配
+    prevBeat: prevBeat ?? undefined,
+    nextBeat: nextBeat ?? undefined,
   }, {
     videoProvider: container.videoProvider,
     imageProvider: container.imageProvider,

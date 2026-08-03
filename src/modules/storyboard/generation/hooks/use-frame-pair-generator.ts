@@ -23,18 +23,23 @@ interface UseFramePairGeneratorProps {
 
 interface BeatNeighbors {
   beatIndex: number;
+  prevBeat?: StoryBeat;
+  nextBeat?: StoryBeat;
   prevBeatDescription?: string;
   nextBeatDescription?: string;
 }
 
 function resolveBeatNeighbors(beats: StoryBeat[], beatId: string): BeatNeighbors {
   const beatIndex = beats.findIndex((b) => b.id === beatId);
+  const prevBeat = beatIndex > 0 ? beats[beatIndex - 1] : undefined;
   const nextBeat = beatIndex >= 0 && beatIndex < beats.length - 1
     ? beats[beatIndex + 1]
-    : null;
+    : undefined;
   return {
     beatIndex,
-    prevBeatDescription: undefined,
+    prevBeat,
+    nextBeat,
+    prevBeatDescription: prevBeat?.content || prevBeat?.description,
     nextBeatDescription: nextBeat?.content || nextBeat?.description,
   };
 }
@@ -78,6 +83,9 @@ function buildGenerationContext(args: {
     beatIndex: args.neighbors.beatIndex,
     prevBeatDescription: args.prevBeatDescription,
     nextBeatDescription: args.neighbors.nextBeatDescription,
+    // P3.1：透传前后镜头对象，驱动帧提示词的 180 度规则 / 动作匹配
+    prevBeat: args.neighbors.prevBeat,
+    nextBeat: args.neighbors.nextBeat,
     consistencyHint: args.consistencyHint,
   };
 }

@@ -7,6 +7,7 @@ import { t } from "@/shared/constants";
 import { type ProviderDeps, type VideoGenerationMode, determineVideoGenerationMode } from "./video-generation-mode";
 import { generateBeatKeyframe, generateBeatFramePair } from "./beat-frame-generator";
 import { generateBeatVideo } from "./beat-video-generator";
+import type { DirectorGuidanceOptions } from "./director-guidance";
 
 export async function generateBeatFullWorkflow(
   beat: StoryBeat,
@@ -24,6 +25,9 @@ export async function generateBeatFullWorkflow(
     beatIndex?: number;
     prevBeatDescription?: string;
     nextBeatDescription?: string;
+    /** P3.1：下一镜头对象 + 导演上下文（透传给帧提示词生成） */
+    nextBeat?: StoryBeat;
+    directorContext?: DirectorGuidanceOptions["context"];
   },
   providers: ProviderDeps,
   onProgress?: (step: string, progress: number) => void,
@@ -54,6 +58,10 @@ export async function generateBeatFullWorkflow(
         beatIndex: options.beatIndex,
         prevBeatDescription: options.prevBeatDescription,
         nextBeatDescription: options.nextBeatDescription,
+        // P3.1：透传前后镜头对象与导演上下文，使导演规则在主工作流生效
+        prevBeat: prevBeat ?? undefined,
+        nextBeat: options.nextBeat,
+        directorContext: options.directorContext,
       },
       providers,
     );
@@ -154,6 +162,8 @@ export async function generateFramePairChain(
     providerId?: string;
     modelId?: string;
     styleGuide?: StoryStyleGuide;
+    /** P3.1：导演上下文（beatType/emotionIntensity/pacing），驱动帧提示词的导演规则 */
+    directorContext?: DirectorGuidanceOptions["context"];
   },
   providers: ProviderDeps,
   onProgress?: (index: number, total: number, beatId: string) => void,
@@ -179,8 +189,10 @@ export async function generateFramePairChain(
       }
 
       try {
-        const prevBeatDescription = i > 0 ? beats[i - 1]!.content || beats[i - 1]!.description : undefined;
-        const nextBeatDescription = i < beats.length - 1 ? beats[i + 1]!.content || beats[i + 1]!.description : undefined;
+        const prevBeat = i > 0 ? beats[i - 1]! : undefined;
+        const nextBeat = i < beats.length - 1 ? beats[i + 1]! : undefined;
+        const prevBeatDescription = prevBeat?.content || prevBeat?.description;
+        const nextBeatDescription = nextBeat?.content || nextBeat?.description;
 
         const framePairResult = await generateBeatFramePair(beat, {
           characters: options.characters,
@@ -194,6 +206,10 @@ export async function generateFramePairChain(
           beatIndex: i,
           prevBeatDescription,
           nextBeatDescription,
+          // P3.1：传入前后镜头对象与导演上下文，让 180 度规则/动作匹配/高潮强化生效
+          prevBeat,
+          nextBeat,
+          directorContext: options.directorContext,
         }, providers);
 
         if (framePairResult.ok) {

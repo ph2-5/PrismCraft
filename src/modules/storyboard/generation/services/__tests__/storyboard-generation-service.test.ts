@@ -31,6 +31,8 @@ import {
   determineVideoGenerationMode,
 } from "../storyboard-generation-service";
 
+import { generateFramePrompts } from "../frame-prompt-service";
+
 const videoProvider = {
   generateKeyframe: vi.fn(),
   generateFramePair: vi.fn(),
@@ -337,6 +339,86 @@ describe("generateBeatFramePair", () => {
     const result = await generateBeatFramePair(beat, {}, providers);
 
     expectErr(result);
+  });
+
+  it("P3.1：自动生成提示词时透传 prevBeat/nextBeat/directorContext 给 generateFramePrompts", async () => {
+    const beat = { ...mockBeat, id: "beat-1", keyframe: mockKeyframe };
+    const prevBeat: StoryBeat = { ...mockBeat, id: "beat-0", sequence: 0, content: "上一镜头动作" };
+    const nextBeat: StoryBeat = { ...mockBeat, id: "beat-2", sequence: 2, content: "下一镜头动作" };
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    await generateBeatFramePair(beat, {
+      prevBeat,
+      nextBeat,
+      directorContext: { beatType: "climax", emotionIntensity: 0.8, pacing: "fast" },
+      autoGeneratePrompts: true,
+      characters: [],
+      scenes: [],
+    }, providers);
+
+    const calls = vi.mocked(generateFramePrompts).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const arg = calls[0]![0]!;
+    expect(arg.prevBeat?.id).toBe("beat-0");
+    expect(arg.nextBeat?.id).toBe("beat-2");
+    expect(arg.directorContext).toEqual({ beatType: "climax", emotionIntensity: 0.8, pacing: "fast" });
+  });
+});
+
+describe("generateFramePairChain", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("P3.1：批量生成时向每个 beat 传入相邻镜头对象", async () => {
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    const beats: StoryBeat[] = [
+      { ...mockBeat, id: "beat-0", sequence: 0, keyframe: mockKeyframe },
+      { ...mockBeat, id: "beat-1", sequence: 1, keyframe: mockKeyframe },
+      { ...mockBeat, id: "beat-2", sequence: 2, keyframe: mockKeyframe },
+    ];
+
+    const { generateFramePairChain } = await import("../storyboard-generation-service");
+
+    const result = await generateFramePairChain(beats, {
+      characters: [],
+      scenes: [],
+      directorContext: { beatType: "rising_action", emotionIntensity: 0.6 },
+    }, providers);
+
+    expectOk(result);
+    const calls = vi.mocked(generateFramePrompts).mock.calls;
+    // 三个 beat 都走自动生成
+    expect(calls.length).toBe(3);
+
+    // beat-1 的前后镜头应为 beat-0 / beat-2
+    const middleCall = calls.find((c) => c[0]!.beat.id === "beat-1")!;
+    expect(middleCall[0]!.prevBeat?.id).toBe("beat-0");
+    expect(middleCall[0]!.nextBeat?.id).toBe("beat-2");
+
+    // 导演上下文透传
+    expect(middleCall[0]!.directorContext).toEqual({ beatType: "rising_action", emotionIntensity: 0.6 });
+
+    // 首尾 beat 无对应相邻对象
+    const firstCall = calls.find((c) => c[0]!.beat.id === "beat-0")!;
+    expect(firstCall[0]!.prevBeat).toBeUndefined();
+    const lastCall = calls.find((c) => c[0]!.beat.id === "beat-2")!;
+    expect(lastCall[0]!.nextBeat).toBeUndefined();
   });
 });
 

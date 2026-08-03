@@ -3,6 +3,7 @@ import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat, StoryBeatKeyframe, Character, Scene, StoryElement, StoryStyleGuide } from "@/domain/schemas";
 import { generateBeatImagePrompt } from "@/domain/utils";
 import { generateFramePrompts } from "./frame-prompt-service";
+import type { DirectorGuidanceOptions } from "./director-guidance";
 import { type ProviderDeps, buildStyleEnhancedPrompt } from "./video-generation-mode";
 import { getModelCapabilities } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";
@@ -134,6 +135,11 @@ type FramePairOptions = {
   beatIndex?: number;
   prevBeatDescription?: string;
   nextBeatDescription?: string;
+  /** P3.1：同一场景中的前/后镜头对象（驱动 180 度规则 / 动作匹配的连续性判断） */
+  prevBeat?: StoryBeat;
+  nextBeat?: StoryBeat;
+  /** P3.1：导演上下文（beatType/emotionIntensity/pacing/tone），驱动高潮强化/抒情远景/快速节奏 */
+  directorContext?: DirectorGuidanceOptions["context"];
   consistencyHint?: string;
 };
 
@@ -170,6 +176,10 @@ async function autoGenerateMissingPrompts(
     styleGuide: options.styleGuide,
     prevBeatDescription: options.prevBeatDescription,
     nextBeatDescription: options.nextBeatDescription,
+    // P3.1：透传前后镜头对象与导演上下文，使 180 度规则/动作匹配/高潮强化在生成链路生效
+    prevBeat: options.prevBeat,
+    nextBeat: options.nextBeat,
+    directorContext: options.directorContext,
     textProvider: providers.textProvider,
   });
 

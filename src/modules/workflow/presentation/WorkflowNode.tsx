@@ -37,9 +37,34 @@ const KIND_LABELS: Record<string, string> = {
   output: "workflow.kind.output",
 };
 
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+/** 智能摘要节点输出：优先展示业务字段（text/beats/characters/scenes/tasks/images） */
+function summarizeOutput(output: unknown): string {
+  if (output === null || output === undefined) return "";
+  if (typeof output === "string") return truncate(output, 40);
+  if (Array.isArray(output)) return `array[${output.length}]`;
+  if (typeof output === "object") {
+    const record = output as Record<string, unknown>;
+    for (const key of ["text", "beats", "characters", "scenes", "tasks", "images", "consistency"] as const) {
+      if (key in record) {
+        const v = record[key];
+        if (typeof v === "string") return truncate(v, 40);
+        if (Array.isArray(v)) return `${key}[${v.length}]`;
+        if (v && typeof v === "object") return key;
+      }
+    }
+    return truncate(JSON.stringify(record), 40);
+  }
+  return truncate(String(output), 40);
+}
+
 export const WorkflowNode = memo(function WorkflowNode(props: NodeProps) {
   const data = props.data as WorkflowNodeData;
-  const status = useWorkflowStore((s) => s.run?.nodeStates[props.id]?.status ?? "pending");
+  const runState = useWorkflowStore((s) => s.run?.nodeStates[props.id]);
+  const status = runState?.status ?? "pending";
   const selected = useWorkflowStore((s) => s.selectedNodeId === props.id);
   const removeNode = useWorkflowStore((s) => s.removeNode);
   const selectNode = useWorkflowStore((s) => s.selectNode);
@@ -49,6 +74,10 @@ export const WorkflowNode = memo(function WorkflowNode(props: NodeProps) {
 
   const statusColor =
     status === "running" ? "var(--warning)" : status === "completed" ? "var(--success)" : status === "failed" ? "var(--destructive)" : "var(--muted-fg)";
+
+  const output = runState?.output;
+  const hasOutput = output !== null && output !== undefined;
+  const error = runState?.error;
 
   return (
     <div
@@ -106,6 +135,20 @@ export const WorkflowNode = memo(function WorkflowNode(props: NodeProps) {
         />
         <span className="text-[10px]">{t(`workflow.nodeStatus.${status}`)}</span>
       </div>
+
+      {/* 输出摘要 / 错误提示 */}
+      {status === "failed" && error && (
+        <div className="mt-1.5 pt-1 border-t border-border text-[10px] break-all leading-[1.5]" style={{ color: "var(--destructive)" }}>
+          <span className="opacity-70">{t("workflow.nodeError")}: </span>
+          {truncate(error, 60)}
+        </div>
+      )}
+      {status === "completed" && hasOutput && (
+        <div className="mt-1.5 pt-1 border-t border-border text-[10px] break-all leading-[1.5] text-muted-foreground">
+          <span className="opacity-70">{t("workflow.nodeOutput")}: </span>
+          {summarizeOutput(output)}
+        </div>
+      )}
     </div>
   );
 });

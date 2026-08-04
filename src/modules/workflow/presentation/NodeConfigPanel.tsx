@@ -34,6 +34,34 @@ function TextConfigField({
   );
 }
 
+function SingleLineConfigField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <input
+        className="input text-xs"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  );
+}
+
+/** 需要 modelId / providerId / style 配置的 subtype 集合（与 DEFAULT_SUBTYPE_CONFIG 对应） */
+const LLM_SUBTYPES = new Set(["character-extract", "scene-extract", "style-transfer", "shot-breakdown"]);
+const MODEL_OUTPUT_SUBTYPES = new Set(["video-generate", "image-generate"]);
+
 export const NodeConfigPanel = memo(function NodeConfigPanel() {
   const selectedId = useWorkflowStore((s) => s.selectedNodeId);
   const node = useWorkflowStore((s) => s.nodes.find((n) => n.id === s.selectedNodeId));
@@ -59,6 +87,8 @@ export const NodeConfigPanel = memo(function NodeConfigPanel() {
   const textValue = typeof data.config.text === "string" ? data.config.text : "";
   const promptValue = typeof data.config.prompt === "string" ? data.config.prompt : "";
   const modelIdValue = typeof data.config.modelId === "string" ? data.config.modelId : "";
+  const providerIdValue = typeof data.config.providerId === "string" ? data.config.providerId : "";
+  const styleValue = typeof data.config.style === "string" ? data.config.style : "";
 
   return (
     <div className="w-64 shrink-0 border-l border-border p-3 overflow-y-auto bg-card2/40 flex flex-col gap-3">
@@ -95,28 +125,49 @@ export const NodeConfigPanel = memo(function NodeConfigPanel() {
             placeholder={t("workflow.configPromptPlaceholder")}
             onChange={(v) => setConfig({ prompt: v })}
           />
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] text-muted-foreground">{t("workflow.configModelId")}</span>
-            <input
-              className="input text-xs"
-              value={modelIdValue}
-              placeholder="doubao-seedance-1-0-pro-250528"
-              onChange={(e) => setConfig({ modelId: e.target.value })}
-            />
-          </label>
+          <SingleLineConfigField
+            label={t("workflow.configModelId")}
+            value={modelIdValue}
+            placeholder={t("workflow.configModelIdPlaceholder")}
+            onChange={(v) => setConfig({ modelId: v })}
+          />
         </>
       )}
 
-      {(data.subtype === "video-generate" || data.subtype === "image-generate") && (
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-muted-foreground">{t("workflow.configModelId")}</span>
-          <input
-            className="input text-xs"
+      {/* LLM 提取 / 改写类节点：支持模型选择（留空使用全局默认） */}
+      {LLM_SUBTYPES.has(data.subtype) && (
+        <SingleLineConfigField
+          label={t("workflow.configModelId")}
+          value={modelIdValue}
+          placeholder={t("workflow.configModelIdPlaceholder")}
+          onChange={(v) => setConfig({ modelId: v })}
+        />
+      )}
+
+      {data.subtype === "style-transfer" && (
+        <SingleLineConfigField
+          label={t("workflow.configStyle")}
+          value={styleValue}
+          placeholder={t("workflow.configStylePlaceholder")}
+          onChange={(v) => setConfig({ style: v })}
+        />
+      )}
+
+      {/* 视频 / 图片生成节点：模型 + provider */}
+      {MODEL_OUTPUT_SUBTYPES.has(data.subtype) && (
+        <>
+          <SingleLineConfigField
+            label={t("workflow.configModelId")}
             value={modelIdValue}
             placeholder={t("workflow.configModelIdPlaceholder")}
-            onChange={(e) => setConfig({ modelId: e.target.value })}
+            onChange={(v) => setConfig({ modelId: v })}
           />
-        </label>
+          <SingleLineConfigField
+            label={t("workflow.configProviderId")}
+            value={providerIdValue}
+            onChange={(v) => setConfig({ providerId: v })}
+          />
+        </>
       )}
 
       <div className="text-[10px] text-muted-foreground mt-1">

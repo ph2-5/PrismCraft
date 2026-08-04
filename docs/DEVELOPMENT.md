@@ -87,7 +87,7 @@ prismcraft-source-code/
 ```
 src/
 ├── domain/          → 纯类型、Schema、Result 类型。禁止导入 modules/ 或 infrastructure/
-├── modules/         → 42 个业务模块（核心业务 25 / 基础设施 4 / 工具 13；完整清单见 [MODULES.md](MODULES.md)）
+├── modules/         → 43 个业务模块（核心业务 26 / 基础设施 4 / 工具 13；完整清单见 [MODULES.md](MODULES.md)）
 ├── infrastructure/  → DI 容器、存储、网络、API 客户端、AI 提供商
 ├── shared/          → 跨模块 UI（Toast、Sidebar、ErrorBoundary）、工具函数、错误日志
 ├── app/             → 页面组件和布局（通过 Context 消费模块）
@@ -145,7 +145,7 @@ electron/src/
 
 ### 3.1 创建新功能
 
-1. **确定所属模块**：新功能应归入现有 42 个模块之一（完整清单见 [MODULES.md](MODULES.md)）。若无法归入，考虑创建新模块。
+1. **确定所属模块**：新功能应归入现有 43 个模块之一（完整清单见 [MODULES.md](MODULES.md)）。若无法归入，考虑创建新模块。
 2. **阅读模块契约**：按顺序阅读 `MODULE.md` → `contract.json` → `.ai/modules/{module}.md` → `index.ts`。
 3. **在对应子域中开发**：
    - 业务逻辑 → `services/`
@@ -553,7 +553,7 @@ if (!isElectron()) {
 
 | 文档 | 用途 |
 |------|------|
-| [MODULES.md](MODULES.md) | 42 个模块全景图（子域、Public API、依赖详情） |
+| [MODULES.md](MODULES.md) | 43 个模块全景图（子域、Public API、依赖详情） |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 全局架构、依赖方向、状态机、数据流 |
 | [PROJECT-GUIDE.md](PROJECT-GUIDE.md) | 项目全方位指南 |
 | [AI-MAINTENANCE-GUIDE.md](AI-MAINTENANCE-GUIDE.md) | AI 维护操作手册 |

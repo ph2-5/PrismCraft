@@ -181,7 +181,7 @@ prismcraft/
 │   ├── domain/             # 纯类型层，零依赖
 │   ├── shared/             # 跨模块通用层（UI 组件、工具函数、常量）
 │   ├── infrastructure/     # 基础设施层（DI 容器、存储、AI 提供商）
-│   ├── modules/            # 42 个业务模块（核心业务 25 / 基础设施 4 / 工具 13）
+│   ├── modules/            # 43 个业务模块（核心业务 26 / 基础设施 4 / 工具 13）
 │   └── app/                # 页面组件和布局
 ├── electron/src/           # 主进程源代码
 │   ├── database/           # SQLite Schema + 迁移
@@ -285,7 +285,7 @@ prismcraft/
 
 如有技术问题或购买意向，请联系：
 
-- 项目版本：v1.4.0
+- 项目版本：v1.5.0
 - 技术文档：`docs/ARCHITECTURE.md`
 - 插件规范：`docs/plugin-specification.md`
 

@@ -1,6 +1,6 @@
 # PrismCraft — 用户自定义插件规范
 
-> 版本：1.4.0 | 最后更新：2026-07-24
+> 版本：1.5.0 | 最后更新：2026-08-04
 
 ## 概述
 
@@ -1055,6 +1055,6 @@ A: 不可以。保留 ID 是硬禁止的，用户插件不能使用与内置插�
 
 | 文档 | 用途 |
 |------|------|
-| [MODULES.md](MODULES.md) | 模块全景图（42 个模块），了解插件系统在整体架构中的位置 |
+| [MODULES.md](MODULES.md) | 模块全景图（43 个模块），了解插件系统在整体架构中的位置 |
 | [agent-tools-architecture.md](agent-tools-architecture.md) | Agent 工具架构（154 个工具 / 20 个域），插件能力可被 Agent 工具调用 |
 | [README.md](README.md) | 文档索引 |

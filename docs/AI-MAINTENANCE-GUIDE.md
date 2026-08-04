@@ -8,7 +8,7 @@
 
 ```
 1. docs/ARCHITECTURE.md          → 全局架构、依赖方向、状态机、数据流
-2. docs/MODULES.md               → 42 个模块全景图（定位目标模块、子域、依赖）
+2. docs/MODULES.md               → 43 个模块全景图（定位目标模块、子域、依赖）
 3. src/modules/{target}/MODULE.md → 目标模块公共 API、不变量、依赖
 4. src/modules/{target}/{subdomain}/contract.json → 子域合约、invariants
 5. `.trae/rules/regression/` → 152 条回归守则（R1–R191，编号非连续）
@@ -17,7 +17,7 @@
 
 **总阅读量**：~10,500 字（全局 + 目标模块 + 本文档），2 分钟内可完成。
 
-> **模块定位提示**：项目现有 42 个模块（核心业务 25 / 基础设施 4 / 工具 13）、56 个子域。修改前先用 [MODULES.md](MODULES.md) 定位目标模块及其子域结构，避免误改相邻模块。Agent 工具架构详见 [agent-tools-architecture.md](agent-tools-architecture.md)，DI Token 清单详见 [di-tokens.md](di-tokens.md)。
+> **模块定位提示**：项目现有 43 个模块（核心业务 26 / 基础设施 4 / 工具 13）、56 个子域。修改前先用 [MODULES.md](MODULES.md) 定位目标模块及其子域结构，避免误改相邻模块。Agent 工具架构详见 [agent-tools-architecture.md](agent-tools-architecture.md)，DI Token 清单详见 [di-tokens.md](di-tokens.md)。
 
 ---
 
@@ -52,11 +52,11 @@
 ### 2.3 新增数据库表
 
 ```
-1. 在 electron/src/database/db-schema.ts 添加 TableDef
+1. 在 electron/src/database/db-tables.ts 添加 TableDef（db-schema.ts 仅负责组装 SQL 与执行迁移）
 2. 设置 featureGroup（core/video/sync/templates/assets）
 3. 包含 BASE_COLUMNS（owner_id, created_at, updated_at, is_deleted, deleted_at, version, sync_id）
 4. 易变字段用 JSON 容器列（config, provider, media_refs 等）
-5. 递增 CURRENT_SCHEMA_VERSION
+5. 递增 CURRENT_SCHEMA_VERSION（migrations.ts）
 6. 在 MIGRATIONS 数组添加迁移函数
 7. 迁移函数使用 db.transaction() 包装
 8. 在 electron/src/database/json-schemas.ts 添加对应 parse 函数
@@ -167,7 +167,7 @@ npm run build:win              # 构建 Windows NSIS 安装包
 |---------|--------------|
 | 新增/修改模块公共 API | MODULE.md + contract.json + index.ts + docs/MODULES.md（模块全景图） |
 | 新增 DI Token | container.ts（添加类别注释）+ docs/di-tokens.md |
-| 新增数据库表/列 | db-schema.ts + json-schemas.ts + MIGRATIONS |
+| 新增数据库表/列 | db-tables.ts + db-schema.ts + json-schemas.ts + MIGRATIONS |
 | 新增回归守则 | regression-guards.md + project_rules.md |
 | 架构变更 | ARCHITECTURE.md |
 | 新增共享代理导出 | 对应 @/shared/ 模块 + ARCHITECTURE.md 5.4 节 |
@@ -180,7 +180,7 @@ npm run build:win              # 构建 Windows NSIS 安装包
 
 | 文档 | 用途 |
 |------|------|
-| [MODULES.md](MODULES.md) | 42 个模块全景图（子域、Public API、依赖详情） |
+| [MODULES.md](MODULES.md) | 43 个模块全景图（子域、Public API、依赖详情） |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 全局架构、依赖方向、状态机、数据流 |
 | [di-tokens.md](di-tokens.md) | DI 容器 46 个 Token 清单（6 类 A-F） |
 | [ports.md](ports.md) | Port 接口清单（含分类、依赖方向图） |

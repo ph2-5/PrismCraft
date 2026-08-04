@@ -22,7 +22,7 @@ AI 修改代码时，先读契约（约 130 行/子域），再读实现。契�
 
 ### 为什么选择 DDD
 
-项目包含 42 个模块（核心业务 25 / 基础设施 4 / 工具 13，详见 [MODULES.md](MODULES.md)），共 56 个子域，每个模块有独立的演化节奏。storyboard 模块 19878 行代码、5 个子域，而 persistence 模块仅 982 行。DDD 的子域划分确保大模块内部不会因无序依赖而腐化，跨模块的依赖必须通过桶文件（barrel file）的公共 API，深层路径导入被 ESLint 规则和架构扫描脚本双重拦截。这种约束在多模块、多子域的规模下是必要的——没有它，模块边界会在数周内模糊消失。
+项目包含 43 个模块（核心业务 26 / 基础设施 4 / 工具 13，详见 [MODULES.md](MODULES.md)），共 56 个子域，每个模块有独立的演化节奏。storyboard 模块 19878 行代码、5 个子域，而 persistence 模块仅 982 行。DDD 的子域划分确保大模块内部不会因无序依赖而腐化，跨模块的依赖必须通过桶文件（barrel file）的公共 API，深层路径导入被 ESLint 规则和架构扫描脚本双重拦截。这种约束在多模块、多子域的规模下是必要的——没有它，模块边界会在数周内模糊消失。
 
 ## 二、技术栈与构建体系
 
@@ -67,7 +67,7 @@ GitHub Actions 执行完整验证链：lint → typecheck → architecture check
 
 ```
 app/             → React Router 页面和布局，消费模块提供的 Context
-modules/         → 42 个模块（核心业务 25 / 基础设施 4 / 工具 13），共 56 个子域，每个有 hooks/services/presentation
+modules/         → 43 个模块（核心业务 26 / 基础设施 4 / 工具 13），共 56 个子域，每个有 hooks/services/presentation
 shared-logic/    → 纯逻辑层，零外部依赖：提示词引擎、引用引擎、视频追踪、一致性检查
 shared/          → 跨切面 UI（Toast、Sidebar、ErrorBoundary、DeleteConfirmDialog、AssetSelectorDialog）、工具函数、infrastructure 代理导出
 infrastructure/  → DI 容器、存储、网络、AI Provider、数据库
@@ -76,7 +76,7 @@ domain/          → 纯类型、Schema、Result 类型、错误码。零外部�
 
 **domain 层**是整个系统的核心。它定义了所有业务类型（Story、Character、Scene、VideoTask 等）、Result 类型（`ok(value)` / `err(code, message)`）、12 个语义化错误类（DatabaseError、ValidationError、ApiError 等）和 35 个结构化错误码。domain 层零依赖意味着类型定义不会因基础设施变更而被迫修改——这是 DDD 中"依赖必须向内流动"原则的基石。
 
-**modules 层**包含 42 个模块（核心业务 25 / 基础设施 4 / 工具 13），每个模块遵循 `index.ts`（桶文件）+ `MODULE.md`（契约）+ 子域目录的结构。模块只能导入 `@/domain/*`、`@/shared/*` 和 `@/infrastructure/di`（通过 DI 容器获取基础设施实例）。详见 [MODULES.md](MODULES.md) 获取 42 个模块的完整清单。
+**modules 层**包含 43 个模块（核心业务 26 / 基础设施 4 / 工具 13），每个模块遵循 `index.ts`（桶文件）+ `MODULE.md`（契约）+ 子域目录的结构。模块只能导入 `@/domain/*`、`@/shared/*` 和 `@/infrastructure/di`（通过 DI 容器获取基础设施实例）。详见 [MODULES.md](MODULES.md) 获取 43 个模块的完整清单。
 
 **infrastructure 层**提供存储、网络、AI Provider 等基础设施。它只能导入 `@/domain/*` 和 `@/shared/*`，不得导入 `@/modules/*`——这确保基础设施不依赖业务逻辑。
 

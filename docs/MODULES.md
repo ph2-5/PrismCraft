@@ -1,7 +1,7 @@
 # 模块全景图
 
-> 自动生成于 2026-07-23。基于 `src/modules/` 目录实际代码扫描。
-> 模块总数：**42 个**（核心业务 25 / 基础设施 4 / 工具 13）
+> 自动生成于 2026-08-04。基于 `src/modules/` 目录实际代码扫描。
+> 模块总数：**43 个**（核心业务 26 / 基础设施 4 / 工具 13）
 > 子域总数：**56 个**（含子域 `index.ts` 的嵌套模块）
 
 ---
@@ -10,7 +10,7 @@
 
 模块按功能职责分为三大类，不按字母顺序排列。分类依据为模块 `MODULE.md` 契约与 `index.ts` 公共 API 的实际职责。
 
-### 1. 核心业务模块（25 个）
+### 1. 核心业务模块（26 个）
 
 承载 PrismCraft 的核心创作流程：智能体编排、资产管理、角色/场景/分镜/视频生成、小说导入、镜头编辑、合成与时间线。
 
@@ -41,6 +41,7 @@
 | 23 | `video` | 6 | 视频任务 CQRS + 缓存 + 恢复 + 一致性 QC + 局部编辑 |
 | 24 | `video-compose` | 0 | 视频片段合成（15 种转场） |
 | 25 | `video-tasks` | 0 | 视频任务列表页面型模块（路由入口） |
+| 26 | `workflow` | 0 | Phase 7 节点化工作流：可视化节点编辑器 + 执行引擎 + 预设模板 |
 
 ### 2. 基础设施模块（4 个）
 
@@ -104,6 +105,7 @@
 | video | `src/modules/video/` | 视频任务管理 | 6 | 视频任务 CQRS, cache, recovery, consistency-qc, partial-edit | `sync` |
 | video-compose | `src/modules/video-compose/` | 视频片段合成 | 0 | `VideoComposePanel`, `composeVideoSegments`, `useVideoCompose` | `ffmpeg-runner`, `video` |
 | video-tasks | `src/modules/video-tasks/` | 视频任务列表页面 | 0 | `VideoTasksPage` | `video` |
+| workflow | `src/modules/workflow/` | 节点化工作流 | 0 | `WorkflowEditor`, `useWorkflowStore`, `WorkflowRunner`, `registerNodeExecutor`, `WORKFLOW_TEMPLATES` | `video`, `shot` |
 | persistence | `src/modules/persistence/` | 自动保存与引用保护 | 0 | `useAutoSave`, `deleteCharacterWithRefs`, `deleteSceneWithRefs` | 无 |
 | sync | `src/modules/sync/` | 同步引擎 | 2 | `initSyncEngine`, `performSync`, `SyncSettingsPanel` | 无 |
 | vector-search | `src/modules/vector-search/` | 向量检索 | 0 | `VectorSearchEngine`, strategies, store | 无 |
@@ -459,6 +461,7 @@
 - **子域**: 无
 - **Public API**: 9 个生成工具 + 10 个图像编辑工具
 - **MODULE.md**: 生成工具模块，从 agent 拆分而来
+- **实现拆分**（Q3，对外 API 不变）：`generation-tools.ts` 为 barrel 汇总；生成工具按能力拆分为 `image-tools.ts`（4 图像工具）、`text-tool.ts`（`generateTextTool`）、`audio-tools.ts`（4 音频工具）
 - **依赖**: `video`, `prompt`
 
 ### 32. agent-tools-media
@@ -560,16 +563,25 @@
 - **MODULE.md**: 工作流工具模块，从 agent 拆分而来；通过 DI container 异步获取 `toolExecutor`/`toolRegistry` 避免静态依赖
 - **依赖**: `agent`（经 DI container 异步获取，无静态导入）
 
+### 43. workflow（Phase 7 新增）
+
+- **路径**: `src/modules/workflow/`
+- **职责**: Phase 7 节点化工作流 — React Flow 可视化节点编辑器 + 拓扑执行引擎 + 预设模板（一键成片 / 分镜优先 / 质量优先）
+- **子域**: 0（含 `domain/` + `hooks/` + `services/` + `presentation/` 分层）
+- **Public API**: `WorkflowEditor`（主编辑器）、`WorkflowSidebar` + `NodeConfigPanel` + `WorkflowNode`（编辑器组件）、`useWorkflowStore`（状态）、`WorkflowRunner`/`workflowRunner`（执行引擎）、`registerNodeExecutor`/`registerBuiltinExecutors`（executor 注册表）、`validateWorkflow`/`validateEdge`/`topologicalSort`（验证）、`WORKFLOW_TEMPLATES` + `createOneClickFilmTemplate`/`createShotFirstTemplate`/`createQualityFirstTemplate`（模板）、节点类型常量 `INPUT_SUBTYPES`/`PROCESS_SUBTYPES`/`OUTPUT_SUBTYPES`
+- **MODULE.md**: 待补充（Phase 7 新增模块，含 14 种内置 executor 说明）
+- **依赖**: `video`（CQRS `createTask`）、`shot`（`checkVisualConsistency`）、`@/shared-logic/story`（`generateStoryPlanWithValidation`）、`@/infrastructure/di`（`container.textProvider`/`imageProvider`）
+
 ---
 
 ## 统计摘要
 
 | 类别 | 模块数 | 子域数 | 工具数 |
 |------|--------|--------|--------|
-| 核心业务模块 | 25 | 54 | — |
+| 核心业务模块 | 26 | 54 | — |
 | 基础设施模块 | 4 | 2 | — |
 | 工具模块 | 13 | 0 | 153 |
-| **合计** | **42** | **56** | **153** |
+| **合计** | **43** | **56** | **153** |
 
 > 子域数说明：核心业务模块中含子域的模块为 `agent`(1) + `asset`(8) + `character`(4) + `novel`(6) + `prompt`(10) + `scene`(4) + `shot`(10) + `storyboard`(5) + `video`(6) = 54 个子域 index.ts；基础设施 `sync`(2)；合计 56 个子域 `index.ts` 文件。部分子域（如 `presentation`、`hooks`、`services`）为模块内分层而非独立业务子域。
 
@@ -577,8 +589,8 @@
 
 ## 验证
 
-- 模块总数：42 个（与 `src/modules/*/index.ts` 实际文件数一致）
-- MODULE.md 覆盖：42 个模块均有 `MODULE.md`（100% 覆盖）
+- 模块总数：43 个（与 `src/modules/*/index.ts` 实际文件数一致）
+- MODULE.md 覆盖：42/43 个模块有 `MODULE.md`（`workflow` 为 Phase 7 新增，待补充）
 - 子域 index.ts：56 个（与 `src/modules/*/*/index.ts` 实际文件数一致）
-- 文档生成日期：2026-07-23
+- 文档生成日期：2026-08-04
 - 数据来源：实际扫描 `src/modules/` 目录下 `index.ts`、`MODULE.md`、`contract.json` 及 `import` 语句

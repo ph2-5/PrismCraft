@@ -1,7 +1,7 @@
 # HTTP API 文档
 
 > 本文档描述 PrismCraft Electron 桌面应用主进程内置的 HTTP API Server。
-> 版本: 1.4.0 | 更新日期: 2026-07-24
+> 版本: 1.5.0 | 更新日期: 2026-08-04
 
 ---
 

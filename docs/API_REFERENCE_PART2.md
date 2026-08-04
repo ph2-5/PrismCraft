@@ -1,7 +1,7 @@
 # API 参考手册 — 第二部分：模块层
 
-> 自动生成于 2026-07-23。基于 `src/modules/` 实际代码扫描。
-> 模块总数：**42 个**（核心业务 25 / 基础设施 4 / 工具 13）
+> 自动生成于 2026-08-04。基于 `src/modules/` 实际代码扫描。
+> 模块总数：**43 个**（核心业务 26 / 基础设施 4 / 工具 13）
 > 模块间引用请使用桶导出路径 `@/modules/xxx`，禁止使用深层路径 `@/modules/xxx/hooks/yyy`。
 > 每个模块的导出名直接取自其 `index.ts`，未在源码中导出的成员不属于公共 API。
 
@@ -10,7 +10,7 @@
 ## 目录
 
 - [模块分类总览](#模块分类总览)
-- [1. 核心业务模块（25 个）](#1-核心业务模块25-个)
+- [1. 核心业务模块（26 个）](#1-核心业务模块26-个)
   - [1.1 agent](#11-agent)
   - [1.2 agent-memory](#12-agent-memory)
   - [1.3 agent-session](#13-agent-session)
@@ -58,7 +58,7 @@
 
 ---
 
-## 1. 核心业务模块（25 个）
+## 1. 核心业务模块（26 个）
 
 ### 1.1 agent
 
@@ -875,6 +875,36 @@ Schemas（re-export 自 `@/domain/schemas/timeline`）：
 
 ---
 
+### 1.26 workflow
+
+> 路径：`src/modules/workflow/`
+> 职责：Phase 7 节点化工作流 — React Flow 可视化节点编辑器 + 拓扑执行引擎 + 预设模板
+> 依赖：`video`（CQRS `createTask`）、`shot`（`checkVisualConsistency`）、`@/shared-logic/story`（`generateStoryPlanWithValidation`）、`@/infrastructure/di`（`container.textProvider`/`imageProvider`）
+
+#### 编辑器组件
+
+- `WorkflowEditor`（主编辑器，节点面板 + 画布 + 配置面板 + 执行日志）
+- `WorkflowSidebar`（节点拖拽面板，导出 `PALETTE_DRAG_MIME`）
+- `NodeConfigPanel`（节点配置面板）
+- `WorkflowNode`（画布节点渲染）
+
+#### 状态与执行
+
+- `useWorkflowStore`（工作流状态：节点/连线/执行控制）
+- `WorkflowRunner` / `workflowRunner`（执行引擎：拓扑排序 / 分批并行 / 暂停/恢复/停止 / 节点级状态与进度）
+- `registerNodeExecutor(subtype, executor)` / `registerBuiltinExecutors()`（executor 注册表；内置 14 种 subtype，含 `default` passthrough 兜底）
+- 执行器类型：`NodeExecutor`、`NodeExecutionContext`、`RunState`、`LogEntry`、`NodeRunState`、`WorkflowRunStatus`、`NodeExecutionStatus`
+
+#### 验证与模板
+
+- `validateWorkflow` / `validateEdge` / `topologicalSort`
+- `WORKFLOW_TEMPLATES` + `createOneClickFilmTemplate` / `createShotFirstTemplate` / `createQualityFirstTemplate`
+- 节点类型常量：`INPUT_SUBTYPES` / `PROCESS_SUBTYPES` / `OUTPUT_SUBTYPES`、`SUBTYPE_LABELS`、`DEFAULT_SUBTYPE_CONFIG`、`NODE_KIND_LABELS` / `NODE_KIND_COLOR`
+- 数据模型：`Workflow` / `WorkflowNode` / `WorkflowEdge` / `CustomWorkflowTemplate`、`workflowNodeSchema` / `workflowEdgeSchema` / `workflowSchema`、`toWorkflowNode` / `toWorkflowEdge` / `createNodeId`
+- 类型：`WorkflowNodeData` / `WorkflowNodeKind` / `WorkflowSubtype` / `InputSubtype` / `ProcessSubtype` / `OutputSubtype`
+
+---
+
 ## 2. 基础设施模块（4 个）
 
 ### 2.1 persistence
@@ -1017,7 +1047,7 @@ CRUD 工具（9）：`createCharacterTool`、`updateCharacterTool`、`deleteChar
 - **工具数**：19（9 生成 + 10 图像编辑）
 - **依赖**：`video`、`prompt`
 
-生成工具（9）：`generateCharacterImageTool`、`generateSceneImageTool`、`generatePropImageTool`、`analyzeImageTool`、`generateTextTool`、`generateMusicTool`、`generateVoiceoverTool`、`textToSpeechTool`、`transcribeAudioTool` — 聚合为 `generationTools`
+生成工具（9）：`generateCharacterImageTool`、`generateSceneImageTool`、`generatePropImageTool`、`analyzeImageTool`、`generateTextTool`、`generateMusicTool`、`generateVoiceoverTool`、`textToSpeechTool`、`transcribeAudioTool` — 聚合为 `generationTools`（Q3 起实现按能力拆分：`image-tools.ts` 4 图像工具 / `text-tool.ts` `generateTextTool` / `audio-tools.ts` 4 音频工具，`generation-tools.ts` 为 barrel 汇总，对外 API 不变）
 图像编辑工具（10）：`editImageTool`、`cropImageTool`、`mergeImagesTool`、`compositeImageTool`、`removeBackgroundTool`、`applyFilterTool`、`adjustColorsTool`、`inpaintTool`、`addTextOverlayTool`、`resizeImageTool` — 聚合为 `imageEditTools`
 
 ### 3.3 agent-tools-media
@@ -1142,16 +1172,16 @@ Web 工具（8）：`searchWebImagesTool`、`searchWebTool`、`downloadWebAssetT
 
 | 类别 | 模块数 | 说明 |
 |------|--------|------|
-| 核心业务模块 | 25 | 智能体、资产、角色、场景、分镜、视频、小说、镜头、合成、时间线、页面型模块等 |
+| 核心业务模块 | 26 | 智能体、资产、角色、场景、分镜、视频、小说、镜头、合成、时间线、工作流、页面型模块等 |
 | 基础设施模块 | 4 | persistence、sync、vector-search、ffmpeg-runner |
 | 工具模块 | 13 | agent-tools-* 系列（合计 147 个工具，为各模块工具数之和） |
-| **合计** | **42** | 与 `src/modules/*/index.ts` 实际文件数一致 |
+| **合计** | **43** | 与 `src/modules/*/index.ts` 实际文件数一致 |
 
 ### 验证清单
 
-- 模块总数：42 个（与 `src/modules/*/index.ts` 实际文件数一致）
+- 模块总数：43 个（与 `src/modules/*/index.ts` 实际文件数一致）
 - 每个模块的导出名均取自其 `index.ts` 源码，未在源码中导出的成员不属于公共 API
 - agent-tools-* 模块的工具数取自各模块 `index.ts` 源码（合计 147 个工具，为各模块工具数之和；`docs/MODULES.md` 统计表中的 153 与其自身分项明细求和不一致，本手册以源码分项为准）
-- 文档生成日期：2026-07-23
+- 文档生成日期：2026-08-04
 - 数据来源：实际扫描 `src/modules/*/index.ts`（含 `ffmpeg-runner/services/ffmpeg-service.ts` 用于展开通配导出）
 - 模块分类依据：`docs/MODULES.md` 模块全景图

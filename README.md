@@ -2,7 +2,7 @@
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](package.json)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
 [![Commercial License](https://img.shields.io/badge/commercial-license%20available-orange)](COMMERCIAL_LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-10000%2B-brightgreen)](docs/DEVELOPMENT.md)
@@ -131,7 +131,7 @@ prismcraft/
 │   ├── shared-logic/       # 零依赖纯逻辑（shot/prompt/video/story）
 │   ├── shared/             # 跨模块通用层（UI 组件、工具、常量）
 │   ├── infrastructure/     # 基础设施（DI 容器、存储、AI 提供商）
-│   ├── modules/            # 42 个业务模块
+│   ├── modules/            # 43 个业务模块
 │   └── app/                # 页面组件和布局
 ├── electron/src/           # 主进程源代码
 │   ├── api/                # HTTP API 路由（defineRoute + Zod）

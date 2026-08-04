@@ -5,11 +5,61 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本管理遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [1.5.0] - 2026-08-04
 
 ### Added
 
-- 暂无
+- **Phase 7 节点化工作流**（Task 7.1-7.4）：React Flow 可视化节点编辑器（节点面板 + 画布 + 配置面板 + 执行日志）+ 拓扑执行引擎（分批并行 / 暂停/恢复/停止 / 节点级状态与进度）+ 3 个预设模板（一键成片 / 分镜优先 / 质量优先）
+  - **内置 executor 真实化**（Task 7.3）：内置 executor 覆盖 14 种节点，从"透传占位"变为真实业务闭环——输入节点 `input.text/novel/script/prompt`、LLM 节点 `prompt-generate`（真实 textProvider 调用）/`character-extract`/`scene-extract`（LLM 结构化提取）/`shot-breakdown`（复用 `generateStoryPlanWithValidation`）、质检/风格 `consistency-check`（`checkVisualConsistency`）/`style-transfer`、生成节点 `video-generate`（CQRS `createTask`）/`image-generate`（`container.imageProvider`）、汇总 `export`/`render`、兜底 `default`（passthrough）；一键成片模板（小说→角色/场景→分镜→视频）可真实执行
+  - **Executor 注册表机制**：`registerNodeExecutor(subtype, executor)` + `passthroughExecutor` 兜底，支持第三方自定义 executor
+  - **自定义模板持久化**（Task 7.4）：预设模板可修改并保存为自定义模板（保存/加载/删除 + 单元测试）
+  - **编辑器体验打磨**：节点配置项补全（LLM 节点 `modelId`、style-transfer `style`、视频/图片生成 `providerId`）+ 节点底部输出摘要与失败错误可视化（智能识别 text/beats/characters/scenes/tasks/images 字段）
+- **分镜画布进化**：分镜无限画布 + 双视觉模式 + 角色/场景资源节点绑定双向联动 + 首尾帧衔接与断开删除保护 + Blockout3D 导演台节点 + 时间线↔画布双向联动（点击定位并高亮分镜）+ 画布字段正式化到 generation 容器（`referencedPrevKeyframe` / `blockout3D`）
+- **P3 导演与智能规划**：
+  - P3.1 导演规则引擎接入帧提示词生成链路（`buildDirectorConfigForStory` 同步）
+  - P3.2 shot contract 批量编辑 UI
+  - P3.3 自动故事结构 → 导演规则配置
+  - P1.4 架构统一：ShotContract → StoryBeat 适配层
+  - P3.4 Few-shot 学习机制：用户分镜示例自动学习（`recordFewShot`/`buildFewShotPrompt`）
+  - P3.5 视觉连贯性主动规划：生成阶段规划角色屏幕侧与动作方向
+  - P3.6 云端化接口预研：API 网关抽象
+- **故事创作工作台**：三栏故事创作页 + UI 重设计
+- **角色管理重构**（Task 3.1 + phase3）：角色管理重构 + 流程灵活性 + Storybook/Stryker 变异测试配置
+- **逆向工程项目**：核心能力逆向提取为可复用工程
+- **深度打磨**：N+1 并行化 + tryWithFallback + Zod schema 化 + 错误处理清理
+
+### Fixed
+
+- **审计核心稳定性修复**（5 大分组）：
+  - 跨页导航保护：`guardedPush` 异步化，dirty 时 confirm，取消不导航（恢复 R71 决策，含 4 个新回归测试）
+  - 字段级合并：`updateBeat(beatId, Partial<StoryBeat>)` 避免整对象快照覆盖并发编辑
+  - 轮询恢复：`createTask` 后调用 `checkAndStartOrStopPolling()` 而非 `schedulePolling()`（错误暂停后 return 问题）
+  - 批量进度取消 + `isCreating` 并发保护（失败时 toast 提示）
+  - IPC 契约：`getConfig` IPC 回退路径 `JSON.parse` 对齐 HTTP 路径
+- **隐性 bug**：`generateBeatFramePair` 的 `Result` 包装未解包直接存储（`runConsistencyCheckWithRetry` 改为不 mutate updatedBeat 并返回解包结果）
+- **审计 UX 11 项**：QuickGenerate 取消按钮、SubShotList 删除确认、StoryHeader 折叠、MemoryPanel 删除确认、ffmpeg 清除确认、plugin 添加成功重置等
+- **安全加固**：`searchApiKey` 密钥加密存储（老明文迁移）、main 进程拒明文 apiKey、plugin-manager 风险提示条、`.machine-id` 迁移 `~/.prismcraft/`、release.yml 新增 preflight 守卫 job
+- **低风险加固 7 项**：任务已删跳过 persist、IPC 回退容错、handleJsonBody 独立 try/catch、Toast 定时器清理、视频帧提取监听移除、同步引擎 retryTimeoutId 独立槽位等
+- **e2e 修复**：plugin-management 测试 badge 选择器收紧为 `span.badge`，避免误命中安全提示条文案
+
+### Changed
+
+- **P2.1 大文件拆分**：agent-loop（736 行）、AgentPage（AgentHeader/AgentMessageList 子组件）、SceneEditorParts、EmbeddingModelPanelParts、web-tools、video-post-tools、memory-service
+- **Q3 代码拆分**（对外 API 零变化）：
+  - `generation-tools.ts` 700→45 行（barrel 汇总），实现按能力拆分至 `image-tools.ts`（4 图像工具）/ `text-tool.ts`（`generateTextTool`）/ `audio-tools.ts`（4 音频工具）
+  - `use-video-task-manager.ts` 命令实现拆至 `video-task-impls.ts`（13 个 impl 函数），hook 仅保留 store 定义 + 委托
+- **CI lint 告警清零**（4 项 → 0）：
+  - `shared-polling-logic.ts` pollTaskShared 复杂度 27 → 拆 6 个 helper
+  - `transcribeAudio` 下载逻辑提取 `downloadAudioBuffer`
+  - `db-schema.ts` 764→118 行，表定义迁移至 `db-tables.ts`
+  - `plaintext-fallback.strategy.ts` 拆 `readIdFile`/`writeIdFile`/`migrateLegacyIdFile`/`createNewIdFile`
+- **质量重构**：`VariantList`/`VariantDialog` 泛型化（`<T extends VariantListItem>`）、新增 `plugin-content-viewer.tsx`（删除 plugin-schema-viewer/plugin-spec-viewer）、reference-check 命名消歧
+
+### Tests
+
+- workflow-builtin-executors 新增 17 个测试（mock container/shot/video store/story 管线）
+- 单元测试 262 文件 / 5118 测试全部通过，typecheck / typecheck:electron / typecheck:test / lint / lint:arch 全部通过
+- e2e 测试 CI 全绿（仅剩 Node 20 deprecation 提示，非错误）
 
 ## [1.4.0] - 2026-07-23
 

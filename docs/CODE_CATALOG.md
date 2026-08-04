@@ -1,6 +1,6 @@
 # PrismCraft - 完整代码目录
 
-> 版本: 1.4.0 | 更新日期: 2026-07-24 | 架构: Electron + Vite + React + DDD
+> 版本: 1.5.0 | 更新日期: 2026-08-04 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -10,7 +10,7 @@
 2. [目录结构总览](#2-目录结构总览)
 3. [领域层 (src/domain)](#3-领域层-srcdomain)
 4. [共享逻辑层 (src/shared-logic)](#4-共享逻辑层-srcshared-logic)
-5. [模块层 (src/modules) — 42 个模块](#5-模块层-srcmodules--42-个模块)
+5. [模块层 (src/modules) — 43 个模块](#5-模块层-srcmodules--43-个模块)
 6. [共享层 (src/shared)](#6-共享层-srcshared)
 7. [基础设施层 (src/infrastructure)](#7-基础设施层-srcinfrastructure)
 8. [应用层 (src/app)](#8-应用层-srcapp)
@@ -55,7 +55,7 @@ PrismCraft 是一款 AI 驱动的动画制作工具，采用本地优先（local
 
 **规模概览**：
 
-- 业务模块：**42 个**（核心业务 25 / 基础设施 4 / 工具 13）
+- 业务模块：**43 个**（核心业务 26 / 基础设施 4 / 工具 13）
 - 子域（`modules/*/*/index.ts`）：56 个
 - Agent 工具：153 个（分布于 13 个 `agent-tools-*` 模块）
 - HTTP API 路由组：9 个
@@ -70,7 +70,7 @@ ai-animation-studio-source-code/
 ├── src/
 │   ├── domain/              # 领域层：纯类型、端口接口、Zod Schema、领域服务（零外部依赖）
 │   ├── shared-logic/        # 共享逻辑层：零外部依赖的纯函数（渲染进程 + 主进程共用）
-│   ├── modules/             # 模块层：42 个业务模块（含 56 个子域）
+│   ├── modules/             # 模块层：43 个业务模块（含 56 个子域）
 │   ├── shared/              # 共享层：跨模块通用工具、代理导出、UI 组件
 │   ├── infrastructure/      # 基础设施层：存储、AI 提供商、网络、DI 容器、监控
 │   ├── app/                 # 应用层：路由页面、Provider、布局
@@ -218,11 +218,11 @@ domain → NOTHING (纯类型)
 
 ---
 
-## 5. 模块层 (src/modules) — 42 个模块
+## 5. 模块层 (src/modules) — 43 个模块
 
-> 模块层是业务核心。模块按职责分为三大类：核心业务（25）、基础设施（4）、工具（13）。**完整模块详情（子域、Public API、依赖、MODULE.md 契约）请参见 [MODULES.md](./MODULES.md)，本节仅给出目录级概览，避免重复。** 模块边界、跨模块通信机制、CQRS/SyncEngine 等模式参见 `.trae/rules/architecture-rules.md`。
+> 模块层是业务核心。模块按职责分为三大类：核心业务（26）、基础设施（4）、工具（13）。**完整模块详情（子域、Public API、依赖、MODULE.md 契约）请参见 [MODULES.md](./MODULES.md)，本节仅给出目录级概览，避免重复。** 模块边界、跨模块通信机制、CQRS/SyncEngine 等模式参见 `.trae/rules/architecture-rules.md`。
 
-### 5.1 核心业务模块（25 个）
+### 5.1 核心业务模块（26 个）
 
 | 序号 | 模块 | 路径 | 子域数 | 一句话职责 |
 |------|------|------|--------|-----------|
@@ -251,6 +251,7 @@ domain → NOTHING (纯类型)
 | 23 | `video` | `src/modules/video/` | 6 | 视频任务 CQRS + 缓存 + 恢复 + 一致性 QC + 局部编辑 |
 | 24 | `video-compose` | `src/modules/video-compose/` | 0 | 视频片段合成（15 种转场） |
 | 25 | `video-tasks` | `src/modules/video-tasks/` | 0 | 视频任务列表页面型模块（路由入口） |
+| 26 | `workflow` | `src/modules/workflow/` | 0 | Phase 7 节点化工作流：可视化节点编辑器 + 执行引擎 + 预设模板 |
 
 ### 5.2 基础设施模块（4 个）
 
@@ -759,7 +760,7 @@ Playwright E2E 测试，支持浏览器与 Electron 两种运行模式。
 
 ### 13.2 模块上下文 (`.ai/modules/`)
 
-42 个模块各一个 `.md`（与 `src/modules/` 一一对应），加 `__tests__.md`，共 43 个文件。每个文件提供该模块的 AI 上下文（职责、关键 API、依赖、注意事项），供 AI 工具按需加载以节省 token 预算。
+43 个模块中 42 个各一个 `.md`（与 `src/modules/` 一一对应，`workflow` 为 Phase 7 新增待补），加 `__tests__.md`，共 43 个文件。每个文件提供该模块的 AI 上下文（职责、关键 API、依赖、注意事项），供 AI 工具按需加载以节省 token 预算。
 
 涵盖：`agent.md`, `agent-fewshot.md`, `agent-memory.md`, `agent-session.md`, `agent-specialist.md`, 13 个 `agent-tools-*.md`, `asset.md`, `asset-library.md`, `audit-log.md`, `blockout-3d.md`, `character.md`, `characters.md`, `compositor.md`, `ffmpeg-runner.md`, `novel.md`, `persistence.md`, `prompt.md`, `quick-generate.md`, `scene.md`, `scenes.md`, `search.md`, `settings.md`, `shot.md`, `storyboard.md`, `sync.md`, `vector-search.md`, `video.md`, `video-compose.md`, `video-tasks.md` 等。
 
@@ -779,7 +780,7 @@ Playwright E2E 测试，支持浏览器与 Electron 两种运行模式。
 
 ## 相关文档
 
-- [MODULES.md](./MODULES.md) — 42 个模块全景图（子域、Public API、依赖详情）
+- [MODULES.md](./MODULES.md) — 43 个模块全景图（子域、Public API、依赖详情）
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — 架构设计说明
 - [agent-tools-architecture.md](./agent-tools-architecture.md) — 智能体工具架构
 - [di-tokens.md](./di-tokens.md) — DI Token 清单

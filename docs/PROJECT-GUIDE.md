@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：1.4.0 | 许可证：AGPL-3.0-only（双协议，详见 LICENSE 与 COMMERCIAL_LICENSE.md） | 最后更新：2026-07-24
+> 版本：1.5.0 | 许可证：AGPL-3.0-only（双协议，详见 LICENSE 与 COMMERCIAL_LICENSE.md） | 最后更新：2026-08-04
 
 ---
 
@@ -34,9 +34,9 @@ PrismCraft 是一款**本地优先（local-first）、离线可用（offline-cap
 
 ### 1.4 项目版本与规模
 
-- **版本**：1.4.0
+- **版本**：1.5.0
 - **许可证**：AGPL-3.0-only（双协议，详见 LICENSE 与 COMMERCIAL_LICENSE.md）
-- **业务模块**：42 个（核心业务 25 / 基础设施 4 / 工具 13；完整清单参见 [MODULES.md](MODULES.md)）
+- **业务模块**：43 个（核心业务 26 / 基础设施 4 / 工具 13；完整清单参见 [MODULES.md](MODULES.md)）
 - **子域**：56 个
 - **AI Provider 插件**：13 个
 - **数据库表**：30 张（14 业务表 + 5 关系表 + 6 缓存表 + 3 同步表 + 1 系统表 + 1 users 表）
@@ -84,7 +84,7 @@ AI 代码助手（如 Cursor、Trae）在修改代码时，面临的核心挑战
 2. 只读需要修改的子域实现代码
 3. 修改后运行验证脚本，确保不违反架构规则
 
-没有契约，AI 只能靠猜测和全文搜索来理解模块边界，这在 42 个模块、56 个子域的规模下极易出错。
+没有契约，AI 只能靠猜测和全文搜索来理解模块边界，这在 43 个模块、56 个子域的规模下极易出错。
 
 ---
 
@@ -225,7 +225,7 @@ PrismCraft 采用 DDD（领域驱动设计）四层架构，依赖方向严格�
 │  app/ — 页面组件和布局                            │
 │  消费所有层，组合模块提供的 Context                  │
 ├─────────────────────────────────────────────────┤
-│  modules/ — 42 个业务子域模块                      │
+│  modules/ — 43 个业务子域模块                      │
 │  每个：hooks/ + services/ + presentation/         │
 │  只导入 domain、shared、infrastructure/di          │
 ├─────────────────────────────────────────────────┤
@@ -306,7 +306,7 @@ Result 类型强制调用方处理错误路径，避免"安慰剂错误处理"�
 
 ### 5.3 modules 层
 
-modules 层包含 42 个业务模块，每个模块遵循统一的结构：
+modules 层包含 43 个业务模块，每个模块遵循统一的结构：
 
 ```
 module-name/
@@ -1889,7 +1889,7 @@ src/
 │   ├── result.ts           → Result 类型（ok/err）
 │   ├── errors.ts           → 语义化错误类和错误码
 │   └── index.ts            → 桶文件
-├── modules/                → 42 个业务模块（完整清单见 MODULES.md）
+├── modules/                → 43 个业务模块（完整清单见 MODULES.md）
 │   ├── storyboard/         → 分镜板模块（原 story 模块）
 │   │   ├── index.ts        → 公共 API
 │   │   ├── MODULE.md       → 模块契约
@@ -2856,7 +2856,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：1.3.0
+当前版本：1.5.0
 
 ### 25.2 发布步骤
 
@@ -3608,7 +3608,7 @@ npm run validate
 
 | 文档 | 用途 |
 |------|------|
-| [MODULES.md](MODULES.md) | 42 个模块全景图（子域、Public API、依赖详情） |
+| [MODULES.md](MODULES.md) | 43 个模块全景图（子域、Public API、依赖详情） |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 全局架构、依赖方向、状态机、数据流 |
 | [di-tokens.md](di-tokens.md) | DI 容器 46 个 Token 清单（6 类 A-F） |
 | [ports.md](ports.md) | Port 接口清单（含分类、依赖方向图） |

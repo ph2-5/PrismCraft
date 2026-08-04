@@ -13,7 +13,7 @@
 | ★★☆ | [HTTP-API.md](HTTP-API.md) | HTTP API 文档（85 条路由、9 个路由组） | 查阅主进程 API 时 |
 | ★★☆ | `src/modules/{target}/MODULE.md` | 目标模块公共 API、不变量、依赖 | 修改特定模块时 |
 | ★★☆ | `src/modules/{target}/{subdomain}/contract.json` | 子域合约、invariants | 修改特定子域时 |
-| ★★☆ | [MODULES.md](MODULES.md) | 模块全景图（42 模块、56 子域） | 了解模块全貌时 |
+| ★★☆ | [MODULES.md](MODULES.md) | 模块全景图（43 模块、56 子域） | 了解模块全貌时 |
 | ★☆☆ | [ports.md](ports.md) | Port 接口清单（20 个 Port） | 新增/修改 Port 时 |
 | ★☆☆ | [di-tokens.md](di-tokens.md) | DI 容器 Token 参考（46 个 Token，6 类 A-F） | 新增/修改 DI Token 时 |
 | ★☆☆ | [CODE_CATALOG.md](CODE_CATALOG.md) | 完整代码目录与文件说明 | 定位文件时 |

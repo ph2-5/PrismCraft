@@ -1,6 +1,6 @@
 # Agent Tools 架构
 
-> 自动生成于 2026-07-23。基于实际代码扫描。
+> 自动生成于 2026-08-04。基于实际代码扫描。
 > 工具总数：154 个，模块数：14 个，业务域数：20 个
 
 ---
@@ -208,6 +208,8 @@ export function registerAllTools(): void {
 - **依赖**: `@/domain/types/agent-tools`、`@/shared/constants/tool-timeouts`、`@/infrastructure/di`（container.imageProvider / characterStorage）、`@/domain/schemas`、`@/shared/file-http`
 
 #### 生成工具（generation-tools.ts，9 个）
+
+> Q3 拆分：`generation-tools.ts` 现为 barrel 汇总，生成工具实现按能力拆分为 `image-tools.ts`（4 图像工具）、`text-tool.ts`（`generateTextTool`）、`audio-tools.ts`（4 音频工具），对外 API 与工具数不变。
 
 | 工具名 | 功能 | 主要参数 | 返回值 |
 |--------|------|---------|--------|

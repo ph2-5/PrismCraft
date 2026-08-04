@@ -1,6 +1,6 @@
 # PrismCraft 技术参考文档
 
-> **版本**: 1.3.0 | **最后更新**: 2026-07-23 | **架构**: Vite 8 + React Router 7
+> **版本**: 1.5.0 | **最后更新**: 2026-08-04 | **架构**: Vite 8 + React Router 7
 
 ---
 
@@ -35,7 +35,7 @@
 | 属性 | 值 |
 |------|------|
 | 项目名称 | PrismCraft |
-| 版本 | 1.4.0 |
+| 版本 | 1.5.0 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
 | 语言 | TypeScript (strict mode) |
@@ -59,7 +59,7 @@
 
 | 目录 | 说明 |
 |------|------|
-| `src/modules/` | 业务子域 (42 个模块：核心业务 25 / 基础设施 4 / 工具 13；含 storyboard, novel, video, shot, asset, sync, prompt, character, scene, persistence, agent 等，详见 [MODULES.md](MODULES.md)) |
+| `src/modules/` | 业务子域 (43 个模块：核心业务 26 / 基础设施 4 / 工具 13；含 storyboard, novel, video, shot, asset, sync, prompt, character, scene, persistence, agent 等，详见 [MODULES.md](MODULES.md)) |
 | `src/infrastructure/` | DI 容器 / 存储 / 网络 / API / AI 提供者 / 插件 / 安全 / 日志 |
 | `src/app/` | 页面组件与布局 (React Router lazy loading) |
 | `src/shared/` | 跨切面 UI / 工具函数 / 代理导出 |
@@ -80,7 +80,7 @@
 │                 modules (模块层)                     │
 │    业务子域: storyboard / novel / video / shot /     │
 │    asset / sync / prompt / character / scene /        │
-│    persistence / agent ... (共 42 个模块，详见 MODULES.md) │
+│    persistence / agent ... (共 43 个模块，详见 MODULES.md) │
 ├──────────────┬──────────────────────────────────────┤
 │  shared      │           infrastructure             │
 │  跨切面 UI   │    DI 容器 / 存储 / 网络 / API / AI    │
@@ -1641,7 +1641,7 @@ UI 组件子域。
 
 ### 4.10 模块总览
 
-> **共 42 个模块** (核心业务 25 / 基础设施 4 / 工具 13)，完整清单与子域说明详见 [MODULES.md](MODULES.md)。以下列出核心业务模块。
+> **共 43 个模块** (核心业务 26 / 基础设施 4 / 工具 13)，完整清单与子域说明详见 [MODULES.md](MODULES.md)。以下列出核心业务模块。
 
 | 模块 | 子域数 | 状态 |
 |------|--------|------|
@@ -3094,7 +3094,7 @@ ai-animation-studio-source-code/
 │   │   ├── ports/                 # Port 接口 (20 个, 详见 ports.md)
 │   │   ├── services/              # 领域服务 (story-generation, reference-resolver, reference-check, beat-workflow)
 │   │   └── utils/                 # 领域工具 (beat-prompt-builder, shot-prompt, prompt-vocabulary)
-│   ├── modules/                   # 业务模块 (42 个：核心业务 25 / 基础设施 4 / 工具 13, 详见 MODULES.md)
+│   ├── modules/                   # 业务模块 (43 个：核心业务 26 / 基础设施 4 / 工具 13, 详见 MODULES.md)
 │   │   ├── storyboard/            # 故事板模块 (beat-editor, generation, planning, prompt-editor, template)
 │   │   ├── novel/                 # 小说模块 (新增, 详见 novel-pipeline-guide.md)
 │   │   ├── video/                 # 视频模块 (task-management, recovery, cache, utils)

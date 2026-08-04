@@ -55,7 +55,7 @@ npm run build:linux
 ```
 app/            → 页面组件和布局
   ↓
-modules/        → 11 个业务模块（story/video/shot/character/scene/...）
+modules/        → 43 个业务模块（story/video/shot/character/scene/...）
   ↓
 domain/         → 纯类型层，零依赖（Zod schemas + Port 接口）
 shared-logic/   → 零外部依赖纯逻辑（可在主进程和渲染进程双向复用）
@@ -66,7 +66,8 @@ electron/src/   → Electron 主进程（HTTP API + 数据库 + 插件 + 安全�
 
 **关键设计**：
 - **DI 容器**：模块通过 Port 接口解耦基础设施实现，支持测试替换
-- **契约驱动**：每个子域有 `MODULE.md` + `contract.json` 定义 `publicAPI` 与 `invariants`
+- **契约驱动**：每个模块有 `MODULE.md` 定义公共 API（部分模块附 `contract.json` 声明 `publicAPI` 与 `invariants`）
+- **命名约定**：单数目录（如 `character`/`scene`）为业务逻辑模块，复数目录（如 `characters`/`scenes`）为对应的页面型模块，二者不是重复
 - **类型安全边界**：`defineRoute` + Zod schema 定义 Electron HTTP API 路由
 - **AI 协作友好**：`shared-logic/` 零依赖，`.trae/rules/` 提供分层规则加载和防幻觉机制
 
@@ -154,7 +155,7 @@ prismcraft/
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
 | 回归守卫 | 152 条规则，8 大类（R1–R191，编号非连续） |
-| i18n 键 | 3076+ |
+| i18n 键 | 4521 |
 
 ## 安全设计
 

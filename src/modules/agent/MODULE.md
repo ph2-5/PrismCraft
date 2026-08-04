@@ -31,6 +31,7 @@
 
 ### ✅ React 组件
 - `AgentPage` — 主页面组件
+- `AgentSettingsPage` — Agent 设置页面组件
 
 ### ✅ 核心服务（高级用法/测试）
 - `toolRegistry` — 工具注册表（单例）

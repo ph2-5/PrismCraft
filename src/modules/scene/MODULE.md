@@ -65,10 +65,14 @@
 
 ### ✅ variants 子域（Q3-1）
 
-通过 `@/modules/scene/variants` 直接访问时使用原始名（如 `createVariant`），通过 `@/modules/scene` 桶导出访问时使用带 `Scene` 前缀的别名（如 `createSceneVariant`）以避免与 character variants 冲突。
+通过 `@/modules/scene/variants` 直接访问时使用原始名（如 createVariant），通过 `@/modules/scene` 桶导出访问时使用带 Scene 前缀的别名（如 `createSceneVariant`）以避免与 character variants 冲突。
 
 | API（桶导出名） | 签名 | 说明 |
 |-----|------|------|
+| `SceneVariant` | type（from @/domain/schemas） | 场景变体实体类型 |
+| `CreateSceneVariantInput` | type | 创建变体入参类型 |
+| `UpdateSceneVariantInput` | type | 更新变体入参类型 |
+| `SceneVariantFormState` | type | 变体表单状态类型 |
 | `sceneVariantSchema` | `ZodSchema<SceneVariant>` | 场景变体 Zod schema |
 | `createSceneVariantInputSchema` | `ZodSchema<CreateSceneVariantInput>` | 创建入参 schema |
 | `updateSceneVariantInputSchema` | `ZodSchema<UpdateSceneVariantInput>` | 更新入参 schema |
@@ -92,7 +96,7 @@
 | `SceneVariantListContainer` | `React.FC<{ sceneId: string }>` | 变体列表容器组件（自管理 state） |
 | `SceneVariantDialog` | `React.FC<SceneVariantDialogProps>` | 变体编辑对话框 |
 | `sceneVariantToForm` | `(v?: Partial<SceneVariant>) → SceneVariantFormState` | 变体 → 表单状态转换 |
-| `SCENE_VARIANT_QUERY_KEYS` | `object` | React Query queryKey 常量 |
+| `SCENE_VARIANT_QUERY_KEYS` | 常量对象 | React Query queryKey 常量 |
 
 ---
 

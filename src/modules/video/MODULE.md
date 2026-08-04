@@ -13,10 +13,12 @@
 
 | 子域 | 状态 | 路径 | 职责 |
 |------|:----:|------|------|
-| `task-management` | ✅ | [task-management/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/task-management/) | 视频任务状态机、Zustand Store、轮询引擎、同步引擎、策略引擎（超时/过期）、UI 组件 |
-| `cache` | ✅ | [cache/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/cache/) | 视频 Blob 磁盘缓存、图片磁盘缓存、缓存统计、过期清理、未缓存资源恢复 |
-| `recovery` | ✅ | [recovery/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/recovery/) | 视频验证（URL/文件）、重复检测、智能重试引擎、智能恢复、Token 浪费检测、任务持久化 |
-| `utils` | ✅ | [utils/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/video/utils/) | 编解码检测、帧提取、文件导出、视频模板 |
+| `task-management` | ✅ | [task-management/](./task-management/) | 视频任务状态机、Zustand Store、轮询引擎、同步引擎、策略引擎（超时/过期）、UI 组件 |
+| `cache` | ✅ | [cache/](./cache/) | 视频 Blob 磁盘缓存、图片磁盘缓存、缓存统计、过期清理、未缓存资源恢复 |
+| `recovery` | ✅ | [recovery/](./recovery/) | 视频验证（URL/文件）、重复检测、智能重试引擎、智能恢复、Token 浪费检测、任务持久化 |
+| `utils` | ✅ | [utils/](./utils/) | 编解码检测、帧提取、文件导出、视频模板 |
+| `consistency-qc` | ✅ | [consistency-qc/](./consistency-qc/) | 生成结果一致性质检：帧相似度、人脸嵌入、漂移策略、镜头策略路由、回退调度、QC 面板 |
+| `partial-edit` | ✅ | [partial-edit/](./partial-edit/) | 局部编辑与换脸：蒙版形状/编码、编辑 Prompt 构建、局部编辑任务服务、蒙版画布 UI |
 
 ---
 
@@ -33,6 +35,10 @@
 **recovery**: `VideoVerificationResult`、`VideoVerificationDetails`、`RetryDecision`、`VideoRecoveryLog`、`VideoTaskRecoveryInfo`、`DuplicateCheckResult`、`RetryConfig`、`recoverVideoByTaskId`、`saveVideoTask`、`verifyVideoUrl`、`verifyMultipleVideos`、`checkForDuplicateVideos`、`findSimilarTasks`、`smartRetryEngine`、`SmartRetryEngine`、`createRetryEngine`、`getTaskRecoveryInfo`、`performIntelligentRecovery`、`checkForTokenWaste`、`registerCacheVideoBlobFn`、`getFailedTasks`、`getTaskById`、`startBackgroundRecovery`、`cleanExpiredTasks`、`getAllTaskHistory`
 
 **utils**: `detectVideoCodec`、`isCodecSupportedByProvider`、`extractVideoFrames`、`downloadJSONFile`、`videoTemplates`、`templateCategories`、`getTemplatesByCategory`、`applyVideoTemplate`、`VideoTemplate`
+
+**consistency-qc**: `Verdict`、`ActionTaken`、`FrameScore`、`QCReport`、`createEmptyQCReport`、`computeAggregates`、`determineVerdict`、`shouldTriggerFallbackForVerdict`、`isQCReportComplete`、`ShotStrategyType`、`LastFrameUsage`、`ShotStrategy`、`inferStrategyFromShotType`、`createStrategy`、`describeStrategy`、`getStrategyThresholdMultiplier`、`usesLastFrame`、`isContinuousAction`、`DriftPolicy`、`DEFAULT_DRIFT_POLICY`、`resolvePolicy`、`validatePolicy`、`shouldFallbackToFaceSwap`、`shouldMarkManualReview`、`EmbeddingMetadata`、`FaceEmbeddingProvider`、`getFaceEmbeddingProvider`、`clearFaceEmbeddingProviderCache`、`isFaceEmbeddingAvailable`、`extractFaceEmbedding`、`SimilarityCheckerError`、`SimilarityResult`、`FrameEmbeddingInput`、`FrameScoreStats`、`computeFrameSimilarity`、`checkFrameConsistency`、`findWorstFrame`、`findWorstFrames`、`filterFramesWithFace`、`computeFrameStats`、`QCInput`、`QCOutput`、`QCErrorKind`、`runQualityCheck`、`shouldTriggerFallback`、`decideFallbackAction`、`getFrameStats`、`shouldDispatchFallback`、`StrategyOverride`、`routeStrategy`、`applyStrategyToPrompt`、`getEffectiveThreshold`、`describeRoutedStrategy`、`shouldUseLastFrame`、`getLastFrameUsage`、`isStrategyLocked`、`buildStrategyAwarePrompt`、`FallbackAction`、`FallbackInput`、`FallbackResult`、`dispatchFallback`、`listFallbackHistory`、`isFallbackTerminal`、`predictNextAction`、`useQCTrigger`、`buildQCInput`、`triggerQCForTask`、`QCTriggerInput`、`QCDashboardPanel`
+
+**partial-edit**: `RectangleShape`、`PolygonShape`、`BrushShape`、`MaskShape`、`MaskConfig`、`MaskBounds`、`createEmptyMaskConfig`、`isValidMaskShape`、`isValidMaskConfig`、`computeMaskBounds`、`createRectangle`、`createPolygon`、`createBrush`、`addShape`、`popShape`、`clearShapes`、`toggleInverse`、`PartialEditRequest`、`PartialEditResult`、`PartialEditValidationError`、`FaceSwapRequest`、`FaceSwapValidationError`、`createPartialEditRequest`、`validatePartialEditRequest`、`isValidPartialEditRequest`、`validateFaceSwapRequest`、`isValidFaceSwapRequest`、`MaskEncodeError`、`MaskEncodeSuccess`、`MaskEncodeOptions`、`encodeMask`、`encodeMaskSync`、`estimateBase64Size`、`isMaskSizeValid`、`PromptStrictness`、`PromptBuilderOptions`、`buildPartialEditPrompt`、`buildSimplePrompt`、`detectLanguage`、`isEmptyPrompt`、`isPromptTooLong`、`truncatePrompt`、`containsSensitiveContent`、`estimateTokenCount`、`PartialEditServiceError`、`PartialEditServiceResult`、`startPartialEditTask`、`startFaceSwapTask`、`savePartialEditAsset`、`listPartialEditHistory`、`PartialEditPanel`、`VideoMaskCanvas`、`MaskToolbar`、`MaskTool`、`EditPromptInput`、`EditHistoryList`、`usePartialEdit`、`UsePartialEditResult`
 
 ### ✅ 诊断 UI 组件与类型（task-management）
 - `TaskDiagnosticPanel` — 任务诊断面板组件
@@ -559,6 +565,226 @@ const videoTemplates: VideoTemplate[]
 const templateCategories: Array<{ id: string; name: string }>
 function getTemplatesByCategory(category: string): VideoTemplate[]
 function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration: number; style: string }
+```
+
+---
+
+### ✅ 一致性质检子域 (`consistency-qc`)
+
+对生成视频做帧级一致性质量检查（QC），按镜头策略路由阈值，不合格时调度回退动作（重试/换脸/人工复核）。
+
+#### QC 报告与判定
+
+```typescript
+type Verdict = ...
+type ActionTaken = ...
+interface FrameScore { ... }
+interface QCReport { ... }
+
+function createEmptyQCReport(): QCReport
+function computeAggregates(scores: FrameScore[]): ...
+function determineVerdict(...): Verdict
+function shouldTriggerFallbackForVerdict(verdict: Verdict): boolean
+function isQCReportComplete(report: QCReport): boolean
+```
+
+#### 镜头策略（Shot Strategy）
+
+```typescript
+type ShotStrategyType = ...
+type LastFrameUsage = ...
+interface ShotStrategy { ... }
+
+function inferStrategyFromShotType(shotType: string): ShotStrategyType
+function createStrategy(...): ShotStrategy
+function describeStrategy(strategy: ShotStrategy): string
+function getStrategyThresholdMultiplier(strategy: ShotStrategy): number
+function usesLastFrame(strategy: ShotStrategy): boolean
+function isContinuousAction(strategy: ShotStrategy): boolean
+```
+
+#### 漂移策略（Drift Policy）
+
+```typescript
+interface DriftPolicy { ... }
+const DEFAULT_DRIFT_POLICY: DriftPolicy
+
+function resolvePolicy(override?: Partial<DriftPolicy>): DriftPolicy
+function validatePolicy(policy: DriftPolicy): boolean
+function shouldFallbackToFaceSwap(policy: DriftPolicy, ...): boolean
+function shouldMarkManualReview(policy: DriftPolicy, ...): boolean
+```
+
+#### 人脸嵌入与帧相似度
+
+```typescript
+interface EmbeddingMetadata { ... }
+interface FaceEmbeddingProvider { ... }
+function getFaceEmbeddingProvider(): FaceEmbeddingProvider
+function clearFaceEmbeddingProviderCache(): void
+function isFaceEmbeddingAvailable(): boolean
+function extractFaceEmbedding(...): Promise<...>
+
+class SimilarityCheckerError extends Error { ... }
+interface SimilarityResult { ... }
+interface FrameEmbeddingInput { ... }
+interface FrameScoreStats { ... }
+
+function computeFrameSimilarity(...): Promise<SimilarityResult>
+function checkFrameConsistency(...): Promise<...>
+function findWorstFrame(scores: FrameScore[]): FrameScore
+function findWorstFrames(scores: FrameScore[], n: number): FrameScore[]
+function filterFramesWithFace(frames: FrameEmbeddingInput[]): FrameEmbeddingInput[]
+function computeFrameStats(scores: FrameScore[]): FrameScoreStats
+```
+
+#### QC 运行与回退调度
+
+```typescript
+interface QCInput { ... }
+interface QCOutput { ... }
+type QCErrorKind = ...
+
+function runQualityCheck(input: QCInput): Promise<QCOutput>
+function shouldTriggerFallback(output: QCOutput): boolean
+function decideFallbackAction(...): FallbackAction
+function getFrameStats(...): FrameScoreStats
+function shouldDispatchFallback(...): boolean
+
+interface FallbackInput { ... }
+interface FallbackResult { ... }
+type FallbackAction = ...
+
+function dispatchFallback(input: FallbackInput): Promise<FallbackResult>
+function listFallbackHistory(taskId: string): FallbackResult[]
+function isFallbackTerminal(action: FallbackAction): boolean
+function predictNextAction(history: FallbackResult[]): FallbackAction
+```
+
+#### 策略路由（Strategy Router）
+
+```typescript
+interface StrategyOverride { ... }
+
+function routeStrategy(...): ShotStrategy
+function applyStrategyToPrompt(prompt: string, strategy: ShotStrategy): string
+function getEffectiveThreshold(base: number, strategy: ShotStrategy): number
+function describeRoutedStrategy(strategy: ShotStrategy): string
+function shouldUseLastFrame(strategy: ShotStrategy): boolean
+function getLastFrameUsage(strategy: ShotStrategy): LastFrameUsage
+function isStrategyLocked(strategy: ShotStrategy): boolean
+function buildStrategyAwarePrompt(...): string
+```
+
+#### QC 触发 Hook 与面板
+
+```typescript
+interface QCTriggerInput { ... }
+
+function buildQCInput(...): QCTriggerInput
+function triggerQCForTask(input: QCTriggerInput): Promise<QCOutput>
+function useQCTrigger(): ...
+const QCDashboardPanel: React.FC<...>
+```
+
+---
+
+### ✅ 局部编辑子域 (`partial-edit`)
+
+视频局部编辑（蒙版区域重绘）与换脸：蒙版形状建模、蒙版 PNG 编码、编辑 Prompt 构建、任务服务与画布 UI。
+
+#### 蒙版形状建模
+
+```typescript
+interface RectangleShape { ... }
+interface PolygonShape { ... }
+interface BrushShape { ... }
+type MaskShape = RectangleShape | PolygonShape | BrushShape
+interface MaskConfig { ... }
+interface MaskBounds { ... }
+
+function createEmptyMaskConfig(): MaskConfig
+function isValidMaskShape(shape: MaskShape): boolean
+function isValidMaskConfig(config: MaskConfig): boolean
+function computeMaskBounds(config: MaskConfig): MaskBounds
+function createRectangle(...): RectangleShape
+function createPolygon(...): PolygonShape
+function createBrush(...): BrushShape
+function addShape(config: MaskConfig, shape: MaskShape): MaskConfig
+function popShape(config: MaskConfig): MaskConfig
+function clearShapes(config: MaskConfig): MaskConfig
+function toggleInverse(config: MaskConfig): MaskConfig
+```
+
+#### 编辑请求与校验
+
+```typescript
+interface PartialEditRequest { ... }
+interface PartialEditResult { ... }
+class PartialEditValidationError extends Error { ... }
+interface FaceSwapRequest { ... }
+class FaceSwapValidationError extends Error { ... }
+
+function createPartialEditRequest(...): PartialEditRequest
+function validatePartialEditRequest(req: PartialEditRequest): void
+function isValidPartialEditRequest(req: PartialEditRequest): boolean
+function validateFaceSwapRequest(req: FaceSwapRequest): void
+function isValidFaceSwapRequest(req: FaceSwapRequest): boolean
+```
+
+#### 蒙版编码
+
+```typescript
+interface MaskEncodeOptions { ... }
+type MaskEncodeSuccess = ...
+class MaskEncodeError extends Error { ... }
+
+function encodeMask(config: MaskConfig, options?: MaskEncodeOptions): Promise<MaskEncodeSuccess>
+function encodeMaskSync(config: MaskConfig, options?: MaskEncodeOptions): MaskEncodeSuccess
+function estimateBase64Size(byteLength: number): number
+function isMaskSizeValid(size: number): boolean
+```
+
+#### 编辑 Prompt 构建
+
+```typescript
+type PromptStrictness = ...
+interface PromptBuilderOptions { ... }
+
+function buildPartialEditPrompt(options: PromptBuilderOptions): string
+function buildSimplePrompt(text: string): string
+function detectLanguage(text: string): "zh" | "en"
+function isEmptyPrompt(text: string): boolean
+function isPromptTooLong(text: string, max?: number): boolean
+function truncatePrompt(text: string, max: number): string
+function containsSensitiveContent(text: string): boolean
+function estimateTokenCount(text: string): number
+```
+
+#### 局部编辑服务
+
+```typescript
+class PartialEditServiceError extends Error { ... }
+interface PartialEditServiceResult { ... }
+
+function startPartialEditTask(req: PartialEditRequest): Promise<PartialEditServiceResult>
+function startFaceSwapTask(req: FaceSwapRequest): Promise<PartialEditServiceResult>
+function savePartialEditAsset(...): Promise<string>
+function listPartialEditHistory(taskId: string): Promise<...>
+```
+
+#### UI 组件与 Hook
+
+```typescript
+const PartialEditPanel: React.FC<...>
+const VideoMaskCanvas: React.FC<...>
+const MaskToolbar: React.FC<...>
+type MaskTool = ...
+const EditPromptInput: React.FC<...>
+const EditHistoryList: React.FC<...>
+
+interface UsePartialEditResult { ... }
+function usePartialEdit(): UsePartialEditResult
 ```
 
 ---

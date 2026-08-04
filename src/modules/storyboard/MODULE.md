@@ -54,7 +54,7 @@ planStory(story: Story, characters: Character[], scenes: Scene[], options?: Stor
 checkTextApiConfig(): Promise<Result<boolean>>
 ```
 
-> `getStoryWithNovelSource` 通过 DI container（`container.novelProjectStorage.getProjectByStoryId`）回溯 `novel_projects.story_id` 关联，返回 Story + 原始小说来源信息。当 Story 不是由小说导入管道创建时，`novelSource` 为 null。
+> getStoryWithNovelSource 通过 DI container（`container.novelProjectStorage.getProjectByStoryId`）回溯 novel_projects.story_id 关联，返回 Story + 原始小说来源信息。当 Story 不是由小说导入管道创建时，novelSource 为 null。
 
 #### Hooks
 
@@ -111,6 +111,21 @@ useStorySaver(props: {
   saveError: string;
 }
 ```
+
+#### 搜索 / 状态 / Context 相关导出
+
+- `useSearchStories` — 按条件搜索故事列表的 Hook
+- `StorySearchOptions` — 故事搜索选项类型（useSearchStories 入参）
+- `useUpdateStoryStatus` — 更新故事状态的 Mutation Hook
+- `useStoriesByStatus` — 按状态筛选故事列表的 Hook
+- `useDuplicateStory` — 复制故事的 Mutation Hook
+- `StoryWithNovelSource` — Story + 原始小说来源的组合类型
+- `NovelSource` — 原始小说来源信息类型
+- `NOVEL_SOURCE_QUERY_KEY` — 原始小说来源查询的 React Query queryKey
+- `SAVED_TEMPLATE_QUERY_KEYS` — 已保存模板查询的 queryKey 常量组
+- `StoryProvider` — 故事 Context Provider 组件
+- `useStoryContext` — 读取故事 Context 的 Hook
+- `StoryContextValue` — 故事 Context 值类型
 
 #### Constants & Types
 

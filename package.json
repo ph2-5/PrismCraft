@@ -59,7 +59,7 @@
     "test:coverage": "vitest run --coverage",
     "test:electron": "vitest run --config vitest.config.electron.ts",
     "test:local-cloud": "vitest run --config vitest.config.electron.ts electron/src/plugins/__tests__/local-cloud-mock/",
-    "test:mutation": "stryker run",
+    "test:mutation": "stryker run --configFile stryker.conf.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test:e2e": "playwright test",

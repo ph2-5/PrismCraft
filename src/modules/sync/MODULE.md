@@ -30,6 +30,7 @@
 | `getSyncStatus` | `() → Promise<SyncStatusInfo>` | 获取当前同步状态（异步，因 getDeviceId 已异步化） |
 | `updateSyncConfig` | `(config: Partial<SyncConfig>) → void` | 更新同步配置 |
 | `setConflictCallback` | `(cb: (conflict: SyncConflict) => Promise<ConflictStrategy>) → void` | 设置冲突回调 |
+| `syncEngine` | SyncEngine 实例 | 同步引擎单例（由 `initSyncEngine` 初始化），供高级场景直接访问 |
 | `SyncEntityType` | `type` | 同步实体类型 |
 | `ChangeOperation` | `type` | 变更操作类型 |
 | `SyncChangeLogEntry` | `type` | 同步变更日志条目 |

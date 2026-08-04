@@ -7,14 +7,23 @@
  * - 节点级状态、进度、执行日志
  * - 节点 executor 注册表（subtype → 执行函数），未注册的节点按"透传首个输入"兜底
  *
- * 内置 executor（在 register-builtin-executors 中注册）：
+ * 内置 executor（在 registerBuiltinExecutors 中注册）：
  * - input.*：返回 config.text
- * - prompt-generate：调用 textProvider.generateText（真实 LLM）
- * - 其他 process / output：透传首个上游输入
+ * - prompt-generate / style-transfer：调用 textProvider.generateText（真实 LLM）
+ * - character-extract / scene-extract：LLM 结构化提取角色 / 场景
+ * - shot-breakdown：复用 generateStoryPlanWithValidation 拆解分镜（LLM + 校验重试）
+ * - consistency-check：有上游图片时走 VLM 一致性检查，无图时占位放行
+ * - video-generate：复用 video task 管线（useVideoTaskStore.createTask），批量/单条提交
+ * - image-generate：调用 imageProvider.generateImage
+ * - export / render：汇总上游输出为结构化 JSON / 摘要
  */
 import { container } from "@/infrastructure/di";
 import type { Workflow, WorkflowNode } from "../domain/workflow-schema";
 import { validateWorkflow } from "./workflow-validator";
+import { generateStoryPlanWithValidation } from "@/shared-logic/story";
+import { checkVisualConsistency } from "@/modules/shot";
+import { useVideoTaskStore } from "@/modules/video/task-management";
+import type { StoryBeat, StoryElement } from "@/domain/schemas";
 
 // ─── 状态类型 ────────────────────────────────────────────────────────────────
 
@@ -79,6 +88,124 @@ const passthroughExecutor: NodeExecutor = async (ctx) => {
 
 // ─── 内置 executor（业务真实执行） ────────────────────────────────────────────
 
+/** 从上游输出中提取文本（{text} 对象或原始字符串），多输入用空行拼接 */
+function extractTextInputs(inputs: Record<string, unknown>): string {
+  return Object.values(inputs)
+    .map((v) => {
+      if (v && typeof v === "object" && "text" in v) return String((v as { text: unknown }).text ?? "");
+      return typeof v === "string" ? v : "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** 从上游输出中提取指定数组字段（characters / scenes / beats），支持顶层与嵌套两种形态 */
+function extractArrayField(inputs: Record<string, unknown>, field: string): unknown[] {
+  if (field in inputs && Array.isArray(inputs[field])) return inputs[field] as unknown[];
+  for (const value of Object.values(inputs)) {
+    if (value && typeof value === "object" && field in value) {
+      const arr = (value as Record<string, unknown>)[field];
+      if (Array.isArray(arr)) return arr;
+    }
+  }
+  return [];
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+/** 从 LLM 输出中提取 JSON 数组（容忍代码块 / 前后缀文本） */
+function extractJsonArray(text: string): unknown[] | null {
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const bracketMatch = text.match(/\[[\s\S]*?\]/);
+  const candidate = codeBlock?.[1] ?? bracketMatch?.[0];
+  if (!candidate) return null;
+  try {
+    const parsed = JSON.parse(candidate.trim());
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+type LlmTaskType = "character_extraction" | "scene_extraction" | "story_planning" | "frame_prompt";
+
+async function callTextProvider(prompt: string, taskType: LlmTaskType, modelId?: string): Promise<string> {
+  const res = await container.textProvider.generateText(prompt, {
+    modelId: modelId || undefined,
+    taskType,
+  });
+  if (!res.success || !res.data?.text) {
+    const detail = !res.success ? (typeof res.error === "string" ? res.error : "unknown error") : "empty response";
+    throw new Error(`LLM call failed: ${detail}`);
+  }
+  return res.data.text;
+}
+
+/** 从上游输出中定位第一个图片 / 视频 URL（供一致性检查 / 渲染使用） */
+function collectOutputMediaUrl(inputs: Record<string, unknown>): string | undefined {
+  const findInRecord = (record: Record<string, unknown>): string | undefined => {
+    if (typeof record.imageUrl === "string" && record.imageUrl) return record.imageUrl;
+    if (typeof record.videoUrl === "string" && record.videoUrl) return record.videoUrl;
+    if (Array.isArray(record.images) && record.images.length > 0) {
+      const first = toRecord(record.images[0]);
+      if (typeof first.imageUrl === "string" && first.imageUrl) return first.imageUrl;
+      if (typeof first.url === "string" && first.url) return first.url;
+    }
+    if (Array.isArray(record.tasks)) {
+      for (const task of record.tasks) {
+        const t = toRecord(task);
+        if (typeof t.videoUrl === "string" && t.videoUrl) return t.videoUrl;
+      }
+    }
+    return undefined;
+  };
+  for (const value of Object.values(inputs)) {
+    if (!value || typeof value !== "object") continue;
+    const direct = findInRecord(value as Record<string, unknown>);
+    if (direct) return direct;
+    // 递归一层（嵌套结果对象）
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      if (nested && typeof nested === "object") {
+        const nestedUrl = findInRecord(nested as Record<string, unknown>);
+        if (nestedUrl) return nestedUrl;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** 从上游 characters 构造 StoryElement[]（供一致性检查绑定） */
+function buildElementsFromInputs(inputs: Record<string, unknown>): StoryElement[] {
+  return extractArrayField(inputs, "characters")
+    .map((c, i) => {
+      const r = toRecord(c);
+      return {
+        id: `wf-char-${i}`,
+        type: "character",
+        name: String(r.name ?? ""),
+        description: String(r.description ?? r.appearance ?? ""),
+      } as StoryElement;
+    })
+    .filter((el) => el.name.length > 0);
+}
+
+function buildConsistencyBeat(label: string, elements: StoryElement[]): StoryBeat {
+  return {
+    id: `wf-beat-${label}`,
+    sequence: 1,
+    title: label,
+    content: label,
+    description: label,
+    duration: 5,
+    type: "action",
+    characterIds: elements.map((el) => el.id),
+    elementIds: elements.map((el) => el.id),
+    enhancedGeneration: false,
+  } as StoryBeat;
+}
+
 export function registerBuiltinExecutors(): void {
   // 输入节点：产出 config.text
   for (const subtype of ["text", "novel", "script", "prompt"] as const) {
@@ -113,7 +240,190 @@ export function registerBuiltinExecutors(): void {
     return { text: res.data.text };
   });
 
-  // 其他处理/输出节点：透传（业务节点后续按 subtype 注册）
+  // character-extract：LLM 结构化提取角色
+  registerNodeExecutor("character-extract", async (ctx) => {
+    const text = extractTextInputs(ctx.inputs);
+    if (!text) throw new Error(`character-extract "${ctx.node.label}" requires text input`);
+    const modelId = typeof ctx.node.config.modelId === "string" ? ctx.node.config.modelId : undefined;
+    ctx.log("extracting characters via LLM…");
+    const raw = await callTextProvider(
+      `从以下小说/剧本文本中提取主要角色，以 JSON 数组返回，每项包含 name、description、appearance 三个字段：\n\n${text.slice(0, 12000)}`,
+      "character_extraction",
+      modelId,
+    );
+    const characters = (extractJsonArray(raw) ?? [])
+      .map((item) => {
+        const r = toRecord(item);
+        return {
+          name: String(r.name ?? "").trim(),
+          description: String(r.description ?? "").trim(),
+          appearance: String(r.appearance ?? "").trim(),
+        };
+      })
+      .filter((c) => c.name.length > 0);
+    if (characters.length === 0) {
+      throw new Error(`character-extract "${ctx.node.label}" failed to parse characters`);
+    }
+    ctx.log(`extracted ${characters.length} characters`);
+    return { characters };
+  });
+
+  // scene-extract：LLM 结构化提取场景
+  registerNodeExecutor("scene-extract", async (ctx) => {
+    const text = extractTextInputs(ctx.inputs);
+    if (!text) throw new Error(`scene-extract "${ctx.node.label}" requires text input`);
+    const modelId = typeof ctx.node.config.modelId === "string" ? ctx.node.config.modelId : undefined;
+    ctx.log("extracting scenes via LLM…");
+    const raw = await callTextProvider(
+      `从以下小说/剧本文本中提取主要场景，以 JSON 数组返回，每项包含 name、description、type 三个字段：\n\n${text.slice(0, 12000)}`,
+      "scene_extraction",
+      modelId,
+    );
+    const scenes = (extractJsonArray(raw) ?? [])
+      .map((item) => {
+        const r = toRecord(item);
+        return {
+          name: String(r.name ?? "").trim(),
+          description: String(r.description ?? "").trim(),
+          type: String(r.type ?? "indoor").trim(),
+        };
+      })
+      .filter((s) => s.name.length > 0);
+    if (scenes.length === 0) {
+      throw new Error(`scene-extract "${ctx.node.label}" failed to parse scenes`);
+    }
+    ctx.log(`extracted ${scenes.length} scenes`);
+    return { scenes };
+  });
+
+  // shot-breakdown：复用故事分镜生成管线（LLM + JSON 校验 + 重试）
+  registerNodeExecutor("shot-breakdown", async (ctx) => {
+    const text = extractTextInputs(ctx.inputs);
+    if (!text) throw new Error(`shot-breakdown "${ctx.node.label}" requires text input`);
+    const characters = extractArrayField(ctx.inputs, "characters");
+    const scenes = extractArrayField(ctx.inputs, "scenes");
+    ctx.log("generating story plan via LLM…");
+    const result = await generateStoryPlanWithValidation(
+      { description: text },
+      characters,
+      scenes,
+      { enhancedGeneration: true, maxRetries: 3 },
+      async (prompt, opts) =>
+        container.textProvider.generateText(prompt, {
+          maxTokens: typeof opts.maxTokens === "number" ? opts.maxTokens : 4000,
+          temperature: typeof opts.temperature === "number" ? opts.temperature : 0.7,
+          taskType: "story_planning",
+        }),
+    );
+    ctx.log(`generated ${result.beats.length} beats (auto-fixed ${result.autoFixedCount})`);
+    return { beats: result.beats };
+  });
+
+  // consistency-check：有上游图片时走 VLM 一致性检查，无图时占位放行
+  registerNodeExecutor("consistency-check", async (ctx) => {
+    const imageUrl = collectOutputMediaUrl(ctx.inputs);
+    if (!imageUrl) {
+      ctx.log("no generated image upstream, consistency check skipped", "warn");
+      return { consistency: { passed: true, recommendation: "accept", note: "no image input" } };
+    }
+    const elements = buildElementsFromInputs(ctx.inputs);
+    const beat = buildConsistencyBeat(ctx.node.label, elements);
+    ctx.log("running visual consistency check via VLM…");
+    const result = await checkVisualConsistency({ beat, elements, generatedImageUrl: imageUrl });
+    if (!result.ok) {
+      throw new Error(`Consistency check failed: ${result.error instanceof Error ? result.error.message : String(result.error)}`);
+    }
+    ctx.log(`consistency ${result.value.passed ? "passed" : "failed"} (score ${result.value.overallScore})`);
+    return { consistency: result.value };
+  });
+
+  // style-transfer：LLM 风格改写
+  registerNodeExecutor("style-transfer", async (ctx) => {
+    const text = extractTextInputs(ctx.inputs);
+    if (!text) throw new Error(`style-transfer "${ctx.node.label}" requires text input`);
+    const style = String(ctx.node.config.style ?? "").trim();
+    ctx.log(`applying style transfer${style ? ` (${style})` : ""}…`);
+    const prompt = style
+      ? `请将以下内容改写为「${style}」风格，保持核心信息不变：\n\n${text.slice(0, 12000)}`
+      : `请对以下内容进行艺术化润色改写，保持核心信息不变：\n\n${text.slice(0, 12000)}`;
+    const modelId = typeof ctx.node.config.modelId === "string" ? ctx.node.config.modelId : undefined;
+    const raw = await callTextProvider(prompt, "frame_prompt", modelId);
+    return { text: raw.trim() };
+  });
+
+  // video-generate：复用 video task 管线（批量 beats 或单条文本）
+  registerNodeExecutor("video-generate", async (ctx) => {
+    const modelId = typeof ctx.node.config.modelId === "string" && ctx.node.config.modelId ? ctx.node.config.modelId : undefined;
+    const providerId = typeof ctx.node.config.providerId === "string" && ctx.node.config.providerId ? ctx.node.config.providerId : undefined;
+    const beats = extractArrayField(ctx.inputs, "beats");
+    const tasks: Array<Record<string, unknown>> = [];
+    if (beats.length > 0) {
+      for (const beat of beats) {
+        if (ctx.signal.aborted) break;
+        const r = toRecord(beat);
+        const prompt = String(r.content ?? r.title ?? "").trim();
+        if (!prompt) continue;
+        ctx.log(`creating video task for "${String(r.title ?? r.id ?? "")}"…`);
+        const task = await useVideoTaskStore.getState().createTask(prompt, {
+          beatId: typeof r.id === "string" ? r.id : undefined,
+          beatTitle: typeof r.title === "string" ? r.title : undefined,
+          providerId,
+          modelId,
+        });
+        tasks.push({ beatId: r.id, taskId: task?.taskId ?? null, status: task?.status ?? "failed" });
+      }
+    } else {
+      const text = extractTextInputs(ctx.inputs);
+      if (!text) throw new Error(`video-generate "${ctx.node.label}" requires text or beats input`);
+      ctx.log("creating video task…");
+      const task = await useVideoTaskStore.getState().createTask(text, { providerId, modelId });
+      tasks.push({ taskId: task?.taskId ?? null, status: task?.status ?? "failed" });
+    }
+    if (tasks.length === 0) throw new Error(`video-generate "${ctx.node.label}" created no tasks`);
+    ctx.log(`submitted ${tasks.length} video task(s)`);
+    return { tasks };
+  });
+
+  // image-generate：调用 imageProvider.generateImage
+  registerNodeExecutor("image-generate", async (ctx) => {
+    const text = extractTextInputs(ctx.inputs);
+    if (!text) throw new Error(`image-generate "${ctx.node.label}" requires text input`);
+    const modelId = typeof ctx.node.config.modelId === "string" && ctx.node.config.modelId ? ctx.node.config.modelId : undefined;
+    ctx.log("generating image via imageProvider…");
+    const res = await container.imageProvider.generateImage(text.slice(0, 4000), "scene", { modelId: modelId || undefined });
+    if (!res.success || !res.data) {
+      throw new Error(`Image generation failed: ${!res.success ? res.error : "empty result"}`);
+    }
+    ctx.log(`image generated: ${res.data.imageUrl.slice(0, 80)}`);
+    return { images: [{ imageUrl: res.data.imageUrl, prompt: res.data.prompt }] };
+  });
+
+  // export：汇总上游输出为可下载 JSON
+  registerNodeExecutor("export", async (ctx) => {
+    const payload = { exportedAt: new Date().toISOString(), outputs: ctx.inputs };
+    const json = JSON.stringify(payload, null, 2);
+    ctx.log(`exported ${Object.keys(ctx.inputs).length} upstream output(s), ${json.length} bytes`);
+    return { export: { json, size: json.length, nodeCount: Object.keys(ctx.inputs).length } };
+  });
+
+  // render：聚合上游输出为结构化摘要
+  registerNodeExecutor("render", async (ctx) => {
+    const summary: Record<string, unknown> = { renderedAt: new Date().toISOString(), upstreamCount: Object.keys(ctx.inputs).length };
+    for (const [key, value] of Object.entries(ctx.inputs)) {
+      if (Array.isArray(value)) {
+        summary[key] = `array[${value.length}]`;
+      } else if (value && typeof value === "object") {
+        const keys = Object.keys(value as Record<string, unknown>);
+        summary[key] = keys.length > 0 ? `object{${keys.slice(0, 5).join(",")}}` : "object{}";
+      } else {
+        summary[key] = value;
+      }
+    }
+    ctx.log(`render aggregated ${summary.upstreamCount} upstream output(s)`);
+    return { render: summary };
+  });
+
+  // 其他未注册节点：透传（兜底）
   registerNodeExecutor("default", passthroughExecutor);
 }
 

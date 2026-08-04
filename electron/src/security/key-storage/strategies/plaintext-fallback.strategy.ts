@@ -98,41 +98,58 @@ export class PlaintextFallbackStrategy implements KeyStorageStrategy {
     // 避免与密文 encrypted-keys.fallback.json 同目录存放——否则攻击者同时拿到
     // 密文文件与派生因子文件，AES-256-GCM 加密形同虚设。
     const idFile = path.join(os.homedir(), ".prismcraft", ".machine-id");
-    try {
-      if (fs.existsSync(idFile)) {
-        return fs.readFileSync(idFile, "utf-8").trim();
-      }
-    } catch (e) { logger.warn("密钥存储操作失败", { error: e instanceof Error ? e.message : String(e) }); }
+    const existingId = this.readIdFile(idFile);
+    if (existingId) return existingId;
     // 兼容旧版本：旧实现将 .machine-id 存放在 userData/secure/ 下。
     // 若存在则读取并迁移到新位置（保持 ID 不变，避免派生密钥变化导致已有密文无法解密）。
+    const migratedId = this.migrateLegacyIdFile(idFile);
+    if (migratedId) return migratedId;
+    return this.createNewIdFile(idFile);
+  }
+
+  private readIdFile(file: string): string | null {
+    try {
+      if (fs.existsSync(file)) {
+        const id = fs.readFileSync(file, "utf-8").trim();
+        return id || null;
+      }
+    } catch (e) { logger.warn("密钥存储操作失败", { error: e instanceof Error ? e.message : String(e) }); }
+    return null;
+  }
+
+  private writeIdFile(file: string, id: string): void {
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(file, id, { mode: 0o600 });
+  }
+
+  /** 迁移旧位置（userData/secure/.machine-id）的 ID 到 ~/.prismcraft/.machine-id */
+  private migrateLegacyIdFile(idFile: string): string | null {
     const legacyIdFile = path.join(getUserDataPath(), "secure", ".machine-id");
     try {
       if (fs.existsSync(legacyIdFile)) {
         const legacyId = fs.readFileSync(legacyIdFile, "utf-8").trim();
         if (legacyId) {
           try {
-            const dir = path.dirname(idFile);
-            if (!fs.existsSync(dir)) {
-              fs.mkdirSync(dir, { recursive: true });
-            }
-            fs.writeFileSync(idFile, legacyId, { mode: 0o600 });
+            this.writeIdFile(idFile, legacyId);
           } catch (e) { logger.warn("Failed to migrate machine ID file to home directory", { error: e instanceof Error ? e.message : String(e) }); }
           return legacyId;
         }
       }
     } catch (e) { logger.warn("密钥存储操作失败", { error: e instanceof Error ? e.message : String(e) }); }
+    return null;
+  }
+
+  private createNewIdFile(idFile: string): string {
     const newId = crypto.randomUUID();
     try {
-      const dir = path.dirname(idFile);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(idFile, newId, { mode: 0o600 });
+      this.writeIdFile(idFile, newId);
       return newId;
     } catch {
       logger.warn("Failed to read/write machine ID file, using derived fallback");
-      const userDataPath = getUserDataPath();
-      return crypto.createHash("sha256").update(userDataPath).digest("hex");
+      return crypto.createHash("sha256").update(getUserDataPath()).digest("hex");
     }
   }
 

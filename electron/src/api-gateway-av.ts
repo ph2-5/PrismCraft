@@ -169,70 +169,16 @@ export async function transcribeAudio(body: Record<string, unknown>): Promise<Ap
       return { success: false, error: "unknown_provider", code: API_ERROR_CODES.UNKNOWN_PROVIDER, httpStatus: 400 };
     }
 
-    // 下载音频文件
-    // 安全修复（SSRF + 路径穿越）：
-    // - http(s):// 走 validateUrlForRequest SSRF 校验 + 25MB 大小上限
-    // - local:// 与裸路径走 isPathUnderAnyRoot 白名单校验（仅允许用户数据目录子树）
-    const fs = await import("node:fs/promises");
-    const path = await import("node:path");
-    let audioBuffer: Buffer;
-    let filename: string;
-    const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB 上限，防止恶意大文件触发 OOM
-    const allowedRoots = getAllUserDataDirs();
-
-    if (audioUrl.startsWith("local://")) {
-      const localPath = audioUrl.slice("local://".length);
-      // 路径穿越防护：仅允许读取用户数据目录子树下的文件
-      if (!(await isPathUnderAnyRoot(path.resolve(localPath), allowedRoots))) {
-        return { success: false, error: "local_path_not_allowed", httpStatus: 400 };
-      }
-      const stat = await fs.stat(localPath);
-      if (stat.size > MAX_AUDIO_SIZE) {
-        return { success: false, error: "audio_too_large", httpStatus: 413 };
-      }
-      audioBuffer = await fs.readFile(localPath);
-      filename = path.basename(localPath);
-    } else if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://")) {
-      // SSRF 防护：校验 audioUrl 不指向内网/元数据端点
-      const ssrfCheck = await validateUrlForRequest(audioUrl);
-      if (!ssrfCheck.safe) {
-        return { success: false, error: "audio_url_blocked_by_ssrf_guard", httpStatus: 400 };
-      }
-      const dlResponse = await fetch(audioUrl);
-      if (!dlResponse.ok) {
-        return { success: false, error: `download_failed: ${dlResponse.status}`, httpStatus: dlResponse.status };
-      }
-      const contentLength = Number(dlResponse.headers.get("content-length") || 0);
-      if (contentLength > MAX_AUDIO_SIZE) {
-        return { success: false, error: "audio_too_large", httpStatus: 413 };
-      }
-      const arrayBuffer = await dlResponse.arrayBuffer();
-      if (arrayBuffer.byteLength > MAX_AUDIO_SIZE) {
-        return { success: false, error: "audio_too_large", httpStatus: 413 };
-      }
-      audioBuffer = Buffer.from(arrayBuffer);
-      filename = audioUrl.split("/").pop() || "audio.mp3";
-    } else {
-      // 尝试作为本地路径（同样需路径白名单校验）
-      if (!(await isPathUnderAnyRoot(path.resolve(audioUrl), allowedRoots))) {
-        return { success: false, error: "local_path_not_allowed", httpStatus: 400 };
-      }
-      try {
-        const stat = await fs.stat(audioUrl);
-        if (stat.size > MAX_AUDIO_SIZE) {
-          return { success: false, error: "audio_too_large", httpStatus: 413 };
-        }
-        audioBuffer = await fs.readFile(audioUrl);
-        filename = path.basename(audioUrl);
-      } catch {
-        return { success: false, error: "invalid_audio_url", httpStatus: 400 };
-      }
+    // 下载音频文件（含 SSRF + 路径穿越 + 25MB 大小防护）
+    const download = await downloadAudioBuffer(audioUrl);
+    if (!download.ok) {
+      return { success: false, error: download.error, httpStatus: download.httpStatus };
     }
 
     // 构建 multipart/form-data
     const formData = new FormData();
     formData.append("model", effectiveModel);
-    formData.append("file", new Blob([new Uint8Array(audioBuffer)]), filename);
+    formData.append("file", new Blob([new Uint8Array(download.buffer!)]), download.filename!);
     if (language) {
       formData.append("language", language);
     }
@@ -282,5 +228,74 @@ export async function transcribeAudio(body: Record<string, unknown>): Promise<Ap
       error: extractErrorMessage(error),
       httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
     };
+  }
+}
+
+interface AudioDownloadResult {
+  ok: boolean;
+  buffer?: Buffer;
+  filename?: string;
+  error?: string;
+  httpStatus?: number;
+}
+
+/**
+ * 下载/读取音频文件，返回 Buffer 与文件名。
+ * 安全防护（SSRF + 路径穿越）：
+ * - http(s):// 走 validateUrlForRequest SSRF 校验 + 25MB 大小上限
+ * - local:// 与裸路径走 isPathUnderAnyRoot 白名单校验（仅允许用户数据目录子树）
+ */
+async function downloadAudioBuffer(audioUrl: string): Promise<AudioDownloadResult> {
+  const fs = await import("node:fs/promises");
+  const path = await import("node:path");
+  const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB 上限，防止恶意大文件触发 OOM
+  const allowedRoots = getAllUserDataDirs();
+
+  if (audioUrl.startsWith("local://")) {
+    const localPath = audioUrl.slice("local://".length);
+    // 路径穿越防护：仅允许读取用户数据目录子树下的文件
+    if (!(await isPathUnderAnyRoot(path.resolve(localPath), allowedRoots))) {
+      return { ok: false, error: "local_path_not_allowed", httpStatus: 400 };
+    }
+    const stat = await fs.stat(localPath);
+    if (stat.size > MAX_AUDIO_SIZE) {
+      return { ok: false, error: "audio_too_large", httpStatus: 413 };
+    }
+    return { ok: true, buffer: await fs.readFile(localPath), filename: path.basename(localPath) };
+  }
+
+  if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://")) {
+    // SSRF 防护：校验 audioUrl 不指向内网/元数据端点
+    const ssrfCheck = await validateUrlForRequest(audioUrl);
+    if (!ssrfCheck.safe) {
+      return { ok: false, error: "audio_url_blocked_by_ssrf_guard", httpStatus: 400 };
+    }
+    const dlResponse = await fetch(audioUrl);
+    if (!dlResponse.ok) {
+      return { ok: false, error: `download_failed: ${dlResponse.status}`, httpStatus: dlResponse.status };
+    }
+    const contentLength = Number(dlResponse.headers.get("content-length") || 0);
+    if (contentLength > MAX_AUDIO_SIZE) {
+      return { ok: false, error: "audio_too_large", httpStatus: 413 };
+    }
+    const arrayBuffer = await dlResponse.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_AUDIO_SIZE) {
+      return { ok: false, error: "audio_too_large", httpStatus: 413 };
+    }
+    return { ok: true, buffer: Buffer.from(arrayBuffer), filename: audioUrl.split("/").pop() || "audio.mp3" };
+  }
+
+  // 尝试作为本地路径（同样需路径白名单校验）
+  if (!(await isPathUnderAnyRoot(path.resolve(audioUrl), allowedRoots))) {
+    return { ok: false, error: "local_path_not_allowed", httpStatus: 400 };
+  }
+  try {
+    const stat = await fs.stat(audioUrl);
+    if (stat.size > MAX_AUDIO_SIZE) {
+      return { ok: false, error: "audio_too_large", httpStatus: 413 };
+    }
+    return { ok: true, buffer: await fs.readFile(audioUrl), filename: path.basename(audioUrl) };
+  } catch {
+    return { ok: false, error: "invalid_audio_url", httpStatus: 400 };
   }
 }

@@ -20,7 +20,7 @@ try {
         $buildResult = 1
     }
 
-    if ($buildResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "out\index.html"))) {
+    if ($buildResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "out/index.html"))) {
         Write-Error "Vite build failed with exit code $buildResult"
         exit $buildResult
     }
@@ -30,7 +30,7 @@ try {
     npx tsc -p tsconfig.shared-logic.json 2>&1 | ForEach-Object { Write-Host $_ }
     $sharedLogicTscResult = $LASTEXITCODE
     $ErrorActionPreference = "Stop"
-    if ($sharedLogicTscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron\dist\shared-logic\index.js"))) {
+    if ($sharedLogicTscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron/dist/shared-logic/index.js"))) {
         Write-Error "shared-logic TypeScript compilation failed"
         exit $sharedLogicTscResult
     }
@@ -41,20 +41,20 @@ try {
     npx tsc -p electron/tsconfig.json 2>&1 | ForEach-Object { Write-Host $_ }
     $tscResult = $LASTEXITCODE
     $ErrorActionPreference = "Stop"
-    if ($tscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron\dist\main.js"))) {
+    if ($tscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron/dist/main.js"))) {
         Write-Error "Electron TypeScript compilation failed"
         exit $tscResult
     }
 
-    # 复制 electron/dist/*（含 shared-logic/）到 out/
-    Copy-Item -Path "electron\dist\*" -Destination "out\" -Recurse -Force
+    # 复制 electron/dist/*（含 shared-logic/）到 out/（正斜杠路径：Windows/macOS/Linux 通用）
+    Copy-Item -Path "electron/dist/*" -Destination "out/" -Recurse -Force
 
-    $docsOutDir = Join-Path $projectDir "out\docs"
+    $docsOutDir = Join-Path $projectDir "out/docs"
     if (-not (Test-Path -LiteralPath $docsOutDir)) {
         New-Item -ItemType Directory -Path $docsOutDir -Force | Out-Null
     }
-    Copy-Item -Path (Join-Path $projectDir "docs\plugin-spec.schema.json") -Destination $docsOutDir -Force
-    Copy-Item -Path (Join-Path $projectDir "docs\plugin-specification.md") -Destination $docsOutDir -Force
+    Copy-Item -Path (Join-Path $projectDir "docs/plugin-spec.schema.json") -Destination $docsOutDir -Force
+    Copy-Item -Path (Join-Path $projectDir "docs/plugin-specification.md") -Destination $docsOutDir -Force
     Write-Host "Copied plugin docs to out/docs"
 
     Write-Host "Electron build completed successfully!"

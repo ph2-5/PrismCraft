@@ -86,6 +86,11 @@ jobs:
       - name: Contract validation
         run: node scripts/validate-contracts.mjs
 
+      - name: Quality badges check (README metrics in sync with source)
+        # 从源码统计测试数/i18n 键/Schema 版本并校验 README 一致性，
+        # 失真时运行 `npm run quality:badges:fix` 修正后重新提交。
+        run: node scripts/generate-quality-badges.mjs
+
   security-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10

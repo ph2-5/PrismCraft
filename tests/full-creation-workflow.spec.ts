@@ -315,4 +315,53 @@ test.describe("Full Creation Workflow", () => {
       expect(hasAdvanced).toBe(true);
     }
   });
+
+  // 补齐审计发现的缺口：此前所有 e2e 从不点击"生成"按钮。
+  // 本测试在 mock 环境下真实点击"立即生成视频"，断言任务状态流转：
+  // 排队中/生成中（pending/generating）→ 已完成（completed，mock video-status 返回）。
+  test("should click generate and drive video task through mock pipeline to completed", async ({ page }) => {
+    await setupPage(page, "/quick-generate");
+
+    await expect(page.locator("main").first()).toBeVisible();
+
+    // 填写 prompt（表单校验仅要求 prompt 非空）
+    const promptTextarea = page.locator("textarea").first();
+    await expect(promptTextarea).toBeVisible();
+    await promptTextarea.fill("一个少年走在霓虹灯闪烁的城市街道上");
+    await expect(promptTextarea).toHaveValue("一个少年走在霓虹灯闪烁的城市街道上");
+
+    // 选择视频模型（mock config/get 提供 seedance/kuaishou 两个 video 模型）
+    const modelSelect = page.getByRole("combobox", { name: "视频模型" }).first();
+    await expect(modelSelect).toBeVisible({ timeout: 15000 });
+    try {
+      // 原生 select：index 0 是"默认（使用设置中的配置）"空选项，需选 index 1（Seedance）
+      await modelSelect.selectOption({ index: 1 });
+    } catch {
+      // 自定义 combobox：点击后选第二个 option
+      await modelSelect.click();
+      await page.locator("option").nth(1).click();
+    }
+    await page.waitForTimeout(300);
+
+    // 点击"立即生成视频"（i18n: task.generateVideoNow）
+    const generateButton = page.locator("button", { hasText: "立即生成视频" }).first();
+    await expect(generateButton).toBeVisible();
+    await generateButton.click({ force: true });
+
+    // 阶段 1：任务进入 pending（mock /api/generate-video 返回 pending）
+    // TaskResultPanel 渲染 t("quickGenerate.queuing") = "排队中..."
+    await expect(page.locator("text=/排队中/").first()).toBeVisible({ timeout: 10000 });
+
+    // 阶段 2：轮询引擎调用 /api/video-status/**（mock 返回 completed + 假 URL）→ 任务完成
+    // TaskResultPanel 渲染 t("quickGenerate.completed") = "已完成!"
+    await expect(page.locator("text=/已完成/").first()).toBeVisible({ timeout: 20000 });
+
+    // 阶段 3：completed 分支渲染结果（下载按钮/视频链接区域）
+    const downloadButton = page.locator("button", { hasText: /下载|Download/ }).first();
+    const resultVideo = page.locator("video").first();
+    const hasResult =
+      (await downloadButton.isVisible({ timeout: 5000 }).catch(() => false)) ||
+      (await resultVideo.isVisible({ timeout: 3000 }).catch(() => false));
+    expect(hasResult).toBe(true);
+  });
 });

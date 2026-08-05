@@ -17,9 +17,14 @@ export async function mockApiRoutes(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        task_id: "e2e_mock_video_12345",
-        status: "pending",
-        estimated_time: 1,
+        success: true,
+        data: {
+          taskId: "e2e_mock_video_12345",
+          status: "pending",
+          providerId: "seedance",
+          providerModelId: "seedance-v1",
+          providerFormat: "mp4",
+        },
       }),
     }),
   );
@@ -29,9 +34,10 @@ export async function mockApiRoutes(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        task_id: "e2e_mock_img_12345",
-        status: "completed",
-        url: "https://mock.image/e2e-fake.png",
+        success: true,
+        data: {
+          imageUrl: "https://mock.image/e2e-fake.png",
+        },
       }),
     }),
   );
@@ -41,22 +47,27 @@ export async function mockApiRoutes(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        task_id: "e2e_mock_keyframe_12345",
-        status: "completed",
-        url: "https://mock.image/e2e-keyframe.png",
+        success: true,
+        data: {
+          imageUrl: "https://mock.image/e2e-keyframe.png",
+        },
       }),
     }),
   );
 
-  await page.route("**/api/video-status/**", (route) =>
+  // 轮询引擎 POST /api/video-status（queryVideoStatus），无尾部 taskId 路径
+  await page.route("**/api/video-status*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        task_id: "e2e_mock_video_12345",
-        status: "completed",
-        url: "https://mock.video/e2e-fake.mp4",
-        progress: 100,
+        success: true,
+        data: {
+          taskId: "e2e_mock_video_12345",
+          status: "completed",
+          videoUrl: "https://mock.video/e2e-fake.mp4",
+          progress: 100,
+        },
       }),
     }),
   );
@@ -67,8 +78,22 @@ export async function mockApiRoutes(page: Page) {
       contentType: "application/json",
       body: JSON.stringify({
         providers: [
-          { id: "seedance", name: "Seedance", models: [{ id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] }] },
-          { id: "kuaishou", name: "可灵AI", models: [{ id: "kling-v1", name: "可灵 V1", capabilities: ["video"] }] },
+          {
+            id: "seedance",
+            name: "Seedance",
+            format: "seedance",
+            baseUrl: "https://api.seedance.example.com",
+            apiKey: "sk-mock-seedance-key",
+            models: [{ id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] }],
+          },
+          {
+            id: "kuaishou",
+            name: "可灵AI",
+            format: "kuaishou",
+            baseUrl: "https://api.kuaishou.example.com",
+            apiKey: "sk-mock-kuaishou-key",
+            models: [{ id: "kling-v1", name: "可灵 V1", capabilities: ["video"] }],
+          },
         ],
       }),
     }),
@@ -86,8 +111,22 @@ export async function mockApiRoutes(page: Page) {
           value: {
             version: 1,
             providers: [
-              { id: "seedance", name: "Seedance", models: [{ id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] }] },
-              { id: "kuaishou", name: "可灵AI", models: [{ id: "kling-v1", name: "可灵 V1", capabilities: ["video"] }] },
+              {
+                id: "seedance",
+                name: "Seedance",
+                format: "seedance",
+                baseUrl: "https://api.seedance.example.com",
+                apiKey: "sk-mock-seedance-key",
+                models: [{ id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] }],
+              },
+              {
+                id: "kuaishou",
+                name: "可灵AI",
+                format: "kuaishou",
+                baseUrl: "https://api.kuaishou.example.com",
+                apiKey: "sk-mock-kuaishou-key",
+                models: [{ id: "kling-v1", name: "可灵 V1", capabilities: ["video"] }],
+              },
             ],
             mapping: {},
             fallback: { enabled: true, order: ["text", "image", "vision", "video"] },

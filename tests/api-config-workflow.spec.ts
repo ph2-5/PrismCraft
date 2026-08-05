@@ -56,7 +56,7 @@ test.describe("Configured Providers Section", () => {
   });
 
   test("should display provider cards if providers exist", async ({ page }) => {
-    const providerCards = page.locator("[class*='border rounded-lg']").filter({ hasText: /提供商|Provider|模型/ }).first();
+    const providerCards = page.locator("[class*='border rounded-lg']").filter({ hasText: /Seedance|可灵AI|提供商|Provider|模型/ }).first();
     const noProviderHint = page.locator("text=暂无提供商").or(page.locator("text=尚未配置")).first();
     const hasCards = await providerCards.isVisible({ timeout: 5000 }).catch(() => false);
     const hasHint = await noProviderHint.isVisible({ timeout: 5000 }).catch(() => false);

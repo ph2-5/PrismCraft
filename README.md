@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-1.5.0-blue)](package.json)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
 [![Commercial License](https://img.shields.io/badge/commercial-license%20available-orange)](COMMERCIAL_LICENSE.md)
-[![Tests](https://img.shields.io/badge/tests-10000%2B-brightgreen)](docs/DEVELOPMENT.md)
+[![Tests](https://img.shields.io/badge/tests-9868-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--24-green)]()
 
@@ -29,7 +29,9 @@
 
 ```bash
 # 安装依赖（会自动 rebuild better-sqlite3 + 创建 @shared-logic junction）
-npm install
+# 已知问题：Storybook 8 的 vite 插件尚不支持 vite 8（上游 issue #33789），
+# 若 npm install 报 ERESOLVE peer 冲突，请加 --legacy-peer-deps（与 CI 一致）：
+npm install --legacy-peer-deps
 
 # 启动开发模式（Vite 开发服务器）
 npm run dev
@@ -149,12 +151,12 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 8647+（渲染进程，421 文件） |
-| Electron 测试 | 1524 passed / 19 skipped（70 文件） |
+| 单元测试 | 8526+（渲染进程，440 文件） |
+| Electron 测试 | 1342+（70 文件） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 152 条规则，8 大类（R1–R191，编号非连续） |
+| 回归守卫 | 152 条规则，8 大类（R10–R191，编号非连续） |
 | i18n 键 | 4521 |
 
 ## 安全设计

@@ -1,7 +1,7 @@
 # cost-tracking 模块 — 成本追踪 / 用量统计
 
 > 设计来源：`docs/DESIGN-COST-TRACKING.md`（v0.2，评审修订）
-> 状态：P0 已落地（采集链路），看板 UI 为 P1
+> 状态：P0 已落地（采集链路）✅ / P1 进行中（定价引擎已落地，看板 UI 待建）
 
 ## 职责
 
@@ -37,9 +37,23 @@ usage_records 表（SQLite，migrations v13 + FEATURE_TABLES + 3 索引）
 | source | manual / batch / workflow |
 | called_at | 调用时刻（Unix 秒） |
 
+## 定价引擎（P1，shared-logic/cost-engine）
+
+- **位置**：`src/shared-logic/cost-engine/`（零依赖纯函数，主/渲染双向复用）
+- **types.ts**：BillingType（per_second/per_call/per_image/per_token）、PriceTable、CostEstimate（含 formula/confidence）
+- **prices.ts**：`DEFAULT_PRICE_TABLE`（13 家占位，近似公开定价，rate=null → 待定价）
+- **calculator.ts**：`calculateCost()` 按计费方式分派 + `sumEstimates()` 批量合计（忽略待定价）+ `roundToCent()`（EPSILON 修正浮点）
+- **关键规则**：预估与看板共用同一 `calculateCost()`，禁止两套口径
+
+## 真实用量 Port（P1，domain/ports/usage-provider-port.ts）
+
+- `IUsageProvider` 纯接口：fetchUsage / isAvailable / 可选 fetchPriceTable
+- 注册：DI 容器 token + overrideToken 可测替换；无实现 → 纯本地估算（无缝降级）
+- 有真实用真实（cost_source=actual 回填 actual_cost）、无真实用估算、混合逐条标记
+
 ## 公共 API
 
-（P0 无渲染进程导出——采集链路全部在主进程；P1 看板在此补充 hooks/services。）
+（P0/P1 渲染进程无导出——采集链路在主进程、定价引擎在 shared-logic；看板 UI 的 hooks/services 将在 P1 看板落地时补充。）
 
 ## 守卫
 

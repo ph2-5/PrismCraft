@@ -9,4 +9,5 @@ export * as migration from "./migration";
 export * as timeline from "./timeline";
 export * as director from "./director";
 export * as qualityGate from "./quality-gate";
+export * as costEngine from "./cost-engine";
 export { sleep } from "./sleep";

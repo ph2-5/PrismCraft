@@ -348,6 +348,11 @@ test.describe("Full Creation Workflow", () => {
     await expect(generateButton).toBeVisible();
     await generateButton.click({ force: true });
 
+    // 成本追踪 P1：生成前费用预估确认弹窗（仅手动生成场景）——点击"开始生成"确认提交
+    const estimateConfirmButton = page.locator("button", { hasText: "开始生成" }).first();
+    await expect(estimateConfirmButton).toBeVisible({ timeout: 5000 });
+    await estimateConfirmButton.click({ force: true });
+
     // 阶段 1：任务进入 pending（mock /api/generate-video 返回 pending）
     // TaskResultPanel 渲染 t("quickGenerate.queuing") = "排队中..."
     await expect(page.locator("text=/排队中/").first()).toBeVisible({ timeout: 10000 });

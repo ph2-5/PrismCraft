@@ -17,6 +17,7 @@ import {
   Film,
   Keyboard,
   Workflow as WorkflowIcon,
+  Wallet,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
@@ -72,6 +73,7 @@ const toolItems: NavEntry[] = [
   { href: "/agent", labelKey: "sidebar.agent", icon: MapPin },
   { href: "/composer", labelKey: "sidebar.composer", icon: ComposerIcon },
   { href: "/workflow", labelKey: "sidebar.workflow", icon: WorkflowIcon },
+  { href: "/cost-tracking", labelKey: "sidebar.costTracking", icon: Wallet },
 ];
 
 const systemItems: NavEntry[] = [

@@ -53,7 +53,18 @@ usage_records 表（SQLite，migrations v13 + FEATURE_TABLES + 3 索引）
 
 ## 公共 API
 
-（P0/P1 渲染进程无导出——采集链路在主进程、定价引擎在 shared-logic；看板 UI 的 hooks/services 将在 P1 看板落地时补充。）
+| 导出 | 类型 | 说明 |
+|---|---|---|
+| `CostTrackingPage` | 页面组件 | 成本看板页面（/cost-tracking 路由，懒加载） |
+| `useUsageSummary` | 数据 Hook | React Query 聚合数据 hook（queryKey 含时间范围，1 分钟 staleTime，切换保留旧数据） |
+| `RANGE_PRESETS` | 常量 | 时间范围预设（week/month/quarter + labelKey） |
+| `UsageSummaryRange` | 类型 | 时间范围结构 |
+| `UsageSummaryData` | 类型 | 汇总数据结构 |
+| `fetchUsageSummary` | 服务函数 | 调 `POST /api/usage/summary`（经 DI apiClient，Result 模式），失败返回 `EMPTY_SUMMARY` |
+| `EMPTY_SUMMARY` | 常量 | 空汇总（看板空态） |
+| `UsageSummary` | 类型 | 与主进程 summarizeUsage 返回结构一致 |
+
+采集链路（主进程）与定价引擎（shared-logic）见上两节，不在此导出。
 
 ## 守卫
 

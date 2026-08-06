@@ -12,6 +12,7 @@ const AssetLibraryPage = lazy(() => import("./modules/asset-library/page"));
 const QuickGeneratePage = lazy(() => import("./modules/quick-generate/page"));
 const SettingsPage = lazy(() => import("./modules/settings/page"));
 const VideoTasksPage = lazy(() => import("./modules/video-tasks/page"));
+const CostTrackingPage = lazy(() => import("./modules/cost-tracking/page"));
 const NotFound = lazy(() => import("./app/not-found"));
 
 function withSuspense(Component: React.LazyExoticComponent<React.ComponentType>) {
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
       { path: "quick-generate", element: withSuspense(QuickGeneratePage) },
       { path: "settings", element: withSuspense(SettingsPage) },
       { path: "video-tasks", element: withSuspense(VideoTasksPage) },
+      { path: "cost-tracking", element: withSuspense(CostTrackingPage) },
       { path: "story", element: withSuspense(lazy(() => import("./app/story/page"))) },
       // 打开已有故事 → 三栏故事创作页（StoryPipelineShell 已有故事模式）
       { path: "story/:storyId", element: withSuspense(lazy(() => import("./app/story/StoryEditPage"))) },

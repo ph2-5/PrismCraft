@@ -804,3 +804,10 @@ export const syncProxySchema = z.object({
   config: z.unknown().optional(),
 });
 export type SyncProxyRequest = z.infer<typeof syncProxySchema>;
+
+// cost-tracking：用量汇总（P1 看板数据源）
+export const usageSummarySchema = z.object({
+  from: z.number().int().min(0),
+  to: z.number().int().min(0),
+});
+export type UsageSummaryRequest = z.infer<typeof usageSummarySchema>;

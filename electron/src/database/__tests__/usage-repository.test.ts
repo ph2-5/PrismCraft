@@ -30,7 +30,7 @@ vi.mock("../db-connection", () => ({
   getDb: () => mockGetDb(),
 }));
 
-import { insertUsage, insertUsageBatch, updateUsageStatus, attachUsageEntity, aggregateUsage } from "../usage-repository";
+import { insertUsage, insertUsageBatch, updateUsageStatus, attachUsageEntity, aggregateUsage, summarizeUsage } from "../usage-repository";
 
 describe("usage-repository", () => {
   beforeEach(() => {
@@ -124,5 +124,39 @@ describe("usage-repository", () => {
     });
     const agg = aggregateUsage(0, 1_800_000_000);
     expect(agg).toEqual({ totalEstimatedCost: 12.5, succeededCost: 10, failedCost: 2.5, recordCount: 3 });
+  });
+
+  it("summarizeUsage 汇总双口径 + 提供商/方向分组（P1 看板）", () => {
+    const prepareMock = currentDb.prepare as ReturnType<typeof vi.fn>;
+    prepareMock
+      .mockReturnValueOnce({ get: vi.fn(() => ({ total: 12.5, effective: 10, failed: 2.5, count: 3 })) }) // 总量
+      .mockReturnValueOnce({ all: vi.fn(() => [
+        { providerId: "kuaishou", cost: 10, effectiveCost: 8, count: 5 },
+        { providerId: "openai", cost: 2.5, effectiveCost: 2, count: 10 },
+      ]) }) // byProvider
+      .mockReturnValueOnce({ all: vi.fn(() => [
+        { direction: "video", cost: 10, count: 5 },
+        { direction: "text", cost: 2.5, count: 10 },
+      ]) }); // byDirection
+
+    const sum = summarizeUsage(0, 1_800_000_000);
+    expect(sum.totalEstimatedCost).toBe(12.5);
+    expect(sum.effectiveCost).toBe(10);
+    expect(sum.failedCost).toBe(2.5);
+    expect(sum.recordCount).toBe(3);
+    expect(sum.byProvider).toHaveLength(2);
+    expect(sum.byProvider[0].providerId).toBe("kuaishou");
+    expect(sum.byProvider[0].effectiveCost).toBe(8);
+    expect(sum.byDirection).toHaveLength(2);
+  });
+
+  it("summarizeUsage 失败返回空汇总（不 throw）", () => {
+    mockGetDb.mockImplementation(() => {
+      throw new Error("db gone");
+    });
+    expect(() => summarizeUsage(0, 1_800_000_000)).not.toThrow();
+    const sum = summarizeUsage(0, 1_800_000_000);
+    expect(sum).toEqual({ totalEstimatedCost: 0, effectiveCost: 0, failedCost: 0, recordCount: 0, byProvider: [], byDirection: [] });
+    mockGetDb.mockImplementation(() => currentDb);
   });
 });

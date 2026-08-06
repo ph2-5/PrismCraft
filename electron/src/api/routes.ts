@@ -1,5 +1,6 @@
 import type { Route } from "./types";
 import { coreRoutes } from "./route-groups/core-routes";
+import { costRoutes } from "./route-groups/cost-routes";
 import { dbRoutes } from "./route-groups/db-routes";
 import { downloadRoutes } from "./route-groups/download-routes";
 import { ffmpegRoutes } from "./route-groups/ffmpeg-routes";
@@ -11,6 +12,7 @@ import { storyboardRoutes } from "./route-groups/storyboard-routes";
 
 export const routes: Record<string, Route> = {
   ...coreRoutes,
+  ...costRoutes,
   ...dbRoutes,
   ...downloadRoutes,
   ...ffmpegRoutes,

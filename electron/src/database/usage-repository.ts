@@ -181,3 +181,74 @@ export function aggregateUsage(startTime: number, endTime: number): UsageAggrega
     return { totalEstimatedCost: 0, succeededCost: 0, failedCost: 0, recordCount: 0 };
   }
 }
+
+/** 成本看板汇总（P1）：总量（双口径）+ 按提供商 + 按生成类型 */
+export interface UsageSummary {
+  totalEstimatedCost: number;
+  effectiveCost: number;
+  failedCost: number;
+  recordCount: number;
+  byProvider: Array<{ providerId: string; cost: number; effectiveCost: number; count: number }>;
+  byDirection: Array<{ direction: string; cost: number; count: number }>;
+}
+
+export function summarizeUsage(startTime: number, endTime: number): UsageSummary {
+  const empty: UsageSummary = {
+    totalEstimatedCost: 0,
+    effectiveCost: 0,
+    failedCost: 0,
+    recordCount: 0,
+    byProvider: [],
+    byDirection: [],
+  };
+  try {
+    const db = getDb();
+    const total = db
+      .prepare(
+        `SELECT
+           COALESCE(SUM(estimated_cost), 0) AS total,
+           COALESCE(SUM(CASE WHEN status = 'succeeded' THEN estimated_cost ELSE 0 END), 0) AS effective,
+           COALESCE(SUM(CASE WHEN status != 'succeeded' THEN estimated_cost ELSE 0 END), 0) AS failed,
+           COUNT(*) AS count
+         FROM usage_records
+         WHERE called_at >= ? AND called_at <= ? AND is_deleted = 0`,
+      )
+      .get(startTime, endTime) as { total: number; effective: number; failed: number; count: number } | undefined;
+
+    const byProvider = db
+      .prepare(
+        `SELECT provider_id AS providerId,
+           COALESCE(SUM(estimated_cost), 0) AS cost,
+           COALESCE(SUM(CASE WHEN status = 'succeeded' THEN estimated_cost ELSE 0 END), 0) AS effectiveCost,
+           COUNT(*) AS count
+         FROM usage_records
+         WHERE called_at >= ? AND called_at <= ? AND is_deleted = 0
+         GROUP BY provider_id
+         ORDER BY cost DESC`,
+      )
+      .all(startTime, endTime) as Array<{ providerId: string; cost: number; effectiveCost: number; count: number }>;
+
+    const byDirection = db
+      .prepare(
+        `SELECT direction,
+           COALESCE(SUM(estimated_cost), 0) AS cost,
+           COUNT(*) AS count
+         FROM usage_records
+         WHERE called_at >= ? AND called_at <= ? AND is_deleted = 0
+         GROUP BY direction`,
+      )
+      .all(startTime, endTime) as Array<{ direction: string; cost: number; count: number }>;
+
+    return {
+      totalEstimatedCost: total?.total ?? 0,
+      effectiveCost: total?.effective ?? 0,
+      failedCost: total?.failed ?? 0,
+      recordCount: total?.count ?? 0,
+      byProvider: byProvider ?? [],
+      byDirection: byDirection ?? [],
+    };
+  } catch (e) {
+    logger.warn(`usage summarize failed: ${e instanceof Error ? e.message : String(e)}`);
+    return empty;
+  }
+}

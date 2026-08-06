@@ -378,3 +378,64 @@ async function request<T>(url: string): Promise<Result<T, AppError>> {
 **Verification**: Mock `fetch` to reject with `TypeError("Failed to fetch")` and with an `AppApiClientError`. Verify `apiClient.get(...)` returns `{ ok: false, error: ... }` in both cases rather than throwing. Verify a successful response returns `{ ok: true, value: ... }`.
 
 **Discovered in**: API client audit found that some error paths could throw, breaking the Result pattern contract and forcing callers to add defensive `try/catch`. Test: `src/infrastructure/api/__tests__/r108-api-client-result-no-throw.test.ts`.
+
+---
+
+### R192: quality-gate 编排器（QualityGateRunner.run）绝不 throw，任何异常降级为 warn 空报告
+
+**BAD** — Orchestrator propagates checker exceptions:
+```typescript
+async function run(input: QualityCheckInput): Promise<QualityReport> {
+  const checker = getQualityChecker(input.kind);
+  const result = await checker.run(input, deps); // throws → 整个调用链崩溃
+  // ...
+}
+```
+
+**GOOD** — Orchestrator is a failure-absorbing boundary:
+```typescript
+async function run(input: QualityCheckInput): Promise<QualityReport> {
+  try {
+    // 逐 checker 执行；checker 自身 ok:false 走降级链
+    // ...
+  } catch (e) {
+    logger?.warn?.("quality-gate run failed", e);
+    return { gate: "post-generation", providerId, modelId, passed: true,
+             summary: "warn", items: [], standardsUsed: [], feedback: undefined };
+  }
+}
+```
+
+**Verification**: Register a checker whose `run` throws synchronously and one whose `run` rejects. Verify `QualityGateRunner.run` returns a `warn` report with empty `items` in both cases and never rejects. Test: `src/shared-logic/quality-gate/__tests__/runner.test.ts`（"绝不 throw"用例）。
+
+**Discovered in**: quality-gate 设计评审（v0.2 问题 1）——质检是增强能力，不得阻塞用户生成主流程；与 `tryWithFallback`/降级链哲学一致。
+
+---
+
+### R195: usage 记录链路（recordUsage）失败必须静默降级，绝不阻塞/影响生成主流程
+
+**BAD** — Recording failure propagates to generation:
+```typescript
+async function generateVideo(input) {
+  const result = await provider.generateVideo(input);      // 生成成功
+  await usageRepository.insert(usage);                     // 写库失败 → throw → 用户看到生成失败
+  return result;
+}
+```
+
+**GOOD** — Recording is fire-and-forget with in-memory buffer:
+```typescript
+async function generateVideo(input) {
+  const result = await provider.generateVideo(input);
+  try {
+    usageTracker.record({ providerId: input.providerId, modelId: input.modelId, /* ... */ });
+  } catch (e) {
+    logger?.warn?.("usage record failed", e);  // 静默降级：环形缓冲满则丢弃 + 日志
+  }
+  return result;  // 主流程零影响
+}
+```
+
+**Verification**: Mock `usageRepository.insert` to reject. Verify the generation call still returns its original result and the caller never observes the recording error. Verify buffer saturation drops oldest entries with a `warn` log instead of throwing. Test: `src/modules/cost-tracking/__tests__/usage-tracker.test.ts`。
+
+**Discovered in**: cost-tracking 设计（v0.2 问题 2/3）——用量记录是观测性增强，失败不得影响 13 家 provider 链路；"失败即预期"哲学。

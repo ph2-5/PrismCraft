@@ -5177,3 +5177,41 @@ const saved = await saveConfigAsync(config);  // 异步持久化到 keyStorage
 **Test**: `electron/src/__tests__/regression-r182-config-set-async-persistence.test.ts`
 
 **Discovered in**: v0.12.1 API 配置系统彻底性修复。C1 Critical bug：前端 saveConfig 绕过 keyStorage。
+
+---
+
+## R192-R195: quality-gate + cost-tracking 设计评审回归防护
+
+> 以下规则为两份设计文档（`docs/DESIGN-QUALITY-GATE.md` / `docs/DESIGN-COST-TRACKING.md`）评审修订（v0.2）产物，与质检层 P0 骨架及成本追踪 P0 同批落地。完整 BAD/GOOD 示例见分类文件 `.trae/rules/regression/error-handling.md` / `engineering.md`。
+
+### R192: quality-gate 编排器（QualityGateRunner.run）绝不 throw，任何异常降级为 warn 空报告
+
+quality-gate 是增强能力，不得阻塞用户生成主流程。编排器必须吸收所有 checker 异常，返回 `warn` 空报告 + 日志，绝不向调用方抛错。
+
+**Verification**: Register a checker whose `run` throws synchronously and one whose `run` rejects. Verify `QualityGateRunner.run` returns a `warn` report with empty `items` in both cases and never rejects. Test: `src/shared-logic/quality-gate/__tests__/runner.test.ts`。
+
+**Discovered in**: quality-gate 设计评审（v0.2 问题 1）——与 `tryWithFallback`/降级链哲学一致。
+
+### R193: quality-gate 降级链只允许"同类能力降档"，禁止跨语义替换；报告必须标注 standardsUsed
+
+不同档位（custom/embedding/rule）检查的不是同一分布。降级仅限同一 kind 的增强/弱化实现；无实现则显式 `skipped`，禁止用其他 kind 的检查顶替。报告 `standardsUsed` 必须标注本次判定实际用的档位。
+
+**Verification**: Verify the runner never substitutes across kinds; fallback within a kind succeeds AND `standardsUsed` records the actual tier; no-implementation kind yields `skipped` rather than a substituted verdict. Test: `src/shared-logic/quality-gate/__tests__/runner.test.ts`。
+
+**Discovered in**: quality-gate 设计评审（v0.2 问题 1 最严重项）。
+
+### R194: quality-gate 阈值解析必须 per-model > per-provider > default，且 clamp 到 [0,1]
+
+阈值解析顺序 per-model > per-provider > default；任何配置值越界必须 `clamp01` 到 `[0,1]` 再参与判定，禁止越界分数直接参与分类。
+
+**Verification**: Verify resolution order; out-of-range configured values are clamped; unknown provider/model falls back to defaults. Test: `src/shared-logic/quality-gate/__tests__/thresholds.test.ts`。
+
+**Discovered in**: quality-gate 设计（v0.2）——与导演规则数值 clamp 哲学一致。
+
+### R195: usage 记录链路（recordUsage）失败必须静默降级，绝不阻塞/影响生成主流程
+
+用量记录是观测性增强。写入失败（或环形缓冲满）必须静默降级 + `warn` 日志，绝不 throw 或改变生成调用的返回值。
+
+**Verification**: Mock `usageRepository.insert` to reject. Verify the generation call still returns its original result and the caller never observes the recording error. Test: `src/modules/cost-tracking/__tests__/usage-tracker.test.ts`。
+
+**Discovered in**: cost-tracking 设计（v0.2 问题 2/3）——"失败即预期"哲学。

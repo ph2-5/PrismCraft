@@ -1113,3 +1113,64 @@ if (isEnhanced) {
 **Verification**: Test with `isEnhanced=true` and `sceneElements=[]`. Verify prompt contains character name and appearance. Test with `isEnhanced=true` and `sceneElements=[element]`. Verify prompt contains "画面内容：" prefix. Test with `isEnhanced=false`. Verify no "画面内容：" prefix.
 
 **Discovered in**: 2026-07-14 refactoring `generateBeatImagePrompt` (complexity 31→≤15) incorrectly merged the condition, causing character description loss in enhanced mode when `sceneElements` is empty. Fixed in commit `488c0a5`. Test: `src/domain/utils/__tests__/regression-r191-enhanced-mode-character-fallback.test.ts`.
+
+---
+
+### R193: quality-gate 降级链只允许"同类能力降档"，禁止跨语义替换；报告必须标注 standardsUsed
+
+**BAD** — 不同语义的检查被当作等价降级（rule 冒充 custom 判定）:
+```typescript
+// ❌ 自研一致性模型失败时用"特征锚定计数规则"顶替——两者判定的不是同一件事，
+//    降级后 verdict 含义变了，报告却无法区分
+const checker = customChecker ?? ruleChecker;
+const result = await checker.run(input, deps);
+report.items.push({ kind: input.kind, verdict: result.verdict, standard: "custom" });
+```
+
+**GOOD** — 能力降级保持检查，语义不变才替换；判定档位如实标注:
+```typescript
+// ✅ 同一 kind 的检查：custom(自研/VLM) → embedding(向量打分) → rule(纯规则)
+//    均为"同一检查项的增强/弱化实现"，降级保持检查
+// ✅ 无任何实现 → 该检查项 skipped，而非用其他 kind 的检查冒充
+const candidates = candidatesForKind(input.kind);      // 仅同 kind 的已注册 checker
+let lastError: Error | undefined;
+for (const checker of candidates) {                    // 按档位（custom→embedding→rule）尝试
+  const r = await checker.run(input, deps);
+  if (r.ok) { report.items.push({ ...r.value, standardUsed: checker.standard }); break; }
+  lastError = r.error;
+}
+if (!report.items.some(i => i.kind === input.kind)) {
+  report.standardUsed.push({ kind: input.kind, standard: "skipped" });  // 显式标注 skipped
+}
+```
+
+**Verification**: Register two checkers of different kinds (`custom`/`rule`) and verify the runner never substitutes across kinds. Register a failing high-tier checker and a succeeding low-tier checker of the same kind; verify fallback succeeds AND `standardsUsed` records the actual tier used. Verify no-implementation kind yields `skipped` in `standardsUsed` rather than a substituted verdict. Test: `src/shared-logic/quality-gate/__tests__/runner.test.ts`（降级链用例）。
+
+**Discovered in**: quality-gate 设计评审（v0.2 问题 1 最严重项）——不同档位检查的不是同一分布，降级必须"能力降级但保持检查"，且报告要标注本次判定用哪档标准。
+
+---
+
+### R194: quality-gate 阈值解析必须 per-model > per-provider > default，且 clamp 到 [0,1]
+
+**BAD** — 阈值直接取默认值、忽略提供商/模型覆盖；或越界分数直接参与判定:
+```typescript
+const threshold = 0.6; // ❌ 所有模型统一阈值，Kling 与自研模型没有差异化空间
+const verdict = score >= threshold ? "pass" : "fail"; // ❌ score=1.5 时行为未定义
+```
+
+**GOOD** — 三级解析 + 数值夹紧:
+```typescript
+export function resolveThresholds(providerId: string, modelId: string): CheckThresholds {
+  const perModel = MODEL_THRESHOLDS[providerId]?.[modelId];
+  const perProvider = PROVIDER_THRESHOLDS[providerId];
+  const base = { ...DEFAULT_THRESHOLDS, ...perProvider, ...perModel };
+  return {
+    pass: clamp01(base.pass), warn: clamp01(base.warn), fail: clamp01(base.fail),
+  };
+}
+function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
+```
+
+**Verification**: Verify resolution order (per-model wins over per-provider wins over default). Verify out-of-range configured values (e.g. `1.5` or `-0.2`) are clamped to `[0,1]` before classification. Verify unknown provider/model gracefully falls back to defaults. Test: `src/shared-logic/quality-gate/__tests__/thresholds.test.ts`。
+
+**Discovered in**: quality-gate 设计（v0.2）——与导演规则的数值 clamp 哲学一致：规则只把参数调整到合理区间，不产生离谱值。

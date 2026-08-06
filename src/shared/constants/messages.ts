@@ -4866,6 +4866,13 @@ const messages: Record<MessageKey, string> = {
   "costTracking.empty": "暂无用量记录——生成一次视频或图片后这里会出现数据",
   "costTracking.pendingPricing": "待定价",
   "costTracking.providerUnknown": "未知提供商",
+  "costTracking.estimate.title": "确认生成",
+  "costTracking.estimate.submit": "开始生成",
+  "costTracking.estimate.thisTime": "本次预估",
+  "costTracking.estimate.thisMonth": "本月累计（有效成本）",
+  "costTracking.estimate.pendingNote": "该模型尚未定价，本次预估暂不可用",
+  "costTracking.estimate.unknownProvider": "未选择视频模型",
+  "costTracking.estimate.monthTotal": "本月累计",
 };
 
 export type Messages = typeof messages;

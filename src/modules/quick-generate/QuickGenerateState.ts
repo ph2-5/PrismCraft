@@ -487,6 +487,28 @@ export function useQuickGenerateState() {
     },
   );
 
+  // 生成前费用预估确认弹窗（cost-tracking P1，设计文档 §任务 5）
+  // 仅手动生成场景：点击生成先弹预估确认框，确认后才真正提交
+  const [estimateDialogOpen, setEstimateDialogOpen] = useState(false);
+  const pendingPromptRef = useRef<string | undefined>(undefined);
+
+  const handleGenerateWithEstimate = useCallback((promptOverride?: string) => {
+    pendingPromptRef.current = promptOverride;
+    setEstimateDialogOpen(true);
+  }, []);
+
+  const onEstimateConfirm = useCallback(() => {
+    setEstimateDialogOpen(false);
+    const pendingPrompt = pendingPromptRef.current;
+    pendingPromptRef.current = undefined;
+    void handleGenerate(pendingPrompt);
+  }, [handleGenerate]);
+
+  const onEstimateCancel = useCallback(() => {
+    setEstimateDialogOpen(false);
+    pendingPromptRef.current = undefined;
+  }, []);
+
   const handleDownload = useCallback(
     (videoUrl: string | undefined, filename: string) =>
       videoUrl ? downloadVideoFile(videoUrl, filename) : Promise.resolve(),
@@ -543,7 +565,10 @@ export function useQuickGenerateState() {
     handleUploadReferenceVideo,
     handleRemoveReferenceVideo,
     isGenerating,
-    handleGenerate,
+    handleGenerate: handleGenerateWithEstimate,
+    estimateDialogOpen,
+    onEstimateConfirm,
+    onEstimateCancel,
     generatedPrompt: state.generatedPrompt,
     templateDialogOpen: state.templateDialogOpen,
     setTemplateDialogOpen: (value: boolean) => dispatch({ type: "SET_TEMPLATE_DIALOG_OPEN", value }),

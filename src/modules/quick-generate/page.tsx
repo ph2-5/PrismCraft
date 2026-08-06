@@ -2,6 +2,7 @@ import { Zap, ClipboardList } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
+import { EstimateConfirmDialog } from "./EstimateConfirmDialog";
 import { useQuickGeneratePage } from "./hooks/use-quick-generate-page";
 import { QuickGenerateForm } from "./QuickGenerateForm";
 import { QuickGenerateHistory } from "./QuickGenerateHistory";
@@ -100,6 +101,17 @@ export default function QuickGeneratePage() {
           open={vm.templateDialogOpen}
           onOpenChange={vm.onTemplateDialogOpenChange}
           onApplyTemplate={vm.onApplyTemplate}
+        />
+
+        <EstimateConfirmDialog
+          open={vm.estimateDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) vm.onEstimateCancel();
+          }}
+          providerId={vm.selectedVideoModel?.providerId}
+          modelId={vm.selectedVideoModel?.modelId}
+          duration={vm.duration}
+          onConfirm={vm.onEstimateConfirm}
         />
       </div>
     </PageErrorBoundary>

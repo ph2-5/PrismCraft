@@ -25,7 +25,7 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 // PR 3 Step 1：shotType 迁移映射表（内联，不导入 shared-logic 以遵守架构边界）
 // 语义：旧 shotType 中的 size 类 → shotSize
@@ -407,6 +407,44 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
       CREATE INDEX IF NOT EXISTS idx_plot_nodes_beat ON plot_nodes(beat_id);
     `);
     logger.info("[DB] migration v12: story_timelines + plot_nodes tables ensured");
+  },
+  // cost-tracking: AI 调用用量记录表（设计：docs/DESIGN-COST-TRACKING.md）
+  // 本地计量 + 公开定价估算；status 区分成功/失败/取消（v0.2 评审问题 2）
+  13: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS usage_records (
+        id TEXT PRIMARY KEY,
+        direction TEXT NOT NULL CHECK(direction IN ('video', 'image', 'text')),
+        provider_id TEXT NOT NULL,
+        model_id TEXT NOT NULL,
+        duration_seconds REAL,
+        resolution TEXT,
+        image_count INTEGER,
+        input_tokens INTEGER,
+        output_tokens INTEGER,
+        estimated_cost REAL,
+        cost_source TEXT DEFAULT 'local_estimate' CHECK(cost_source IN ('local_estimate', 'provider_actual')),
+        status TEXT DEFAULT 'succeeded' CHECK(status IN ('succeeded', 'failed', 'cancelled')),
+        story_id TEXT,
+        beat_id TEXT,
+        task_id TEXT,
+        source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'batch', 'workflow')),
+        params_json TEXT DEFAULT '{}',
+        error_message TEXT,
+        called_at INTEGER NOT NULL,
+        owner_id INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now')),
+        updated_at INTEGER DEFAULT (strftime('%s','now')),
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER,
+        version INTEGER DEFAULT 1,
+        sync_id TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_usage_provider_model ON usage_records(provider_id, model_id);
+      CREATE INDEX IF NOT EXISTS idx_usage_called_at ON usage_records(called_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_usage_story ON usage_records(story_id, beat_id);
+    `);
+    logger.info("[DB] migration v13: usage_records table ensured");
   },
 };
 

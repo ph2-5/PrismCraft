@@ -449,6 +449,37 @@ export const FEATURE_TABLES: TableDef[] = [
       metadata_json: { type: "TEXT", default: "'{}'" },
     },
   },
+  // cost-tracking: AI 调用用量记录（设计：docs/DESIGN-COST-TRACKING.md）
+  // 本地计量 + 公开定价估算；失败任务成本经 status 区分（v0.2 评审问题 2）
+  {
+    name: "usage_records",
+    featureGroup: "core",
+    columns: {
+      direction: { type: "TEXT", notNull: true, check: "IN ('video', 'image', 'text')" },
+      provider_id: { type: "TEXT", notNull: true },
+      model_id: { type: "TEXT", notNull: true },
+      // 计费参数（按 direction 取舍，与 cost-engine 公式分派一致）
+      duration_seconds: { type: "REAL" },
+      resolution: { type: "TEXT" },
+      image_count: { type: "INTEGER" },
+      input_tokens: { type: "INTEGER" },
+      output_tokens: { type: "INTEGER" },
+      // 估算成本（本地定价引擎）；actual_cost 由 IUsageProvider 回填
+      estimated_cost: { type: "REAL" },
+      cost_source: { type: "TEXT", default: "'local_estimate'", check: "IN ('local_estimate', 'provider_actual')" },
+      // 状态语义（v0.2）：succeeded=已扣费 / failed=多数平台不扣费（看板双口径）/ cancelled
+      status: { type: "TEXT", default: "'succeeded'", check: "IN ('succeeded', 'failed', 'cancelled')" },
+      // 关联实体（可空；生成服务层回填）
+      story_id: { type: "TEXT" },
+      beat_id: { type: "TEXT" },
+      task_id: { type: "TEXT" },
+      // 生成来源
+      source: { type: "TEXT", default: "'manual'", check: "IN ('manual', 'batch', 'workflow')" },
+      params_json: { type: "TEXT", default: "'{}'" },
+      error_message: { type: "TEXT" },
+      called_at: { type: "INTEGER", notNull: true },
+    },
+  },
 ];
 
 export const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [
@@ -671,6 +702,9 @@ CREATE INDEX IF NOT EXISTS idx_asset_tags_tag ON asset_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_asset_tags_lookup ON asset_tags(asset_type, tag);
 CREATE INDEX IF NOT EXISTS idx_changelog_synced ON sync_changelog(synced, timestamp);
 CREATE INDEX IF NOT EXISTS idx_changelog_entity ON sync_changelog(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_usage_provider_model ON usage_records(provider_id, model_id);
+CREATE INDEX IF NOT EXISTS idx_usage_called_at ON usage_records(called_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_story ON usage_records(story_id, beat_id);
 CREATE INDEX IF NOT EXISTS idx_story_beats_beat_id ON story_beats(beat_id);
 CREATE INDEX IF NOT EXISTS idx_story_beats_scene ON story_beats(scene_id);
 CREATE INDEX IF NOT EXISTS idx_video_tasks_beat_id ON video_tasks(beat_id);

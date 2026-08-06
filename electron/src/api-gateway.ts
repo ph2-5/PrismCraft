@@ -59,6 +59,7 @@ import {
   generateAudio,
   transcribeAudio,
 } from "./api-gateway-av";
+import { usageTracker } from "./services/usage-tracker";
 
 const logger = getLogger("api-gateway");
 
@@ -189,6 +190,22 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
     const taskId = await extractTaskId(plugin, response);
     const videoUrl = await extractVideoUrl(plugin, response);
 
+    // cost-tracking 采集（R195：绝不 throw、不影响主流程；失败由 tracker 静默消化）
+    try {
+      usageTracker.record({
+        direction: "video",
+        providerId: resolvedProviderId || "unknown",
+        modelId: resolvedProviderModelId || "unknown",
+        durationSeconds: safeDuration,
+        status: "succeeded",
+        source: (body as Record<string, unknown>).source === "workflow" ? "workflow"
+          : (body as Record<string, unknown>).source === "batch" ? "batch" : "manual",
+        calledAt: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      // R195：忽略记录失败
+    }
+
     return {
       success: true,
       data: {
@@ -201,6 +218,24 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
     };
   } catch (error) {
     logger.error("Video generation error", error instanceof Error ? error : undefined);
+
+    // cost-tracking 采集（失败记录 status=failed，供看板双口径分析；R195）
+    try {
+      usageTracker.record({
+        direction: "video",
+        providerId: resolvedProviderId || "unknown",
+        modelId: resolvedProviderModelId || "unknown",
+        durationSeconds: safeDuration,
+        status: "failed",
+        errorMessage: (error as Error).message,
+        source: (body as Record<string, unknown>).source === "workflow" ? "workflow"
+          : (body as Record<string, unknown>).source === "batch" ? "batch" : "manual",
+        calledAt: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      // R195：忽略记录失败
+    }
+
     return {
       success: false,
       error: (error as Error).message,

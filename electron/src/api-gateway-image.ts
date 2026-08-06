@@ -12,6 +12,7 @@ import {
   extractTextFromResponse,
 } from "./api-gateway-utils";
 import { makeRequest } from "./http-request";
+import { usageTracker } from "./services/usage-tracker";
 
 const logger = getLogger("api-gateway-image");
 
@@ -241,7 +242,7 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
     previousFrameUrl,
   } = body as Record<string, unknown>;
 
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin, resolvedProviderId } = await resolveApiConfig(
     body,
     "image",
   );
@@ -306,12 +307,39 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
     const imageUrl = await extractImageUrl(plugin, response);
     if (imageUrl) {
       const localPath = await cacheRemoteImageLocally(imageUrl);
+      // cost-tracking 采集（R195：绝不 throw、不影响主流程）
+      try {
+        usageTracker.record({
+          direction: "image",
+          providerId: resolvedProviderId || plugin.id,
+          modelId: effectiveModel || "unknown",
+          imageCount: 1,
+          status: "succeeded",
+          calledAt: Math.floor(Date.now() / 1000),
+        });
+      } catch {
+        // R195：忽略记录失败
+      }
       return { success: true, data: { imageUrl: localPath } };
     } else {
       return { success: false, error: "API 返回格式不正确", httpStatus: 500 };
     }
   } catch (error) {
     logger.error("Image generation error", error instanceof Error ? error : undefined);
+    // cost-tracking 采集（失败记录，R195）
+    try {
+      usageTracker.record({
+        direction: "image",
+        providerId: resolvedProviderId || plugin.id,
+        modelId: effectiveModel || "unknown",
+        imageCount: 1,
+        status: "failed",
+        errorMessage: (error as Error).message,
+        calledAt: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      // R195：忽略记录失败
+    }
     return {
       success: false,
       error: (error as Error).message,

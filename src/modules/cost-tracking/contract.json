@@ -1,0 +1,16 @@
+{
+  "name": "cost-tracking",
+  "description": "成本追踪 / 用量统计：AI 调用本地计量（usage_records 表）+ 定价估算 + 成本看板（P1）。P0 采集链路位于主进程（electron/src/database/usage-repository.ts、electron/src/services/usage-tracker.ts、api-gateway 采集点）。",
+  "dependencies": [],
+  "publicAPI": {
+    "hooks": [],
+    "services": [],
+    "components": []
+  },
+  "invariants": [
+    "用量记录失败必须静默降级，绝不阻塞生成主流程（R195）",
+    "估算与看板共用同一套定价引擎，禁止两套口径",
+    "真实用量（IUsageProvider）有则用真实、无则降级本地估算，并标注来源",
+    "模块不依赖其他业务模块（与 quality-gate 同哲学：可插拔 Port + 降级链）"
+  ]
+}

@@ -21,6 +21,7 @@ import {
 } from "./api-gateway-utils";
 import { makeRequest, makeStreamingRequest } from "./http-request";
 import { withRetry, isRetryableError } from "./api-gateway-retry";
+import { usageTracker } from "./services/usage-tracker";
 
 const logger = getLogger("api-gateway");
 
@@ -33,7 +34,7 @@ export type TextApiResult = ApiResult & { data?: { text: string } };
 
 export async function generateText(body: Record<string, unknown>): Promise<TextApiResult> {
   const { prompt, maxTokens, temperature } = body as Record<string, unknown>;
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin, resolvedProviderId } = await resolveApiConfig(
     body,
     "text",
   );
@@ -91,8 +92,36 @@ export async function generateText(body: Record<string, unknown>): Promise<TextA
 
     const text = extractTextFromResponse(response, plugin);
 
+    // cost-tracking 采集（R195：绝不 throw；P0 用 maxTokens 作为估算输入，精确 token 留 P1）
+    try {
+      usageTracker.record({
+        direction: "text",
+        providerId: resolvedProviderId || plugin.id,
+        modelId: effectiveModel || "unknown",
+        inputTokens: Math.min(Math.max(1, Math.ceil((prompt as string).length / 4)), 16384),
+        outputTokens: safeMaxTokens,
+        status: "succeeded",
+        calledAt: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      // R195：忽略记录失败
+    }
+
     return { success: true, data: { text } };
   } catch (error) {
+    // cost-tracking 采集（失败记录，R195）
+    try {
+      usageTracker.record({
+        direction: "text",
+        providerId: resolvedProviderId || "unknown",
+        modelId: effectiveModel || "unknown",
+        status: "failed",
+        errorMessage: (error as Error).message,
+        calledAt: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      // R195：忽略记录失败
+    }
     return {
       success: false,
       error: (error as Error).message,

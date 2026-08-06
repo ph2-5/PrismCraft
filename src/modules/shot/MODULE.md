@@ -30,11 +30,12 @@
 
 ### ✅ 一致性检查子域
 - `performConfigCheck` — 执行生成配置完整性检查（参考图/特征标签是否就绪，返回配置就绪度评分）
-- `checkVisualConsistency` — 评估分镜生成结果的视觉一致性评分（VLM 路径，调用视觉模型对生成图与元素描述打分）
+- `checkWithQualityGate` — 生成后质检（新 API，v0.2 设计 §4.1）：模型无关质检层全量报告（rule + VLM 多 checker 明细 + standardsUsed + feedback），编排器绝不 throw（R192）
+- `checkVisualConsistency` — 旧 API（@deprecated，内部映射到 checkWithQualityGate，仅供存量调用方过渡；P2 清理后移除）
 - `validateFeatureAnchoringConfig` — 验证特征锚定配置有效性
 - `validateNoFrameBinding` — 验证无帧绑定参数
 - `parseConsistencyAnalysisFromStructured` — 从结构化输出解析一致性分析结果
-- Type: `ConsistencyCheckInput`
+- Type: `ConsistencyCheckInput` / `QualityGateCheckInput`
 
 ### ✅ 元素引用检查子域
 - `checkCharacterReferences` — 检查角色是否被故事/分镜引用

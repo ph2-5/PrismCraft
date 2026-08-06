@@ -147,7 +147,8 @@ describe("checkVisualConsistency", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("Expected error result");
-    expect(result.error.code).toBe("CONSISTENCY_CHECK_ERROR");
+    // P1 API 演进：VLM 调用失败（含抛异常）统一映射为 CONSISTENCY_CHECK_FAILED
+    expect(result.error.code).toBe("CONSISTENCY_CHECK_FAILED");
   });
 
   it("应通过 elementBindings 匹配绑定元素", async () => {
@@ -179,7 +180,7 @@ describe("checkVisualConsistency", () => {
     expect(result.value.characterScores[0]!.score).toBe(0.85);
   });
 
-  it("buildConsistencyPrompt 应包含元素描述", async () => {
+  it("VLM prompt 应包含一致性分析指令", async () => {
     const beat = makeBeat({
       elementIds: ["elem-1"],
       elementBindings: { "elem-1": { role: "主角" } },
@@ -203,13 +204,13 @@ describe("checkVisualConsistency", () => {
       generatedImageUrl: "https://example.com/image.png",
     });
 
+    // P1 API 演进：prompt 由 quality-gate 的 VLM checker 构建（基于 references/featureAnchors）
     const prompt = mockAnalyze.mock.calls[0]![2]! as string;
-    expect(prompt).toContain("角色A");
-    expect(prompt).toContain("character");
-    expect(prompt).toContain("主角");
+    expect(prompt).toContain("一致性");
+    expect(prompt).toContain("scores");
   });
 
-  it("PrismCraft 第三章: 应将元素参考图 URL 传给 imageApi.analyze 用于 VLM 多图比对", async () => {
+  it("PrismCraft 第三章: 元素参考图 URL 应通过 prompt 传给 VLM 比对", async () => {
     const beat = makeBeat({ elementIds: ["elem-1"] });
     const elements = [makeElement({
       id: "elem-1",
@@ -235,13 +236,12 @@ describe("checkVisualConsistency", () => {
       generatedImageUrl: "https://example.com/generated.png",
     });
 
-    // imageApi.analyze 签名: (imageUrl, type, prompt, providerId?, modelId?, referenceImageUrls?)
-    // 第 6 个参数应是参考图 URL 数组
+    // P1 演进：references 通过 deps.analyzeImage 的 prompt 传递（imageApi.analyze 不再收第 6 参）
     const callArgs = mockAnalyze.mock.calls[0]!;
     expect(callArgs[0]).toBe("https://example.com/generated.png");
-    // referenceImageUrls 参数（第 6 个参数，index 5）
-    const referenceImageUrls = callArgs[5];
-    expect(referenceImageUrls).toEqual(["https://example.com/ref-char.png"]);
+    const prompt = callArgs[2] as string;
+    expect(prompt).toContain("ref-char.png");
+    expect(prompt).toContain("参考图");
   });
 
   it("PrismCraft 第三章: prompt 应包含参考图比对说明", async () => {
@@ -356,7 +356,8 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
     if (!result.ok) throw result.error;
     expect(result.value.passed).toBe(false);
     expect(result.value.overallScore).toBe(0.5);
-    expect(result.value.characterScores[0]!.score).toBe(0.5);
+    // P1 演进：无法解析时无逐元素分数（unparseable 0.5 总分语义保留）
+    expect(result.value.characterScores).toHaveLength(0);
   });
 
   it("低分时应返回 passed:false 和 regenerate 建议", async () => {
@@ -409,7 +410,10 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw result.error;
-    expect(result.value.characterScores[0]!.score).toBe(0.7);
+    // P1 演进：characterScores 反映 VLM 实际报告的分数（未报告的元素不补默认分）
+    expect(result.value.characterScores).toHaveLength(1);
+    expect(result.value.characterScores[0]!.elementName).toBe("角色C");
+    expect(result.value.characterScores[0]!.score).toBe(0.9);
   });
 
   it("缺少 overallScore 时应从 characterScores 计算", async () => {

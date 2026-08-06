@@ -1,11 +1,18 @@
 import type { Result } from "@/domain/types";
 import { ok, err, AppError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
-import type { ConsistencyCheckResult, ElementBinding, StoryBeat, StoryElement } from "@/domain/schemas";
-import { safeJsonParse } from "@/shared/utils/safe-json";
-import { extractJsonObject } from "@/shared-logic/json";
+import type { ConsistencyCheckResult, StoryBeat, StoryElement } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
+import {
+  registerQualityChecker,
+  registerBuiltinCheckers,
+  QualityGateRunner,
+  type QualityCheckerDeps,
+  type QualityCheckInput,
+  type QualityReport,
+} from "@/shared-logic/quality-gate";
+import { createVisualConsistencyCheckerFactory, VISUAL_CONSISTENCY_CHECKER_ID } from "./visual-consistency-checker";
 
 export interface ConsistencyCheckInput {
   beat: StoryBeat;
@@ -14,6 +21,120 @@ export interface ConsistencyCheckInput {
   structuredOutput?: ConsistencyAnalysisResult;
 }
 
+// ─────────────────────────────────────────────────────────────
+// P1：模型无关质检层接入（v0.2 设计 §4.1 API 演进策略）
+// 新 API checkWithQualityGate（全量报告）；旧 API checkVisualConsistency
+// 标记 @deprecated 并内部映射到新 API，仅供存量调用方过渡。
+// ─────────────────────────────────────────────────────────────
+
+let vlmCheckerRegistered = false;
+
+/** 惰性注册质检器（避免模块加载副作用 R188；幂等）：rule 内置 + VLM */
+function ensureVlmCheckerRegistered(): void {
+  if (vlmCheckerRegistered) return;
+  registerBuiltinCheckers();
+  registerQualityChecker(VISUAL_CONSISTENCY_CHECKER_ID, createVisualConsistencyCheckerFactory());
+  vlmCheckerRegistered = true;
+}
+
+export interface QualityGateCheckInput extends ConsistencyCheckInput {
+  providerId?: string;
+  modelId?: string;
+}
+
+/** 从元素 image bindings 提取 gate references（角色/场景） */
+function collectGateReferences(elements: StoryElement[]): QualityCheckInput["references"] {
+  const refs: QualityCheckInput["references"] = [];
+  for (const el of elements) {
+    const imageBinding = el.bindings?.find((b) => b.type === "image");
+    if (imageBinding?.url) {
+      refs.push({ imageUrl: imageBinding.url, role: el.type === "character" ? "character" : "scene" });
+    }
+  }
+  return refs;
+}
+
+/**
+ * 生成后质检（新 API，v0.2 设计 §4.1）
+ * 全量信息：多 checker 明细（rule + vlm）+ standardsUsed + feedback。
+ * 失败语义：runner 编排器绝不 throw（R192），VLM 单点失败以 ok:false 项呈现。
+ */
+export async function checkWithQualityGate(
+  input: QualityGateCheckInput,
+): Promise<Result<QualityReport>> {
+  ensureVlmCheckerRegistered();
+
+  const gateInput: QualityCheckInput = {
+    kind: "character_consistency",
+    generated: { imageUrl: input.generatedImageUrl },
+    references: collectGateReferences(input.elements),
+    featureAnchors: input.beat.featureAnchoring as Record<string, unknown> | undefined,
+    provenance: {
+      providerId: input.providerId ?? "unknown",
+      modelId: input.modelId ?? "unknown",
+    },
+  };
+
+  const deps: QualityCheckerDeps = {
+    analyzeImage: async (url, prompt) => {
+      try {
+        const res = await container.imageApi.analyze(url, "scene", prompt, undefined, undefined, undefined);
+        return res.ok
+          ? { ok: true, text: res.value.analysis }
+          : { ok: false, error: res.error instanceof Error ? res.error.message : String(res.error) };
+      } catch (e) {
+        // VLM 调用抛异常 → 转为 ok:false（checker 呈现失败项，保持旧失败语义）
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    log: (msg, level) => {
+      if (level === "error") errorLogger.error(msg);
+      else errorLogger.warn(msg);
+    },
+  };
+
+  const report = await new QualityGateRunner({
+    kinds: ["character_consistency", "scene_consistency", "artifact"],
+  }).run(gateInput, deps);
+
+  return ok(report);
+}
+
+/** 从 QualityReport 映射回旧 ConsistencyCheckResult（存量调用方过渡用） */
+function mapReportToLegacy(report: QualityReport, elements: StoryElement[]): ConsistencyCheckResult {
+  const vlmItem = report.items.find((i) => i.ok && i.category === "vlm");
+  const payload = vlmItem?.ok
+    ? (vlmItem.payload as {
+        scores?: Array<{ name: string; score: number; issues: string[] }>;
+        overallScore?: number;
+        recommendation?: "accept" | "regenerate" | "adjust";
+      } | undefined)
+    : undefined;
+
+  const characterScores = (payload?.scores ?? []).map((s) => {
+    const el = elements.find((e) => e.name === s.name || s.name.includes(e.name));
+    return {
+      elementId: el?.id ?? s.name,
+      elementName: s.name,
+      score: s.score,
+      issues: s.issues ?? [],
+    };
+  });
+
+  const overallScore = payload?.overallScore ?? (vlmItem?.ok ? vlmItem.score : 0);
+  // 与旧 mapAnalysisToResult 语义一致：recommendation 优先取 VLM 解析结果，否则按分数推导
+  const recommendation = payload?.recommendation
+    ?? (overallScore >= 0.8 ? "accept" : overallScore >= 0.6 ? "adjust" : "regenerate");
+
+  return {
+    passed: overallScore >= 0.6,
+    characterScores,
+    overallScore,
+    recommendation,
+  };
+}
+
+/** @deprecated 请改用 {@link checkWithQualityGate}（v0.2 设计 §4.1，P2 清理存量调用方后移除） */
 export async function checkVisualConsistency(
   input: ConsistencyCheckInput,
 ): Promise<Result<ConsistencyCheckResult>> {
@@ -46,94 +167,22 @@ export async function checkVisualConsistency(
   }
 
   try {
-    // PrismCraft 第三章: 提取元素参考图 URL，传给 VLM 做多图比对
-    const referenceImageUrls = collectReferenceImageUrls(boundElements);
-    const prompt = buildConsistencyPrompt(boundElements, beat, referenceImageUrls);
-    const analysisResult = await container.imageApi.analyze(
-      generatedImageUrl!,
-      "scene",
-      prompt,
-      undefined,
-      undefined,
-      referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
-    );
-
-    if (!analysisResult.ok) {
-      return err(new AppError("CONSISTENCY_CHECK_FAILED", t("error.consistencyCheckFailed"), analysisResult.error));
+    // 走新 API（模型无关质检层）：rule checkers + VLM 视觉比对
+    const reportResult = await checkWithQualityGate(input);
+    if (!reportResult.ok) {
+      return err(new AppError("CONSISTENCY_CHECK_FAILED", t("error.consistencyCheckFailed"), reportResult.error));
     }
 
-    const analysis = analysisResult.value.analysis;
-    const parsed = parseConsistencyAnalysis(analysis, boundElements);
+    // VLM 单点失败 → 保持旧失败语义（返回 err 而非假成功）
+    const vlmFailed = reportResult.value.items.find((i) => !i.ok);
+    if (vlmFailed) {
+      return err(new AppError("CONSISTENCY_CHECK_FAILED", t("error.consistencyCheckFailed"), vlmFailed.error));
+    }
 
-    return ok(parsed);
+    return ok(mapReportToLegacy(reportResult.value, boundElements));
   } catch (e) {
     return err(new AppError("CONSISTENCY_CHECK_ERROR", t("error.consistencyCheckError"), e));
   }
-}
-
-/**
- * PrismCraft 第三章: 从元素的 image 类型 bindings 提取参考图 URL。
- * 用于 VLM 多图比对（角色参考图 + 生成图），让视觉模型做真实比对而非只看文字描述。
- */
-function collectReferenceImageUrls(elements: StoryElement[]): string[] {
-  const urls: string[] = [];
-  for (const el of elements) {
-    const imageBinding = el.bindings?.find((b) => b.type === "image");
-    if (imageBinding?.url) {
-      urls.push(imageBinding.url);
-    }
-  }
-  return urls;
-}
-
-function buildConsistencyPrompt(elements: StoryElement[], beat: StoryBeat, referenceImageUrls: string[] = []): string {
-  const elementDescriptions = elements
-    .map((el) => {
-      const binding = (beat.elementBindings?.[el.id] || {}) as Partial<ElementBinding>;
-      const role = binding.role || binding.description || "";
-      return `- ${el.name} (${el.type}): ${role || el.description}`;
-    })
-    .join("\n");
-
-  const featureAnchoringSection = buildFeatureAnchoringSection(beat);
-
-  // PrismCraft 第三章: 当有参考图时，明确指示 VLM 比对生成图与参考图
-  const referenceSection = referenceImageUrls.length > 0
-    ? `\n参考图说明：已提供 ${referenceImageUrls.length} 张参考图（角色/场景的原始设计图），请严格比对生成图与参考图中的元素一致性，重点关注外观特征、配色、风格的差异。\n`
-    : "";
-
-  return `请分析这张图片中以下元素的一致性：
-
-${elementDescriptions}
-${featureAnchoringSection}${referenceSection}
-请评估每个元素的外观一致性，给出0-1的分数，并指出不一致的地方。
-请用以下JSON格式回复：
-{
-  "scores": [
-    {"name": "元素名", "score": 0.8, "issues": ["问题描述"]}
-  ],
-  "overallScore": 0.8,
-  "recommendation": "accept" | "regenerate" | "adjust"
-}`;
-}
-
-function buildFeatureAnchoringSection(beat: StoryBeat): string {
-  if (!beat.featureAnchoring?.enabled) return "";
-
-  const anchors = beat.featureAnchoring.characterAnchors || [];
-  if (anchors.length === 0) return "";
-
-  const anchorDescriptions = anchors
-    .filter((anchor) => anchor.featureTags?.length)
-    .map((anchor) => {
-      const tags = anchor.featureTags.join(", ");
-      return `- Key features to verify: ${tags} (weight: ${anchor.weight})`;
-    })
-    .join("\n");
-
-  if (!anchorDescriptions) return "";
-
-  return `\nFeature Anchoring Requirements:\n${anchorDescriptions}\n`;
 }
 
 interface ConsistencyAnalysisScore {
@@ -146,59 +195,6 @@ interface ConsistencyAnalysisResult {
   scores: ConsistencyAnalysisScore[];
   overallScore: number;
   recommendation: "accept" | "regenerate" | "adjust";
-}
-
-function parseConsistencyAnalysis(
-  analysis: string,
-  elements: StoryElement[],
-): ConsistencyCheckResult {
-  try {
-    const parsed = tryParseAnalysisJson(analysis);
-
-    if (!parsed) {
-      return buildUnparseableResult(elements);
-    }
-
-    return mapAnalysisToResult(parsed, elements);
-  } catch (e) {
-    errorLogger.error(t("error.consistencyParseFailed"), e instanceof Error ? e : undefined);
-    return {
-      passed: false,
-      characterScores: elements.map((el) => ({
-        elementId: el.id,
-        elementName: el.name,
-        score: 0.5,
-        issues: [t("error.consistencyParseFailed")],
-      })),
-      overallScore: 0.5,
-      recommendation: "adjust",
-    };
-  }
-}
-
-function tryParseAnalysisJson(analysis: string): ConsistencyAnalysisResult | null {
-  const directParsed = safeJsonParse<ConsistencyAnalysisResult | null>(analysis, null);
-  if (directParsed && typeof directParsed === "object" && "scores" in directParsed) {
-    return directParsed;
-  }
-
-  const codeBlockMatch = analysis.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
-  if (codeBlockMatch) {
-    const blockParsed = safeJsonParse<ConsistencyAnalysisResult | null>(codeBlockMatch[1], null);
-    if (blockParsed && typeof blockParsed === "object" && "scores" in blockParsed) {
-      return blockParsed;
-    }
-  }
-
-  const jsonStr = extractJsonObject(analysis);
-  if (jsonStr) {
-    const regexParsed = safeJsonParse<ConsistencyAnalysisResult | null>(jsonStr, null);
-    if (regexParsed && typeof regexParsed === "object" && "scores" in regexParsed) {
-      return regexParsed;
-    }
-  }
-
-  return null;
 }
 
 function buildUnparseableResult(elements: StoryElement[]): ConsistencyCheckResult {

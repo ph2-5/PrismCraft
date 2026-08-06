@@ -6,8 +6,8 @@
  */
 
 // === 1. 一致性检查（API 路由 /api/validate 使用）===
-export { performConfigCheck, checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "./consistency-check";
-export type { ConsistencyCheckInput } from "./consistency-check";
+export { performConfigCheck, checkVisualConsistency, checkWithQualityGate, parseConsistencyAnalysisFromStructured } from "./consistency-check";
+export type { ConsistencyCheckInput, QualityGateCheckInput } from "./consistency-check";
 export {
   validateFeatureAnchoringConfig,
   validateNoFrameBinding,

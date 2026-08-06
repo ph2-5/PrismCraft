@@ -255,3 +255,87 @@ export type ShotParamsType = {
   promptLayers?: { coreElements?: string; cameraAction?: string; styleAtmosphere?: string };
   transition?: string;
 };
+
+// ─────────────────────────────────────────────────────────────
+// zod 版本（运行时校验，无 eval —— 替代 AJV 供渲染进程使用）
+// 语义与上方 JSON Schema 一致（additionalProperties: true → passthrough）
+// 修复背景：AJV 运行时 compile 依赖 new Function，被 CSP(script-src 无 unsafe-eval) 拦截
+// ─────────────────────────────────────────────────────────────
+import { z } from "zod";
+
+const shotInstructionZod = z
+  .object({
+    shotSize: z
+      .enum(["wide", "medium", "close", "extreme_close", "extreme_wide", "low", "high", "birdseye", "wormseye"])
+      .optional(),
+    cameraAngle: z
+      .enum(["eye_level", "low", "high", "birds_eye", "worms_eye", "dutch"])
+      .optional(),
+    cameraMovement: z
+      .enum(["static", "push", "pull", "pan", "orbit", "crane_up", "crane_down", "tracking"])
+      .optional(),
+  })
+  .passthrough();
+
+// 与 shot-validator 中 ajv.addFormat("uri", /^https?:\/\/.+/) 对齐的宽松 URI 校验
+const looseUri = z.string().regex(/^https?:\/\/.+/);
+
+export const ShotParamsZod = z
+  .object({
+    prompt: z.string().min(10).max(4000),
+    shotInstruction: shotInstructionZod.optional(),
+    duration: z.number().min(2).max(30),
+    characterIds: z.array(z.string()).optional(),
+    sceneId: z.string().optional(),
+    referenceImageUrl: looseUri.optional(),
+    firstFrameUrl: looseUri.optional(),
+    lastFrameUrl: looseUri.optional(),
+    featureAnchoring: z
+      .object({
+        enabled: z.boolean().optional(),
+        characterAnchors: z
+          .array(
+            z
+              .object({
+                elementId: z.string(),
+                referenceImageUrl: z.string().optional(),
+                featureTags: z.array(z.string()).optional(),
+                weight: z.number().min(0).max(1),
+              })
+              .passthrough(),
+          )
+          .optional(),
+        previewImageUrl: z.string().optional(),
+        featureConsistencyStrength: z.number().min(0).max(1).optional(),
+        disableFrameBinding: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
+    promptLayers: z
+      .object({
+        coreElements: z.string().optional(),
+        cameraAction: z.string().optional(),
+        styleAtmosphere: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    transition: z.enum(["cut", "dissolve", "fade", "wipe"]).optional(),
+  })
+  .passthrough();
+
+export const StoryBeatZod = z
+  .object({
+    title: z.string().min(1).max(100),
+    content: z.string().min(10).max(2000),
+    description: z.string().max(2000).optional(),
+    duration: z.number().min(2).max(30),
+    shotInstruction: shotInstructionZod.optional(),
+    type: z.enum(["action", "dialogue", "scene", "transition", "effect"]).optional(),
+    characterIds: z.array(z.string()).optional(),
+    sceneId: z.string().optional(),
+    dialogue: z.string().optional(),
+    emotion: z.string().optional(),
+  })
+  .passthrough();
+
+export const StoryPlanZod = z.array(StoryBeatZod).min(1).max(30);

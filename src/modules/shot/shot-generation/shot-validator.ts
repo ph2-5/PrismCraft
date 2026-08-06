@@ -1,19 +1,17 @@
-import Ajv from "ajv";
+import { z } from "zod";
 import {
-  ShotParamsSchema,
-  StoryBeatOutputSchema,
-  StoryPlanOutputSchema,
+  ShotParamsZod,
+  StoryBeatZod,
+  StoryPlanZod,
   type ShotParamsType,
 } from "./shot-params";
 import { fixShotParams, fixStoryBeat } from "./shot-params-fixer";
 import { errorLogger } from "@/shared/error-logger";
 
-const ajv = new Ajv({ allErrors: true, useDefaults: true });
-ajv.addFormat("uri", /^https?:\/\/.+/);
-
-const validateShotParamsFn = ajv.compile(ShotParamsSchema);
-const validateStoryBeatFn = ajv.compile(StoryBeatOutputSchema);
-const validateStoryPlanFn = ajv.compile(StoryPlanOutputSchema);
+// 说明：早期实现用 AJV（ajv.compile）运行时编译 JSON Schema —— AJV 依赖
+// new Function 生成验证代码，会被 CSP（script-src 不含 'unsafe-eval'）拦截，
+// 导致 storyboard 懒加载页面在受限环境中崩溃（EvalError）。已迁移为 zod
+// 运行时校验（纯模式匹配，零代码生成），语义与 JSON Schema 版本保持一致。
 
 class ValidationCache<T> {
   private readonly cache = new Map<string, { result: T; timestamp: number }>();
@@ -88,41 +86,30 @@ export interface ValidationResult<T = unknown> {
   autoFixed: string[];
 }
 
-export function extractAjvErrors(
-  validateFn: { errors?: unknown[] | null },
-  prefix: string = "",
-): ValidationError[] {
+export function extractZodErrors(result: z.ZodSafeParseResult<unknown>): ValidationError[] {
+  if (result.success) return [];
   const errors: ValidationError[] = [];
-  if (!validateFn.errors) return errors;
 
-  for (const rawErr of validateFn.errors) {
-    const err = rawErr as Record<string, unknown>;
-    const instancePath = (err.instancePath as string) || "";
-    const field = prefix + instancePath.slice(1);
-    const keyword = err.keyword as string;
-    const message = (err.message as string) || "校验失败";
-    const params = (err.params as Record<string, unknown>) || {};
-    const missingProp = params.missingProperty as string | undefined;
+  for (const issue of result.error.issues) {
+    const field = issue.path
+      .map((p) => (typeof p === "number" ? `[${p}]` : p))
+      .join(".");
+    const code = issue.code;
+    // 与原 AJV 映射语义对齐：缺失必填字段 / enum / 字符串过短 → error，其余 → warning
+    const isMissing = code === "invalid_type" && (issue as { received?: unknown }).received === "undefined";
+    const isEnum = code === "invalid_value"; // zod 4：enum/literal 失败
+    const isTooShort = code === "too_small" && (issue as { type?: string }).type === "string";
 
-    const fieldName = missingProp
-      ? field
-        ? `${field}.${missingProp}`
-        : missingProp
-      : field;
-    const isRequired = keyword === "required";
-
-    if (isRequired || keyword === "enum" || keyword === "minLength") {
+    if (isMissing || isEnum || isTooShort) {
       errors.push({
-        field: fieldName,
-        message: isRequired
-          ? `缺少必填字段: ${missingProp || fieldName}`
-          : message,
+        field,
+        message: isMissing ? `缺少必填字段: ${field || "字段"}` : issue.message,
         severity: "error",
       });
     } else {
       errors.push({
-        field: fieldName,
-        message,
+        field,
+        message: issue.message,
         severity: "warning",
       });
     }
@@ -153,13 +140,13 @@ export function validateShotParams(
 
   const { fixed, autoFixed } = fixShotParams(params);
 
-  const valid = validateShotParamsFn(fixed);
+  const parsed = ShotParamsZod.safeParse(fixed);
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
 
-  if (!valid) {
-    const ajvErrors = extractAjvErrors(validateShotParamsFn);
-    for (const err of ajvErrors) {
+  if (!parsed.success) {
+    const zodErrors = extractZodErrors(parsed);
+    for (const err of zodErrors) {
       if (err.severity === "error") errors.push(err);
       else warnings.push(err);
     }
@@ -211,13 +198,13 @@ export function validateStoryBeatOutput(
 ): ValidationResult {
   const { fixed, autoFixed } = fixStoryBeat(beat);
 
-  const valid = validateStoryBeatFn(fixed);
+  const parsed = StoryBeatZod.safeParse(fixed);
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
 
-  if (!valid) {
-    const ajvErrors = extractAjvErrors(validateStoryBeatFn);
-    for (const err of ajvErrors) {
+  if (!parsed.success) {
+    const zodErrors = extractZodErrors(parsed);
+    for (const err of zodErrors) {
       if (err.severity === "error") errors.push(err);
       else warnings.push(err);
     }
@@ -271,13 +258,17 @@ export function validateStoryPlanOutput(
 
   // Only validate array-level constraints (minItems, maxItems), not per-item fields
   // which were already validated individually above
-  const planValid = validateStoryPlanFn(fixedPlan);
-  if (!planValid) {
-    const ajvErrors = extractAjvErrors(validateStoryPlanFn);
-    // Filter out per-item errors that were already reported by validateStoryBeatOutput
-    const arrayOnlyErrors = ajvErrors.filter(
-      (e) => !e.field.includes(".") && !e.field.includes("["),
-    );
+  const planParsed = StoryPlanZod.safeParse(fixedPlan);
+  if (!planParsed.success) {
+    // 只保留数组根级错误（minItems/maxItems，zod path 为空）；
+    // 元素级错误已在 validateStoryBeatOutput 单独报告
+    const arrayOnlyErrors = planParsed.error.issues
+      .filter((issue) => issue.path.length === 0)
+      .map((issue) => ({
+        field: "",
+        message: issue.message,
+        severity: "error" as const,
+      }));
     allErrors.push(...arrayOnlyErrors);
   }
 

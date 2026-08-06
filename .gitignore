@@ -20,8 +20,10 @@
 /.stryker-tmp/
 /tests/screenshots/
 
-# local tool state
-.workbuddy/
+# local tool state（memory 保持本地忽略；skills 是项目级共享资产，入库）
+.workbuddy/*
+!.workbuddy/skills/
+!.workbuddy/skills/**
 
 # runtime logs
 stderr.log

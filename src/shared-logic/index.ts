@@ -8,4 +8,5 @@ export * as json from "./json";
 export * as migration from "./migration";
 export * as timeline from "./timeline";
 export * as director from "./director";
+export * as qualityGate from "./quality-gate";
 export { sleep } from "./sleep";

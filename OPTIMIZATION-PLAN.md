@@ -699,3 +699,37 @@ node scripts/check-module-api-consistency.mjs
 > **注**: 本规划基于会话 `6a6707cd9d35f6e35f5c3962` 的完整内容（90 条消息，11694 行，323.9 KB），会话记录见 `session_full_content.md`。
 > **v2 修订**: 补充 11 项遗漏内容（Traction 指标体系、项目前景五维度、云端化 7 项预埋、2026 市场格局、决策框架 5 问题、零成本策略、现实估值表、代码审查真实资产/幻灭点、6 大核心问题、大胆一点 4 方向、远程沙盒完整文件清单），修正 4 项理解错误（删除 P0.3 agent-tools-* 违规、估值修正过程、远程沙盒改动描述、会话最终状态描述）。
 > **v3 修订（2026-08-04）**: P1-P3 全部完成并标注提交号；剩余 P4 商业化项待用户决策。
+> **v4 修订（2026-08-06）**: 新增"九、设计任务落地"——模型无关质检层 + 成本追踪/用量统计两份设计（已评审修订 v0.2），P0 批准开工。
+
+---
+
+## 九、设计任务落地（2026-08-06 新增）
+
+> 两份设计任务书（`tasks/prismcraft-quality-gate-design.md`、`tasks/prismcraft-cost-tracking-design.md`）已完成设计（v0.2，经评审修订），P0 已批准开工。
+
+### 9.1 模型无关质检层（Quality Gate Layer）
+
+- **设计文档**: `docs/DESIGN-QUALITY-GATE.md`（v0.2）
+- **定位**: shared-logic/quality-gate（零依赖纯逻辑）+ QualityChecker 注册表 + 降级链 + standardsUsed 口径标注
+- **对齐哲学**: 可插拔 Port + 降级链 + 失败即预期（绝不 throw）
+- **P0 范围**: types/registry/runner + 3 个 rule checker + 单元测试（约 2 周，纯增量）——骨架已落地
+- **P1**: 新 API checkWithQualityGate + 旧 API deprecated 包装 + workflow 节点切换 + 阈值配置 + feedback 落库（2-3 周）
+- **P2**: VLM/embedding checker + code-plugin 适配器（单独排期 2-3 周）
+- **收购价值**: 让自研模型企业看到"模型接入后被工作流放大"（接入指南 + 价值展示文档已就绪）
+- **新守卫**: R192 quality-gate-no-throw / R193 downgrade-chain / R194 threshold-resolution
+
+### 9.2 成本追踪 / 用量统计（Cost Tracking）
+
+- **设计文档**: `docs/DESIGN-COST-TRACKING.md`（v0.2）
+- **定位**: usage_records 表（migrations v13）+ 主进程 api-gateway 层采集（写库同进程零通道）+ shared-logic/cost-engine 定价 + IUsageProvider 可插拔真实用量
+- **P0 范围**: usage_records 表 + api-gateway 采集 + usage-tracker（缓冲/降级/status）+ 测试（约 2 周）
+- **P1**: cost-engine + 成本看板页（双口径）+ summary API（2 周）
+- **P2**: estimatedCost 弹窗（手动/批量）+ IUsageProvider 接口；平台实现单独排期
+- **收购价值**: "帮你省钱"+"告诉你省了多少"合体——成本看板是销售材料的直观证明
+- **新守卫**: R195 usage-record-never-throws
+
+### 9.3 与 P4 商业化衔接
+
+- 两份设计是"卖出前的临门一脚"：质检层 + 成本看板提升项目"可演示、可证明价值"的卖相
+- Web 版（估值 +50-100%）仍是最优先商业化前置项（见八、下一步行动）
+- **安全备注（2026-08-06 事故）**：本机曾发生 .git 对象库损坏（lint-staged 卡死），历史经远程恢复；后续改动务必及时 commit + push，避免依赖单一本地对象库

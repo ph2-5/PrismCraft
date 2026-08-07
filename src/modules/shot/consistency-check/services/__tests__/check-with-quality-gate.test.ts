@@ -25,9 +25,10 @@ function makeBeat(): ConsistencyCheckInput["beat"] {
     characters: [],
     elementIds: ["elem-1"],
     characterIds: [],
+    elementBindings: {},
     enhancedGeneration: false,
     featureAnchoring: { enabled: true, characterAnchors: [{ elementId: "elem-1", weight: 1, featureTags: ["红发"] }] },
-  } as ConsistencyCheckInput["beat"];
+  } as unknown as ConsistencyCheckInput["beat"];
 }
 
 function makeElement(): ConsistencyCheckInput["elements"][number] {

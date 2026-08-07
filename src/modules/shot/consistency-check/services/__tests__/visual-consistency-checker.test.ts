@@ -21,7 +21,7 @@ function makeInput(overrides: Partial<QualityCheckInput> = {}): QualityCheckInpu
 describe("vlm.visual-consistency checker", () => {
   it("正常解析 VLM 分数并输出 payload（供旧 API 映射）", async () => {
     const checker = createVisualConsistencyCheckerFactory()();
-    const analyzeImage = vi.fn(async () => ({
+    const analyzeImage = vi.fn(async (_url: string, _prompt: string) => ({
       ok: true,
       text: JSON.stringify({
         scores: [{ name: "角色A", score: 0.75, issues: ["服装不一致"] }],
@@ -45,7 +45,7 @@ describe("vlm.visual-consistency checker", () => {
 
   it("VLM 返回无法解析 → 低分项（非 err，保留 unparseable 语义）", async () => {
     const checker = createVisualConsistencyCheckerFactory()();
-    const analyzeImage = vi.fn(async () => ({ ok: true, text: "完全不是JSON" }));
+    const analyzeImage = vi.fn(async (_url: string, _prompt: string) => ({ ok: true, text: "完全不是JSON" }));
 
     const result = await checker.run(makeInput(), { analyzeImage });
     expect(result.ok).toBe(true);
@@ -83,13 +83,13 @@ describe("vlm.visual-consistency checker", () => {
 
   it("prompt 包含参考图 URL 与特征锚定信息", async () => {
     const checker = createVisualConsistencyCheckerFactory()();
-    const analyzeImage = vi.fn(async () => ({
+    const analyzeImage = vi.fn(async (_url: string, _prompt: string) => ({
       ok: true,
       text: JSON.stringify({ scores: [], overallScore: 1, recommendation: "accept" }),
     }));
     await checker.run(makeInput(), { analyzeImage });
 
-    const prompt = analyzeImage.mock.calls[0]![1] as string;
+    const prompt = analyzeImage.mock.calls[0]![1];
     expect(prompt).toContain("https://example.com/ref.png");
     expect(prompt).toContain("参考图");
   });

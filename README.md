@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-1.5.0-blue)](package.json)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
 [![Commercial License](https://img.shields.io/badge/commercial-license%20available-orange)](COMMERCIAL_LICENSE.md)
-[![Tests](https://img.shields.io/badge/tests-9929-brightgreen)](docs/DEVELOPMENT.md)
+[![Tests](https://img.shields.io/badge/tests-9930-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--24-green)]()
 
@@ -151,7 +151,7 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 8569+（渲染进程，447 文件） |
+| 单元测试 | 8570+（渲染进程，448 文件） |
 | Electron 测试 | 1360+（72 文件） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |

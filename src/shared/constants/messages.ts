@@ -3915,6 +3915,7 @@ const messages: Record<MessageKey, string> = {
   "novel.stages.done": "完成",
   "novel.shell.segmentNav": "片段导航",
   "novel.shell.enterStoryboard": "进入分镜编辑器",
+  "novel.shell.switchMode": "切换模式",
   "novel.shotList.enterCanvas": "在画布中编辑分镜",
   "novel.shotList.canvasHint": "画布式分镜：拖拽编排、生成关键帧与视频",
   "novel.shotList.emptyForCanvas": "请先完成分镜生成再进入画布",

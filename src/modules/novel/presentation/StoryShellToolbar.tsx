@@ -9,7 +9,7 @@
  */
 
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Clapperboard, Film, MapPin, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, Clapperboard, Film, MapPin, Users, Settings2 } from "lucide-react";
 import { t } from "@/shared/constants";
 
 export interface StoryShellToolbarProps {
@@ -29,6 +29,8 @@ export interface StoryShellToolbarProps {
   characterCount: number;
   /** 已有故事模式：提供「进入分镜编辑器」入口 */
   storyId?: string | null;
+  /** P2（2026-08-08）：切换 AI 辅助模式（ModeSelector 在已有故事模式下不可达，补入口） */
+  onSwitchMode?: () => void;
 }
 
 /** 环形完成度指示器 */
@@ -67,6 +69,7 @@ export function StoryShellToolbar({
   completedShots,
   characterCount,
   storyId,
+  onSwitchMode,
 }: StoryShellToolbarProps) {
   const navigate = useNavigate();
 
@@ -124,6 +127,18 @@ export function StoryShellToolbar({
         </div>
 
         <ProgressRing percent={percent} />
+
+        {onSwitchMode && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onSwitchMode}
+            title={t("novel.shell.switchMode")}
+          >
+            <Settings2 size={14} className="inline-block mr-1" aria-hidden="true" />
+            {t("novel.shell.switchMode")}
+          </button>
+        )}
 
         {storyId && (
           <button

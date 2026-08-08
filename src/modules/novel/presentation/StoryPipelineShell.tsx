@@ -558,6 +558,7 @@ export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: 
         completedShots={shots.filter((s) => s.status === "final").length}
         characterCount={state.characters.length}
         storyId={isExistingStory ? initialStory?.id : undefined}
+        onSwitchMode={handleSwitchMode}
       />
 
       {/* 顶部 7 步指示器 */}

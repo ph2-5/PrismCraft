@@ -42,6 +42,13 @@ export default defineConfig({
   timeout: 60000,
   expect: {
     timeout: 10000,
+    toHaveScreenshot: {
+      // 跨平台共用基线（去掉 -chromium-win32/linux 后缀）；0.02 容差容忍字体渲染差异
+      maxDiffPixelRatio: 0.02,
+      animations: "disabled",
+    },
   },
+  // 基线路径：去掉平台后缀，CI(linux) 与本地(win32) 共用同一份截图
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
   outputDir: 'test-results/artifacts',
 });

@@ -29,7 +29,7 @@ describe("Blockout3DPanel", () => {
   it("3D 画布容器带背景色（防透明透出背后内容回归）", () => {
     render(
       <Blockout3DPanel
-        scene={createEmptyScene()}
+        scene={createEmptyScene("scene-1", "测试场景")}
         onSceneChange={() => {}}
         modelId="seedance-pro"
         modelSupports3D

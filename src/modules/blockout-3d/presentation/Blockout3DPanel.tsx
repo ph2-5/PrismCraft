@@ -261,7 +261,15 @@ export function Blockout3DPanel({
         </div>
 
         {/* 3D Canvas */}
-        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            position: "relative",
+            // 修复：Three.js Canvas 默认透明背景，无背景容器会透出背后分镜画布内容
+            background: "var(--muted)",
+          }}
+        >
           <Blockout3DCanvas
             scene={scene}
             playbackTime={playbackTime}

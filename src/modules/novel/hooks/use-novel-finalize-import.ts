@@ -96,23 +96,51 @@ export function useNovelFinalizeImport({
       const title = state.config.projectName || state.rawText.slice(0, 40) || "未命名项目";
       const description = state.rawText.slice(0, 500);
 
-      const result = await storyService.create({
-        title,
-        description,
-        characters: characterIds,
-        scenes: sceneIds,
-        beats,
-        elementIds: [],
-      });
+      // P0 修复（2026-08-08）：已有故事模式（经 /story/:storyId 进入且 state.storyId 存在）
+      // 应 update 而非 create——原实现无条件 create 会在编辑既有故事时重复创建项目。
+      // 更新仅携带管线产物（beats/characters/scenes），保留画布已生成的 keyframe 等字段
+      // （update 为 partial schema，未传字段不受影响）。
+      const existingStoryId = state.storyId ?? null;
+      const createResult = existingStoryId
+        ? null
+        : await storyService.create({
+            title,
+            description,
+            characters: characterIds,
+            scenes: sceneIds,
+            beats,
+            elementIds: [],
+          });
 
       if (!isMountedRef.current) return;
 
-      if (!result.ok) {
+      if (existingStoryId) {
+        const updateResult = await storyService.update(existingStoryId, {
+          id: existingStoryId,
+          title,
+          description,
+          characters: characterIds,
+          scenes: sceneIds,
+          beats,
+        });
+        if (!isMountedRef.current) return;
+
+        if (!updateResult.ok) {
+          errorLogger.error(
+            {
+              code: "NovelPipelineFinalizeFailed",
+              message: updateResult.error.message,
+            },
+            "useNovelPipeline",
+          );
+          return;
+        }
+      } else if (createResult && !createResult.ok) {
         // 创建失败：记录错误，保留当前状态允许用户重试
         errorLogger.error(
           {
             code: "NovelPipelineFinalizeFailed",
-            message: result.error.message,
+            message: createResult.error.message,
           },
           "useNovelPipeline",
         );
@@ -126,13 +154,13 @@ export function useNovelFinalizeImport({
 
       // 软关联：将 novel_projects.story_id 指向已创建的 Story，保留原始小说文本用于回溯
       // 不再物理删除 novel_projects 记录，Story 详情页可通过 story_id 回溯到原始小说
-      if (currentProjectId !== null) {
+      if (currentProjectId !== null && createResult && !existingStoryId && createResult.ok) {
         container.novelProjectStorage
-          .updateProject(currentProjectId, { storyId: result.value.id })
+          .updateProject(currentProjectId, { storyId: createResult.value.id })
           .catch((err) => {
             // P1-3: 关联失败不阻塞 UI，后续 cleanExpiredProjects 会兜底清理过期记录
             errorLogger.warn(
-              `[useNovelPipeline] 关联 novel_project ${currentProjectId} → story ${result.value.id} 失败`,
+              `[useNovelPipeline] 关联 novel_project ${currentProjectId} → story ${createResult.value.id} 失败`,
               err,
             );
           });

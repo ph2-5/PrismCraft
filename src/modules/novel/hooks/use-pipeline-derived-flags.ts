@@ -79,7 +79,12 @@ export function usePipelineDerivedFlags({
           state.scenes.every((s) => s.confirmed)
         );
       case "review":
+        // P0 修复（2026-08-08）：review 阶段允许进入下一步——shots 正是在
+        // review 点"下一步"时由 runReviewNext 生成（breakdownShotsForSegments）；
+        // 若此处要求 shots.length > 0 会与 handleNext 首行的 canProceed 校验形成死锁。
+        return true;
       case "storyboard":
+        // storyboard 阶段由 review 转换而来，shots 已生成，须非空才能继续
         return shots.length > 0;
       case "generation":
         return true;

@@ -10,6 +10,7 @@
 
 import { useMemo } from "react";
 import { FileText, Users, MapPin, Film, Sparkles, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import type { ShotBreakdown } from "../domain/types";
 import { t } from "@/shared/constants";
 import type { PipelineState } from "../domain/types";
 
@@ -24,20 +25,20 @@ export interface FinalizeSummary {
 
 export interface FinalizePanelProps {
   state: PipelineState;
+  shots: ShotBreakdown[];
   onImport: () => void;
   isImporting: boolean;
 }
 
-/** 从 PipelineState 计算 FinalizeSummary */
-function computeSummary(state: PipelineState): FinalizeSummary {
+/** 从 PipelineState + shots 计算 FinalizeSummary */
+function computeSummary(state: PipelineState, shots: ShotBreakdown[]): FinalizeSummary {
   return {
     segmentCount: state.segments.length,
     characterCount: state.characters.filter((c) => c.confirmed).length,
     sceneCount: state.scenes.filter((s) => s.confirmed).length,
-    shotCount: state.segments.reduce(
-      (sum, seg) => sum + (("shots" in seg && Array.isArray((seg as { shots?: unknown[] }).shots)) ? (seg as { shots: unknown[] }).shots.length : 0),
-      0,
-    ),
+    // P0 修复（2026-08-08）：shotCount 原从 segments 内嵌 shots 统计（Segment 无该字段 → 恒 0）；
+    // 改为统计管线全局 shots（与 ShotBreakdownList 同一数据源）
+    shotCount: shots.length,
     promptCount: state.prompts.length,
     estimatedTotalDuration: state.segments.reduce(
       (sum, seg) => sum + seg.estimatedDuration,
@@ -46,8 +47,8 @@ function computeSummary(state: PipelineState): FinalizeSummary {
   };
 }
 
-export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelProps) {
-  const summary = useMemo(() => computeSummary(state), [state]);
+export function FinalizePanel({ state, shots, onImport, isImporting }: FinalizePanelProps) {
+  const summary = useMemo(() => computeSummary(state, shots), [state, shots]);
 
   const items = [
     { icon: FileText, label: t("novel.finalize.segmentLabel"), value: summary.segmentCount, color: "text-foreground" },

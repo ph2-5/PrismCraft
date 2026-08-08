@@ -207,7 +207,7 @@ export function MainWorkArea({
           onGeneratePrompts={onGeneratePrompts}
         />
       ) : showFinalize ? (
-        <FinalizePanel state={state} onImport={onFinalizeImport} isImporting={isImporting} />
+        <FinalizePanel state={state} shots={shots} onImport={onFinalizeImport} isImporting={isImporting} />
       ) : null}
     </main>
   );

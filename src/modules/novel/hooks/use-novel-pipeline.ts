@@ -49,6 +49,8 @@ export interface UseNovelPipelineOptions {
 export interface UseNovelPipelineResult {
   // 状态
   state: ReturnType<typeof usePipelineState>["state"];
+  /** 方案 A（2026-08-08）：暴露 setState 供管线 UI（StoryPipelineShell 建草稿故事后回写 storyId） */
+  setState: ReturnType<typeof usePipelineState>["setState"];
   selectedSegmentIds: string[];
   isProcessing: boolean;
   isImporting: boolean;
@@ -257,7 +259,7 @@ export function useNovelPipeline({
   });
 
   return {
-    state, selectedSegmentIds, isProcessing, isImporting, shots, storyStructure,
+    state, setState, selectedSegmentIds, isProcessing, isImporting, shots, storyStructure,
     treatment, shotContracts, pacingConfig, stagesForMode, canProceed,
     showImportStep, showSegmentList, showStructureAnalysis, showPacingPlanning,
     showEntityReview, showShotBreakdown, showFinalize, isDone,

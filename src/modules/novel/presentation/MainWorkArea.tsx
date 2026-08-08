@@ -14,7 +14,7 @@
  * 此组件为纯渲染组件，所有状态与 handlers 由父组件 StoryPipelineShell 通过 props 传入。
  */
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clapperboard } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineState, ShotBreakdown, ExtractedCharacter, ExtractedScene } from "../domain/types";
 import type { StoryStructure, ShotContract, NarrativeBeat } from "../structure";
@@ -58,6 +58,8 @@ export interface MainWorkAreaProps {
   onEditShot: (shot: ShotBreakdown) => void;
   onReorderShots: (from: number, to: number) => void;
   onGeneratePrompts: () => void;
+  /** 方案 A（2026-08-08）：进入画布式分镜（无 storyId 时由管线创建草稿 Story） */
+  onEnterStoryboard?: () => void;
   onFinalizeImport: () => void;
   // Task 2A.13 Structure handlers
   onBeatsChange: (beats: NarrativeBeat[]) => void;
@@ -119,6 +121,7 @@ export function MainWorkArea({
   onEditShot,
   onReorderShots,
   onGeneratePrompts,
+  onEnterStoryboard,
   onFinalizeImport,
   onBeatsChange,
   onShotContractsChange,
@@ -200,12 +203,30 @@ export function MainWorkArea({
           onAddToLibrary={onAddToLibrary}
         />
       ) : showShotBreakdown ? (
-        <ShotBreakdownList
-          shots={shots}
-          onEdit={onEditShot}
-          onReorder={onReorderShots}
-          onGeneratePrompts={onGeneratePrompts}
-        />
+        <div className="h-full flex flex-col">
+          {/* 方案 A：画布式分镜入口（管线分镜列表是概览，编辑在画布进行） */}
+          {onEnterStoryboard && (
+            <div className="flex justify-end items-center gap-2 px-4 py-2 border-b shrink-0">
+              <span className="text-xs text-muted-foreground">
+                {t("novel.shotList.canvasHint")}
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={onEnterStoryboard}
+              >
+                <Clapperboard size={14} className="inline-block mr-1" aria-hidden="true" />
+                {t("novel.shotList.enterCanvas")}
+              </button>
+            </div>
+          )}
+          <ShotBreakdownList
+            shots={shots}
+            onEdit={onEditShot}
+            onReorder={onReorderShots}
+            onGeneratePrompts={onGeneratePrompts}
+          />
+        </div>
       ) : showFinalize ? (
         <FinalizePanel state={state} shots={shots} onImport={onFinalizeImport} isImporting={isImporting} />
       ) : null}

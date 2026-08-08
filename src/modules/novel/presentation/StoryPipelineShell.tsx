@@ -27,8 +27,11 @@ import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { usePreference } from "@/shared/utils/preferences";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { errorLogger } from "@/shared/error-logger";
+import { useNavigate } from "react-router-dom";
 import { getPreviousStage } from "../import/services/pipeline-machine";
 import type { PipelineConfig, PipelineStage } from "../domain/types";
+import { buildBeatsFromShots } from "../domain/beat-mapping";
 import { useNovelPipeline } from "../hooks/use-novel-pipeline";
 import { PhaseIndicator } from "./PhaseIndicator";
 import { SegmentNavColumn } from "./SegmentNavColumn";
@@ -434,8 +437,9 @@ function StatusBar({
 export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: StoryPipelineShellProps) {
   const pipeline = useNovelPipeline({ onComplete, initialConfig, initialStory });
   const isExistingStory = Boolean(initialStory);
+  const navigate = useNavigate();
   const {
-    state, shots, selectedSegmentIds, isProcessing, isImporting,
+    state, shots, selectedSegmentIds, isProcessing, isImporting, setState,
     storyStructure, shotContracts, pacingConfig,
     showImportStep, showSegmentList, showStructureAnalysis,
     showPacingPlanning, showEntityReview, showShotBreakdown, showFinalize, isDone,
@@ -459,6 +463,57 @@ export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: 
     canGoBack, handleStageClick, handleModeSelect, handleSwitchMode,
     handleSampleLoad, handleOnboardingComplete, handleBack,
   } = useShellState({ pipeline, initialModeSelected: isExistingStory });
+
+  // 方案 A（2026-08-08）：进入画布式分镜
+  // - 已有 storyId（含 initialStory）：直接跳转画布
+  // - 无 storyId（新建流程）：先用管线 shots 创建草稿 Story（与 finalize create 同源映射），
+  //   回写 state.storyId 后跳转画布——此后画布为分镜真相源
+  const handleEnterStoryboard = useCallback(async () => {
+    const existingId = state.storyId ?? (isExistingStory ? initialStory?.id : undefined);
+    if (existingId) {
+      navigate(`/storyboard/${existingId}`);
+      return;
+    }
+    if (shots.length === 0) {
+      emitToast("warning", t("novel.shotList.emptyForCanvas"));
+      return;
+    }
+    try {
+      const { storyService } = await import("@/modules/storyboard");
+      const characterIds = state.characters
+        .map((c) => c.matchedCharacterId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      const sceneIds = state.scenes
+        .map((s) => s.matchedSceneId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      const beats = buildBeatsFromShots(shots, state.characters);
+      const title = state.config.projectName || state.rawText.slice(0, 40) || "未命名项目";
+      const result = await storyService.create({
+        title,
+        description: state.rawText.slice(0, 500),
+        characters: characterIds,
+        scenes: sceneIds,
+        beats,
+        elementIds: [],
+      });
+      if (result.ok) {
+        setState((prev) => ({ ...prev, storyId: result.value.id }));
+        navigate(`/storyboard/${result.value.id}`);
+      } else {
+        errorLogger.error(
+          { code: "NovelEnterStoryboardDraftFailed", message: result.error.message },
+          "StoryPipelineShell",
+        );
+        emitToast("error", t("novel.shell.draftFailed"));
+      }
+    } catch (err) {
+      errorLogger.error(
+        { code: "NovelEnterStoryboardDraftError", message: err instanceof Error ? err.message : String(err) },
+        "StoryPipelineShell",
+      );
+      emitToast("error", t("novel.shell.draftFailed"));
+    }
+  }, [state, shots, navigate, setState, isExistingStory, initialStory]);
 
   // 1. 模式未选择 → 显示 ModeSelector（或 SampleProjectLoader）
   if (!modeSelected) {
@@ -553,6 +608,7 @@ export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: 
               onEditShot={handleEditShot}
               onReorderShots={handleReorderShots}
               onGeneratePrompts={handleGeneratePrompts}
+              onEnterStoryboard={handleEnterStoryboard}
               onFinalizeImport={handleFinalizeImport}
               onBeatsChange={handleBeatsChange}
               onShotContractsChange={handleShotContractsChange}

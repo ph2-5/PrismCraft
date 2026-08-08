@@ -20,8 +20,8 @@
 import { useCallback } from "react";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
-import type { StoryBeat } from "@/domain/schemas";
 import { canTransition, transition } from "../import/services/pipeline-machine";
+import { buildBeatsFromShots } from "../domain/beat-mapping";
 import type { UsePipelineStateResult } from "./use-pipeline-state";
 
 export interface UseNovelFinalizeImportOptions {
@@ -69,29 +69,9 @@ export function useNovelFinalizeImport({
         .map((s) => s.matchedSceneId)
         .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-      // 构建 StoryBeat[]：每个 shot 对应一个 beat
-      // Q2-1: 携带原文回溯字段（sourceText/sourceSegmentId/sourceStartChar/sourceEndChar/chapterIndex/chapterTitle）
-      const beats: StoryBeat[] = shots.map((shot, index) => {
-        const beatCharacterIds = shot.characters
-          .map((name) => state.characters.find((c) => c.name === name)?.matchedCharacterId)
-          .filter((id): id is string => typeof id === "string" && id.length > 0);
-        return {
-          id: `beat_${crypto.randomUUID()}`,
-          sequence: index + 1,
-          description: shot.description,
-          duration: shot.estimatedDuration,
-          characterIds: beatCharacterIds,
-          sceneId: shot.sceneId,
-          elementIds: [],
-          // Q2-1: 原文回溯字段
-          sourceText: shot.sourceText,
-          sourceSegmentId: shot.sourceSegmentId,
-          sourceStartChar: shot.sourceStartChar,
-          sourceEndChar: shot.sourceEndChar,
-          chapterIndex: shot.chapterIndex,
-          chapterTitle: shot.chapterTitle,
-        } as StoryBeat;
-      });
+      // 构建 StoryBeat[]：每个 shot 对应一个 beat（Q2-1 原文回溯字段）
+      // 与画布入口（StoryPipelineShell handleEnterStoryboard）共用 buildBeatsFromShots
+      const beats = buildBeatsFromShots(shots, state.characters);
 
       const title = state.config.projectName || state.rawText.slice(0, 40) || "未命名项目";
       const description = state.rawText.slice(0, 500);
@@ -115,13 +95,12 @@ export function useNovelFinalizeImport({
       if (!isMountedRef.current) return;
 
       if (existingStoryId) {
+        // 方案 A（2026-08-08）：画布为分镜真相源——已有故事 finalize 只更新元信息，
+        // 不传 beats/characters/scenes，避免用管线 shots 覆盖用户在画布中的编辑。
         const updateResult = await storyService.update(existingStoryId, {
           id: existingStoryId,
           title,
           description,
-          characters: characterIds,
-          scenes: sceneIds,
-          beats,
         });
         if (!isMountedRef.current) return;
 

@@ -6,7 +6,7 @@
  * 仅一处实现，避免 finalize / 画布入口两处维护不一致。
  */
 import type { StoryBeat } from "@/domain/schemas";
-import type { ShotBreakdown, ExtractedCharacter } from "./types";
+import type { ShotBreakdown, ExtractedCharacter, Segment } from "./types";
 
 /**
  * 将管线分镜列表映射为 StoryBeat[]（Q2-1 保留原文回溯字段）。
@@ -37,5 +37,55 @@ export function buildBeatsFromShots(
       chapterIndex: shot.chapterIndex,
       chapterTitle: shot.chapterTitle,
     } as StoryBeat;
+  });
+}
+
+/** 按 chapterIndex/chapterTitle 将 beats 聚合为管线段落（已有故事回填用） */
+export function buildSegmentsFromBeats(beats: StoryBeat[]): Segment[] {
+  const byChapter = new Map<string, { idx: number; title: string; beats: StoryBeat[] }>();
+  for (const b of beats) {
+    const idx = b.chapterIndex ?? 0;
+    const title = b.chapterTitle ?? `第 ${idx + 1} 章`;
+    const key = `${idx}:${title}`;
+    if (!byChapter.has(key)) byChapter.set(key, { idx, title, beats: [] });
+    byChapter.get(key)!.beats.push(b);
+  }
+  return [...byChapter.values()]
+    .sort((a, b) => a.idx - b.idx)
+    .map(({ idx, title, beats: chapterBeats }) => ({
+      id: `seg_${idx}`,
+      title,
+      summary: title,
+      startChar: 0,
+      endChar: 0,
+      estimatedDuration: chapterBeats.reduce((sum, b) => sum + (b.duration ?? 5), 0),
+      keyEvents: [],
+      text: chapterBeats.map((b) => b.description).join("\n"),
+    }));
+}
+
+/** 将画布 StoryBeat 逆向映射为管线分镜（已有故事回填用；画布未存 shotType 等用默认值） */
+export function buildShotsFromBeats(beats: StoryBeat[]): ShotBreakdown[] {
+  return beats.map((beat, index) => {
+    return {
+      id: beat.id,
+      sequence: index + 1,
+      description: beat.description,
+      shotType: "medium",
+      cameraAngle: "eye",
+      cameraMovement: "static",
+      action: "",
+      characters: [],
+      sceneId: beat.sceneId,
+      estimatedDuration: beat.duration ?? 5,
+      status: beat.keyframe ? "final" : "edited",
+      // Q2-1: 原文回溯字段
+      sourceText: beat.sourceText,
+      sourceSegmentId: beat.sourceSegmentId,
+      sourceStartChar: beat.sourceStartChar,
+      sourceEndChar: beat.sourceEndChar,
+      chapterIndex: beat.chapterIndex,
+      chapterTitle: beat.chapterTitle,
+    } as ShotBreakdown;
   });
 }

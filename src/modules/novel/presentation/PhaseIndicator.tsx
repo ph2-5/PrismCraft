@@ -7,14 +7,16 @@
  * - v5.2：所有阶段可点击跳转
  */
 
-import { Check, FolderPlus, FileUp, Users, MapPin, ClipboardCheck, Clapperboard, Sparkles } from "lucide-react";
+import { Check, FolderPlus, FileUp, Users, MapPin, ClipboardCheck, Clapperboard, Sparkles, Network, Timer } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineStage } from "../domain/types";
 
-/** 7 个用户可见阶段（不含 structure_analysis/pacing_planning/done） */
+/** 用户可见阶段（P1 修复 2026-08-08：structure_analysis/pacing_planning 独立显示，不再折叠到 content_import 造成进度错位） */
 const VISIBLE_PHASES: PipelineStage[] = [
   "project_init",
   "content_import",
+  "structure_analysis",
+  "pacing_planning",
   "character_manage",
   "scene_manage",
   "review",
@@ -22,10 +24,12 @@ const VISIBLE_PHASES: PipelineStage[] = [
   "generation",
 ];
 
-/** 阶段 → 图标（仅 7 个可见阶段需要，其余阶段无入口） */
+/** 阶段 → 图标 */
 const PHASE_ICONS: Partial<Record<PipelineStage, typeof Check>> = {
   project_init: FolderPlus,
   content_import: FileUp,
+  structure_analysis: Network,
+  pacing_planning: Timer,
   character_manage: Users,
   scene_manage: MapPin,
   review: ClipboardCheck,
@@ -46,13 +50,8 @@ function stageLabel(stage: PipelineStage): string {
 }
 
 export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
-  // 如果当前 stage 是 structure_analysis/pacing_planning，映射到 content_import 显示
-  const displayStage: PipelineStage =
-    stage === "structure_analysis" || stage === "pacing_planning"
-      ? "content_import"
-      : stage === "done"
-        ? "generation"
-        : stage;
+  // done 终态映射到 generation 高亮；其余阶段按真实 stage 显示（structure/pacing 已独立成节点）
+  const displayStage: PipelineStage = stage === "done" ? "generation" : stage;
   const currentIndex = VISIBLE_PHASES.indexOf(displayStage);
 
   return (

@@ -447,7 +447,7 @@ export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: 
     handleImport, handleToggle, handleSelectAll,
     handleConfirmCharacter, handleConfirmScene, handleEditCharacter,
     handleEditScene, handleMatchCharacter, handleEditShot, handleReorderShots,
-    handleGeneratePrompts, handleFinalizeImport, setCurrentSegmentIndex,
+    handleGeneratePrompts, handleFinalizeImport, handleNext, setCurrentSegmentIndex,
     handleBeatsChange, handleShotContractsChange,
     handlePacingConfigChange, handleApplyPacing, handleResetPacing,
     // v5.2.1 角色管理重构
@@ -609,6 +609,7 @@ export function StoryPipelineShell({ onComplete, initialConfig, initialStory }: 
               onReorderShots={handleReorderShots}
               onGeneratePrompts={handleGeneratePrompts}
               onEnterStoryboard={handleEnterStoryboard}
+              onGenerateShots={handleNext}
               onFinalizeImport={handleFinalizeImport}
               onBeatsChange={handleBeatsChange}
               onShotContractsChange={handleShotContractsChange}

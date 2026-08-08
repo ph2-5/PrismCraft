@@ -60,6 +60,8 @@ export interface MainWorkAreaProps {
   onGeneratePrompts: () => void;
   /** 方案 A（2026-08-08）：进入画布式分镜（无 storyId 时由管线创建草稿 Story） */
   onEnterStoryboard?: () => void;
+  /** P1（2026-08-08）：空态生成分镜（review 阶段=管线下一步） */
+  onGenerateShots?: () => void;
   onFinalizeImport: () => void;
   // Task 2A.13 Structure handlers
   onBeatsChange: (beats: NarrativeBeat[]) => void;
@@ -122,6 +124,7 @@ export function MainWorkArea({
   onReorderShots,
   onGeneratePrompts,
   onEnterStoryboard,
+  onGenerateShots,
   onFinalizeImport,
   onBeatsChange,
   onShotContractsChange,
@@ -225,6 +228,7 @@ export function MainWorkArea({
             onEdit={onEditShot}
             onReorder={onReorderShots}
             onGeneratePrompts={onGeneratePrompts}
+            onGenerateShots={onGenerateShots}
           />
         </div>
       ) : showFinalize ? (

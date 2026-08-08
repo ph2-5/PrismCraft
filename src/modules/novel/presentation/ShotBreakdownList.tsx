@@ -21,6 +21,8 @@ export interface ShotBreakdownListProps {
   onEdit: (shot: ShotBreakdown) => void;
   onReorder: (from: number, to: number) => void;
   onGeneratePrompts: () => void;
+  /** P1（2026-08-08）：空态引导——生成分镜（review 阶段=管线下一步） */
+  onGenerateShots?: () => void;
 }
 
 export function ShotBreakdownList({
@@ -28,6 +30,7 @@ export function ShotBreakdownList({
   onEdit,
   onReorder,
   onGeneratePrompts,
+  onGenerateShots,
 }: ShotBreakdownListProps) {
   // 统计
   const stats = useMemo(() => {
@@ -45,6 +48,19 @@ export function ShotBreakdownList({
         icon={Film}
         title={t("novel.shotBreakdown.empty")}
         hint={t("novel.shotBreakdown.emptyHint")}
+        action={
+          onGenerateShots ? (
+            <button
+              type="button"
+              onClick={onGenerateShots}
+              className="btn btn-primary btn-sm"
+              aria-label={t("novel.shotBreakdown.generateShots")}
+            >
+              <Sparkles size={14} className="inline-block mr-1" aria-hidden="true" />
+              {t("novel.shotBreakdown.generateShots")}
+            </button>
+          ) : undefined
+        }
       />
     );
   }

@@ -35,6 +35,7 @@ import { useNovelStageTransitions } from "./use-novel-stage-transitions";
 import { usePipelinePersistence } from "./use-pipeline-persistence";
 import { useProgressiveExtraction } from "./use-progressive-extraction";
 import { makeStoryPipelineState } from "./pipeline-helpers";
+import { buildSegmentsFromBeats, buildShotsFromBeats } from "../domain/beat-mapping";
 
 export interface UseNovelPipelineOptions {
   onComplete: () => void;
@@ -200,8 +201,37 @@ export function useNovelPipeline({
   useEffect(() => {
     if (!initialStory || initialStoryInjectedRef.current) return;
     initialStoryInjectedRef.current = true;
-    setState(makeStoryPipelineState(initialStory));
-  }, [initialStory, setState]);
+
+    // P1（2026-08-08）：已有故事回填——从 storyService 加载 StoryBeat，
+    // 逆向映射为管线 segments/shots 并直接进入分镜阶段（画布为分镜真相源）。
+    // 失败时回退旧行为（makeStoryPipelineState 空管线）。
+    void (async () => {
+      try {
+        const { storyService } = await import("@/modules/storyboard");
+        const result = await storyService.getById(initialStory.id);
+        if (!isMountedRef.current) return;
+
+        if (!result.ok) {
+          setState(makeStoryPipelineState(initialStory));
+          return;
+        }
+        const beats = result.value.beats ?? [];
+        const segments = buildSegmentsFromBeats(beats);
+        const shots = buildShotsFromBeats(beats);
+        setState((prev) => ({
+          ...prev,
+          rawText: segments.map((s) => s.text).join("\n\n"),
+          segments,
+          // 已有分镜 → 直接进入分镜阶段（可继续编辑或进画布）
+          stage: shots.length > 0 ? "storyboard" : prev.stage,
+        }));
+        setShots(shots);
+      } catch {
+        // 加载失败不阻塞：回退空管线，用户可重新从导入开始
+        if (isMountedRef.current) setState(makeStoryPipelineState(initialStory));
+      }
+    })();
+  }, [initialStory, setState, setShots, isMountedRef]);
 
   // 2. 派生 UI 标志
   const {
